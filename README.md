@@ -694,9 +694,12 @@ See [airblackbox.ai](https://airblackbox.ai) for details.
 
 ## Related Repositories
 
-- **[air-platform](https://github.com/airblackbox/air-platform)** — Docker Compose stack: Full AIR Blackbox suite in one command
-- **[air-compliance-model](https://github.com/airblackbox/air-compliance-model)** — Fine-tuned LLM for EU AI Act scanning
+- **[air-trust](https://github.com/airblackbox/air-trust)** — Universal compliance trust layer for AI systems (the `air-trust` PyPI package)
+- **[air-gate](https://github.com/airblackbox/air-gate)** — HMAC-SHA256 audit chain engine with human-in-the-loop tool gating
+- **[air-platform](https://github.com/airblackbox/air-platform)** — Full-stack deployment: Gateway + Episode Store + Policy Engine + Jaeger
 - **[air-blackbox-mcp](https://github.com/airblackbox/air-blackbox-mcp)** — MCP server for Claude Desktop and other MCP clients
+- **[air-controls](https://github.com/airblackbox/air-controls)** — Runtime visibility for LangChain, CrewAI, AutoGen, and custom agents
+- **[compliance-action](https://github.com/airblackbox/compliance-action)** — GitHub Action for EU AI Act checks on pull requests
 
 ## Contributing
 

@@ -336,6 +336,6 @@ The scanner detects but never stores PII:
 
 **Data Governance Owner:** Chief Compliance Officer
 **Review Schedule:** Quarterly review; annual comprehensive audit
-**Contact:** compliance@airblackbox.dev
+**Contact:** jason@airblackbox.ai
 **Last Updated:** 2026-01-15
 **Next Review:** 2026-04-15

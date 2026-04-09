@@ -464,10 +464,9 @@ Solutions:
 
 ### Support Resources
 
-- **Documentation:** https://air-blackbox.dev/docs/operator
-- **Troubleshooting:** https://air-blackbox.dev/docs/troubleshooting
-- **Email:** operators@airblackbox.dev
-- **Slack:** #air-blackbox-operators (enterprise only)
+- **Documentation:** https://airblackbox.ai/docs
+- **Troubleshooting:** https://github.com/airblackbox/gateway/discussions
+- **Email:** jason@airblackbox.ai
 
 ## 8. Best Practices
 

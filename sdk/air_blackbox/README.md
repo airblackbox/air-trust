@@ -71,7 +71,7 @@ pip install air-blackbox
 ### Install from source (for development)
 
 ```bash
-git clone https://github.com/anthropics/air-blackbox.git
+git clone https://github.com/airblackbox/gateway.git
 cd air-blackbox
 pip install -e .
 ```
@@ -333,10 +333,10 @@ Spreadsheet format for manual audit and reporting.
 
 ## Support and Contributing
 
-**Documentation:** https://air-blackbox.dev/docs
-**Issue Tracker:** https://github.com/anthropics/air-blackbox/issues
-**Community Forum:** https://discuss.air-blackbox.dev
-**Email Support:** support@airblackbox.dev
+**Documentation:** https://airblackbox.ai/docs
+**Issue Tracker:** https://github.com/airblackbox/gateway/issues
+**Community Forum:** https://github.com/airblackbox/gateway/discussions
+**Email Support:** jason@airblackbox.ai
 
 ### Contributing to AIR Blackbox
 
@@ -362,7 +362,7 @@ If you use AIR Blackbox in your research or compliance process, please cite:
   title={AIR Blackbox: EU AI Act Compliance Scanner},
   author={Anthropic},
   year={2026},
-  url={https://github.com/anthropics/air-blackbox}
+  url={https://github.com/airblackbox/gateway}
 }
 ```
 

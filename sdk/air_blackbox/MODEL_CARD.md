@@ -265,19 +265,18 @@ Recommendation: Combine tool (fast, broad coverage) with human review (expertise
 
 ## Additional Resources
 
-- **Documentation:** https://air-blackbox.dev/docs/model-card
-- **Research paper:** https://arxiv.org/abs/2601.xxxxx
-- **Model weights:** https://huggingface.co/anthropic/air-compliance-v2
-- **Fine-tuning code:** https://github.com/anthropics/air-blackbox/tree/main/training
-- **Benchmark results:** https://github.com/anthropics/air-blackbox/tree/main/benchmarks
+- **Documentation:** https://airblackbox.ai/docs
+- **Model weights:** https://huggingface.co/airblackbox/air-compliance-v2
+- **Fine-tuning code:** https://github.com/airblackbox/gateway/tree/main/training
+- **Benchmark results:** https://github.com/airblackbox/gateway/tree/main/benchmarks
 
 ## Contact and Feedback
 
 For questions about this model card, report model issues, or provide feedback:
 
-- Email: model-feedback@airblackbox.dev
-- GitHub Issues: https://github.com/anthropics/air-blackbox/issues
-- Community Forum: https://discuss.air-blackbox.dev
+- Email: jason@airblackbox.ai
+- GitHub Issues: https://github.com/airblackbox/gateway/issues
+- Community Forum: https://github.com/airblackbox/gateway/discussions
 
 **Last Updated:** January 2026
 **Next Review:** July 2026
