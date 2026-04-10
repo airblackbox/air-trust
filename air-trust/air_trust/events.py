@@ -243,9 +243,15 @@ class Event:
     # Metadata (adapter can attach anything)
     meta: Dict[str, Any] = field(default_factory=dict)
 
+    # ── v1.1: Session Completeness ────────────────────────────────
+    # Set by AuditChain.write() when session_id is present.
+    # Do not set manually — the chain manages these.
+    session_seq: Optional[int] = None         # monotonic counter within session (starts at 0)
+    prev_session_seq: Optional[int] = None    # previous record's session_seq (-1 for first)
+
     # Set by AuditChain after signing — never set manually
     chain_hash: Optional[str] = None
-    version: str = "1.0.0"
+    version: str = "1.1.0"
 
     def to_dict(self) -> dict:
         """Serialize to dict for the HMAC chain, dropping None values."""

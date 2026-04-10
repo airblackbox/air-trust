@@ -43,40 +43,88 @@ def print_header(title: str):
 
 
 def cmd_verify(args):
-    """Verify the integrity of the audit chain."""
+    """Verify the integrity and completeness of the audit chain."""
     db_path = args.db
     if not db_path:
         db_path = str(Path.home() / ".air-trust" / "events.db")
 
-    print_header("AIR Trust — Chain Verification")
-
     if not Path(db_path).exists():
-        print(f"{RED}✗ FAIL{RESET}: Database not found at {db_path}")
+        if args.json_output:
+            print(json.dumps({"error": f"Database not found at {db_path}"}))
+        else:
+            print_header("AIR Trust — Chain Verification")
+            print(f"{RED}✗ FAIL{RESET}: Database not found at {db_path}")
         return 1
 
     try:
-        chain = AuditChain(db_path=db_path)
+        chain = AuditChain(db_path=db_path, signing_key=args.key)
         result = chain.verify()
 
-        record_count = result["records"]
-        is_valid = result["valid"]
-        broken_at = result["broken_at"]
+        # JSON output mode for CI/CD
+        if args.json_output:
+            print(json.dumps({
+                "integrity": result["integrity"],
+                "completeness": result["completeness"],
+            }, indent=2))
+            if not result["integrity"]["valid"]:
+                return 1
+            if result["completeness"]["sessions_incomplete"] > 0:
+                return 2  # warn exit code
+            return 0
+
+        # Human-readable output
+        print_header("AIR Trust — Chain Verification (v1.1)")
+
+        integrity = result["integrity"]
+        completeness = result["completeness"]
 
         print(f"Database: {db_path}")
-        print(f"Records: {record_count}")
+        print(f"Records:  {integrity['records']}")
         print()
 
-        if is_valid:
-            print(f"{GREEN}✓ PASS{RESET}: Chain is intact")
-            return 0
+        # ── Integrity ──
+        if integrity["valid"]:
+            print(f"{GREEN}✓ PASS{RESET}: Integrity — chain is intact (HMAC-SHA256)")
         else:
-            print(f"{RED}✗ FAIL{RESET}: Chain is broken")
-            if broken_at is not None:
-                print(f"Tampered at record index: {broken_at}")
+            print(f"{RED}✗ FAIL{RESET}: Integrity — chain is broken")
+            if integrity["broken_at"] is not None:
+                print(f"  Tampered at record index: {integrity['broken_at']}")
             return 1
 
+        # ── Completeness ──
+        if completeness["sessions_checked"] == 0:
+            print(f"  INFO: No sessions found (v1.0 records only, completeness not checked)")
+            return 0
+
+        print(f"\n  Sessions checked:    {completeness['sessions_checked']}")
+        print(f"  Sessions complete:   {completeness['sessions_complete']}")
+        print(f"  Sessions incomplete: {completeness['sessions_incomplete']}")
+
+        if completeness["sessions_incomplete"] == 0:
+            print(f"\n{GREEN}✓ PASS{RESET}: Completeness — all sessions are complete")
+        else:
+            print(f"\n{YELLOW}⚠ WARN{RESET}: Completeness — issues detected:")
+            for issue in completeness["issues"]:
+                sid_short = issue["session_id"][:12] + "..."
+                itype = issue["issue"]
+                if itype == "gap":
+                    print(f"  Session {sid_short}: gap at seq {issue.get('expected_seq')} (got {issue.get('actual_seq')})")
+                elif itype == "duplicate":
+                    print(f"  Session {sid_short}: duplicate seq {issue.get('session_seq')}")
+                elif itype == "rewind":
+                    print(f"  Session {sid_short}: rewind at seq {issue.get('expected_seq')} (got {issue.get('actual_seq')})")
+                elif itype == "missing_session_end":
+                    print(f"  Session {sid_short}: missing session_end (last seq: {issue.get('last_seq')})")
+                elif itype == "missing_session_start":
+                    print(f"  Session {sid_short}: missing session_start")
+
+        return 0
+
     except Exception as e:
-        print(f"{RED}✗ ERROR{RESET}: {e}")
+        if args.json_output:
+            print(json.dumps({"error": str(e)}))
+        else:
+            print(f"{RED}✗ ERROR{RESET}: {e}")
         return 1
 
 
@@ -147,7 +195,11 @@ def cmd_stats(args):
         print(f"  First: {first_date}")
         print(f"  Last: {last_date}")
         print()
-        print(f"Chain Validity: {GREEN if result['valid'] else RED}{'VALID' if result['valid'] else 'BROKEN'}{RESET}")
+        is_valid = result["integrity"]["valid"]
+        print(f"Chain Validity: {GREEN if is_valid else RED}{'VALID' if is_valid else 'BROKEN'}{RESET}")
+        if result["completeness"]["sessions_checked"] > 0:
+            c = result["completeness"]
+            print(f"Sessions: {c['sessions_complete']}/{c['sessions_checked']} complete")
 
         return 0
 
@@ -290,7 +342,7 @@ def cmd_badge(args):
         if Path(db_path).exists():
             chain = AuditChain(db_path=db_path)
             result = chain.verify()
-            chain_valid = result.get("valid", False)
+            chain_valid = result.get("integrity", {}).get("valid", False)
     except Exception:
         pass
 
@@ -356,7 +408,7 @@ def cmd_register(args):
         "org": org or None,
         "use_case": use_case or None,
         "registered_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "air_trust_version": "0.4.0",
+        "air_trust_version": "0.5.0",
     }
 
     os.makedirs(os.path.dirname(reg_path), exist_ok=True)
@@ -456,12 +508,25 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # verify command
-    verify_parser = subparsers.add_parser("verify", help="Verify chain integrity")
+    verify_parser = subparsers.add_parser("verify", help="Verify chain integrity and completeness")
     verify_parser.add_argument(
         "--db",
         type=str,
         default=None,
         help="Path to events database (default: ~/.air-trust/events.db)",
+    )
+    verify_parser.add_argument(
+        "--json",
+        dest="json_output",
+        action="store_true",
+        default=False,
+        help="Output as JSON (for CI/CD pipelines)",
+    )
+    verify_parser.add_argument(
+        "--key",
+        type=str,
+        default=None,
+        help="Signing key (default: from AIR_TRUST_KEY env or ~/.air-trust/signing.key)",
     )
     verify_parser.set_defaults(func=cmd_verify)
 

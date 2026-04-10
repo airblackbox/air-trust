@@ -18,10 +18,20 @@ import os
 import sqlite3
 import threading
 import time
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Optional, Dict
 
 from air_trust.events import Event
+
+# v1.1: Active session ID propagation.
+# When code runs inside an air_trust.session() block, this ContextVar
+# holds the session_id so that ALL events (including adapter events)
+# automatically inherit it. Set by AirTrustSession.__enter__,
+# cleared by AirTrustSession.__exit__.
+_active_session_id: ContextVar[Optional[str]] = ContextVar(
+    "_active_session_id", default=None
+)
 
 
 class AuditChain:
@@ -56,6 +66,9 @@ class AuditChain:
         self._prev_hash = b"genesis"
         self._count = 0
         self._lock = threading.Lock()
+
+        # v1.1: per-session sequence counters  {session_id: next_seq}
+        self._session_seqs: dict = {}
 
         # Initialize SQLite
         self._init_db()
@@ -99,13 +112,15 @@ class AuditChain:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_agent ON events(agent)")
         # Migration: add columns if they don't exist (for existing DBs)
         # Must run BEFORE creating indexes on these columns
-        for col, col_type in [("agent_identity", "TEXT"), ("owner", "TEXT"), ("fingerprint", "TEXT")]:
+        for col, col_type in [("agent_identity", "TEXT"), ("owner", "TEXT"), ("fingerprint", "TEXT"),
+                               ("session_seq", "INTEGER"), ("prev_session_seq", "INTEGER")]:
             try:
                 conn.execute(f"ALTER TABLE events ADD COLUMN {col} {col_type}")
             except sqlite3.OperationalError:
                 pass  # Column already exists
         conn.execute("CREATE INDEX IF NOT EXISTS idx_owner ON events(owner)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_fingerprint ON events(fingerprint)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_session_id ON events(trace_id)")  # session_id stored in data
         conn.commit()
         conn.close()
 
@@ -122,9 +137,28 @@ class AuditChain:
     def write(self, event: Event) -> str:
         """Sign an event and append it to the chain.
 
+        If the event has a session_id, auto-assigns session_seq and
+        prev_session_seq for v1.1 completeness tracking.
+
         Returns the chain_hash (hex string).
         """
         with self._lock:
+            # v1.1: auto-inherit active session_id if event doesn't have one
+            if event.session_id is None:
+                active_sid = _active_session_id.get()
+                if active_sid is not None:
+                    event.session_id = active_sid
+
+            # v1.1: assign session sequence numbers if event has a session_id
+            if event.session_id is not None:
+                sid = event.session_id
+                if sid not in self._session_seqs:
+                    self._session_seqs[sid] = 0
+                seq = self._session_seqs[sid]
+                event.session_seq = seq
+                event.prev_session_seq = seq - 1
+                self._session_seqs[sid] = seq + 1
+
             record = event.to_dict()
 
             # Compute HMAC-SHA256
@@ -150,8 +184,8 @@ class AuditChain:
             conn = sqlite3.connect(self._db_path)
             conn.execute(
                 """INSERT INTO events
-                   (run_id, trace_id, timestamp, type, framework, agent, model, status, chain_hash, agent_identity, owner, fingerprint, data)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (run_id, trace_id, timestamp, type, framework, agent, model, status, chain_hash, agent_identity, owner, fingerprint, session_seq, prev_session_seq, data)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     event.run_id,
                     event.trace_id,
@@ -165,6 +199,8 @@ class AuditChain:
                     agent_identity,
                     owner,
                     fingerprint,
+                    event.session_seq,
+                    event.prev_session_seq,
                     json.dumps(record, default=str),
                 ),
             )
@@ -183,9 +219,21 @@ class AuditChain:
             return chain_hash
 
     def verify(self) -> Dict:
-        """Verify the entire chain for tampering.
+        """Verify the entire chain for integrity AND session completeness.
 
-        Returns: {"valid": bool, "records": int, "broken_at": int|None}
+        Returns a dict with two sections:
+            {
+                "integrity": {"valid": bool, "records": int, "broken_at": int|None},
+                "completeness": {
+                    "sessions_checked": int,
+                    "sessions_complete": int,
+                    "sessions_incomplete": int,
+                    "issues": [...]
+                }
+            }
+
+        For backward compatibility, the top-level dict also has "valid",
+        "records", and "broken_at" mirroring the integrity section.
         """
         conn = sqlite3.connect(self._db_path)
         rows = conn.execute(
@@ -193,19 +241,130 @@ class AuditChain:
         ).fetchall()
         conn.close()
 
+        # ── Integrity check (v1.0) ────────────────────────────────
+        integrity = {"valid": True, "records": len(rows), "broken_at": None}
+        all_records = []
+
         prev = b"genesis"
         for i, (stored_hash, data_json) in enumerate(rows):
             record = json.loads(data_json)
-            # Remove chain_hash from record before verifying
+            all_records.append(record)
             record_clean = {k: v for k, v in record.items() if k != "chain_hash"}
             payload = prev + json.dumps(record_clean, sort_keys=True, default=str).encode()
             expected = hmac.new(self._key, payload, hashlib.sha256).hexdigest()
 
             if expected != stored_hash:
-                return {"valid": False, "records": len(rows), "broken_at": i}
+                integrity = {"valid": False, "records": len(rows), "broken_at": i}
+                break
             prev = bytes.fromhex(stored_hash)
 
-        return {"valid": True, "records": len(rows), "broken_at": None}
+        # ── Completeness check (v1.1) ────────────────────────────
+        completeness = self._check_completeness(all_records)
+
+        return {
+            # v1.1 structured output
+            "integrity": integrity,
+            "completeness": completeness,
+            # v1.0 backward compat (mirror integrity at top level)
+            "valid": integrity["valid"],
+            "records": integrity["records"],
+            "broken_at": integrity["broken_at"],
+        }
+
+    def _check_completeness(self, records: list) -> Dict:
+        """Check session completeness across all records.
+
+        Groups records by session_id, then checks each session for:
+        - sequence gaps
+        - duplicate sequence numbers
+        - rewinds (counter went backward)
+        - missing session_start / session_end
+        """
+        # Group records by session_id (skip unscoped records)
+        sessions: dict = {}  # session_id -> list of (global_index, record)
+        for i, record in enumerate(records):
+            sid = record.get("session_id")
+            if sid is None:
+                continue
+            if sid not in sessions:
+                sessions[sid] = []
+            sessions[sid].append((i, record))
+
+        issues = []
+        sessions_complete = 0
+
+        for sid, session_records in sessions.items():
+            session_issues = []
+
+            # Check lifecycle: first record should be session_start
+            first_record = session_records[0][1]
+            if first_record.get("type") != "session_start":
+                session_issues.append({
+                    "session_id": sid,
+                    "issue": "missing_session_start",
+                    "record_index": session_records[0][0],
+                })
+
+            # Check lifecycle: last record should be session_end
+            last_record = session_records[-1][1]
+            if last_record.get("type") != "session_end":
+                session_issues.append({
+                    "session_id": sid,
+                    "issue": "missing_session_end",
+                    "last_seq": last_record.get("session_seq"),
+                })
+
+            # Check sequence continuity
+            prev_seq = None
+            seen_seqs = set()
+            for idx, record in session_records:
+                seq = record.get("session_seq")
+                if seq is None:
+                    continue  # v1.0 record mixed in, skip
+
+                # Duplicate check
+                if seq in seen_seqs:
+                    session_issues.append({
+                        "session_id": sid,
+                        "issue": "duplicate",
+                        "session_seq": seq,
+                        "record_index": idx,
+                    })
+                seen_seqs.add(seq)
+
+                if prev_seq is not None:
+                    expected = prev_seq + 1
+                    if seq < prev_seq:
+                        # Rewind
+                        session_issues.append({
+                            "session_id": sid,
+                            "issue": "rewind",
+                            "expected_seq": expected,
+                            "actual_seq": seq,
+                            "record_index": idx,
+                        })
+                    elif seq != expected:
+                        # Gap
+                        session_issues.append({
+                            "session_id": sid,
+                            "issue": "gap",
+                            "expected_seq": expected,
+                            "actual_seq": seq,
+                            "record_index": idx,
+                        })
+
+                prev_seq = seq
+
+            if len(session_issues) == 0:
+                sessions_complete += 1
+            issues.extend(session_issues)
+
+        return {
+            "sessions_checked": len(sessions),
+            "sessions_complete": sessions_complete,
+            "sessions_incomplete": len(sessions) - sessions_complete,
+            "issues": issues,
+        }
 
     @property
     def record_count(self) -> int:

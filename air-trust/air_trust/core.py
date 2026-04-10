@@ -27,7 +27,7 @@ import atexit
 from typing import Any, Optional, Callable
 from contextlib import contextmanager
 
-from air_trust.chain import AuditChain
+from air_trust.chain import AuditChain, _active_session_id
 from air_trust.events import Event, AgentIdentity
 from air_trust.detection import detect_installed, detect_object
 from air_trust.scan import scan_pii, scan_injection
@@ -249,15 +249,22 @@ class AirTrustSession:
 
     Provides .log() for custom checkpoints and auto-detects
     any AI clients used inside the block.
+
+    v1.1: Generates a unique session_id and attaches it to every
+    event written within the session block. This enables the
+    completeness verifier to detect dropped records.
     """
 
     def __init__(self, name: str, chain: Optional[AuditChain] = None,
                  identity: Optional[AgentIdentity] = None):
+        import uuid
         self.name = name
         self._chain = chain or _get_chain()
         self._identity = identity
         self._start_time = None
         self._event_count_start = 0
+        # v1.1: unique session ID for completeness tracking
+        self._session_id = uuid.uuid4().hex
 
     def __enter__(self):
         import time
@@ -267,9 +274,13 @@ class AirTrustSession:
         if self._identity is not None:
             global _global_identity
             _global_identity = self._identity
+        # v1.1: Set the active session_id so ALL adapter events
+        # written inside this block inherit it automatically.
+        self._session_token = _active_session_id.set(self._session_id)
         self._chain.write(Event(
             type="session_start",
             framework="air_trust",
+            session_id=self._session_id,
             description=f"Session: {self.name}",
             status="running",
             identity=self._identity,
@@ -283,6 +294,7 @@ class AirTrustSession:
         self._chain.write(Event(
             type="session_end",
             framework="air_trust",
+            session_id=self._session_id,
             description=f"Session: {self.name}",
             duration_ms=duration,
             status="error" if exc_type else "success",
@@ -290,7 +302,14 @@ class AirTrustSession:
             identity=self._identity,
             meta={"events_recorded": events_in_session},
         ))
+        # v1.1: Clear the active session_id
+        _active_session_id.reset(self._session_token)
         return False  # Don't suppress exceptions
+
+    @property
+    def session_id(self) -> str:
+        """The unique session ID for this session (v1.1)."""
+        return self._session_id
 
     def log(self, message: str, *,
             risk_level: Optional[str] = None,
@@ -306,6 +325,7 @@ class AirTrustSession:
         self._chain.write(Event(
             type="checkpoint",
             framework="air_trust",
+            session_id=self._session_id,
             description=message,
             risk_level=risk_level,
             status="logged",
@@ -378,10 +398,11 @@ def get_identity() -> Optional[AgentIdentity]:
     return _global_identity
 
 
-def verify() -> bool:
-    """Verify the integrity of the global audit chain.
+def verify() -> dict:
+    """Verify the integrity and completeness of the global audit chain.
 
-    Returns True if the chain is intact, False if tampered.
+    Returns a dict with both integrity and completeness results.
+    See AuditChain.verify() for the full output format.
     """
     return _get_chain().verify()
 
@@ -403,7 +424,7 @@ def stats() -> dict:
     return {
         "total_events": chain._count,
         "chain_length": chain._count,
-        "chain_valid": chain.verify(),
+        "chain_valid": chain.verify()["integrity"]["valid"],
         "frameworks_detected": [f"{fid} ({atype})" for fid, atype in installed],
         "adapters_active": list(_adapters.keys()),
     }
