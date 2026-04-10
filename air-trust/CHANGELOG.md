@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   session_start, and missing session_end within each session
 - `verify()` now returns both `integrity` (v1.0 HMAC check) and
   `completeness` (v1.1 session check) in a structured report
-- CLI `python -m air_trust verify` upgraded with PASS/WARN/FAIL tiers
+- CLI `python3 -m air_trust verify` upgraded with PASS/WARN/FAIL tiers
 - CLI `--json` flag for machine-readable CI/CD output
 - CLI `--key` flag for specifying the signing key
 - `SPEC.md` v1.1 specification with threat model and scope statement
@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AgentIdentity with ATF Identity Core Elements (I-1 through I-5)
 - Four maturity levels: Intern, Junior, Senior, Principal
 - `atf.conformance()`, `atf.level_compliant()`, `atf.gaps()` functions
-- CLI `python -m air_trust atf` for ATF conformance checking
+- CLI `python3 -m air_trust atf` for ATF conformance checking
 - MCP adapter for Claude Desktop, Cursor, Claude Code, Windsurf
 - Policy enforcement with block/warn/log modes
 - PII detection (email, SSN, phone, credit card, IBAN, national ID)

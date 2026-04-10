@@ -2,14 +2,14 @@
 air-trust CLI — Verify, inspect, and export audit chains.
 
 Usage:
-    python -m air_trust verify              # Verify the default chain
-    python -m air_trust verify --db path    # Verify a specific database
-    python -m air_trust stats               # Show chain statistics
-    python -m air_trust export              # Export chain as JSON
-    python -m air_trust export --format csv # Export as CSV
-    python -m air_trust badge               # Print compliance badge markdown
-    python -m air_trust register            # Register project for tracking (opt-in)
-    python -m air_trust atf                 # CSA Agentic Trust Framework conformance
+    python3 -m air_trust verify              # Verify the default chain
+    python3 -m air_trust verify --db path    # Verify a specific database
+    python3 -m air_trust stats               # Show chain statistics
+    python3 -m air_trust export              # Export chain as JSON
+    python3 -m air_trust export --format csv # Export as CSV
+    python3 -m air_trust badge               # Print compliance badge markdown
+    python3 -m air_trust register            # Register project for tracking (opt-in)
+    python3 -m air_trust atf                 # CSA Agentic Trust Framework conformance
 """
 
 import argparse
@@ -417,7 +417,7 @@ def cmd_register(args):
 
     print(f"\n\033[32m✓ Registered: {project}\033[0m")
     print(f"  Saved to: {reg_path}")
-    print(f"\n  To update: python -m air_trust register")
+    print(f"\n  To update: python3 -m air_trust register")
     print(f"  To remove: rm {reg_path}")
 
     return 0
@@ -459,7 +459,7 @@ def cmd_atf(args):
             )
             print(
                 "\nExample:\n"
-                "  python -m air_trust atf --name my-agent --owner jason@example.com \\\n"
+                "  python3 -m air_trust atf --name my-agent --owner jason@example.com \\\n"
                 "      --purpose 'Summarize tickets' --capabilities read:tickets,generate:summary",
                 file=sys.stderr,
             )
