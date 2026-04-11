@@ -1,124 +1,99 @@
 # air-trust
 
-**Tamper-evident audit chain for AI agents. HMAC-SHA256 integrity, session completeness, Ed25519 signed handoffs.**
+Tamper-evident audit chain for AI agents.
 
 [![PyPI](https://img.shields.io/pypi/v/air-trust)](https://pypi.org/project/air-trust/)
 [![Python](https://img.shields.io/pypi/pyversions/air-trust)](https://pypi.org/project/air-trust/)
+[![Tests](https://img.shields.io/badge/tests-305_passing-brightgreen)](air-trust/tests/)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-
-```bash
-pip install air-trust
-```
-
-Zero dependencies. No cloud. No API keys. Runs entirely on your machine.
 
 <p align="center">
   <img src="air-trust/demo.gif" alt="air-trust terminal demo" width="820">
 </p>
 
----
+## Highlights
 
-## What air-trust Does
+- One line to start recording: `client = air_trust.trust(OpenAI())`
+- HMAC-SHA256 chained signatures — if anyone modifies a record, the chain breaks
+- Ed25519 signed handoffs — cryptographic proof of which agent handed off to which
+- 25+ frameworks auto-detected — OpenAI, LangChain, CrewAI, Anthropic, Google ADK, and more
+- Zero dependencies — pure Python, no cloud, no API keys, runs on your machine
+- 305 tests covering integrity, completeness, handoffs, and edge cases
 
-air-trust writes a cryptographic audit chain every time your AI agents do something. Every record is HMAC-SHA256 signed and linked to the previous record — if anyone modifies a record after the fact, the chain breaks and the verifier catches it.
-
-Three layers of proof, each backward-compatible:
-
-| Spec | What It Proves | How |
-|---|---|---|
-| **v1.0** | Records weren't tampered with | HMAC-SHA256 chained signatures |
-| **v1.1** | No events are missing from a session | Monotonic sequence numbers + gap detection |
-| **v1.2** | Which agent handed off to which, with what data | Ed25519 asymmetric signatures on handoff records |
+## Install
 
 ```bash
-python3 -m air_trust verify
-
-# INTEGRITY     PASS  47 events, 47 valid HMAC links
-# COMPLETENESS  PASS  2 sessions complete, no gaps
-# HANDOFFS      PASS  1 interaction verified (Ed25519)
+pip install air-trust
 ```
 
-## Quick Start
+That's it. No config, no API keys, no Docker.
 
-### 1. Wrap any AI client (one line)
+## Quick Start
 
 ```python
 import air_trust
 from openai import OpenAI
 
+# Wrap any AI client — every call is now HMAC-SHA256 audited
 client = air_trust.trust(OpenAI())
-# Every LLM call is now recorded with HMAC-SHA256 signed evidence
-```
 
-### 2. Decorate any function
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello"}]
+)
 
-```python
-@air_trust.monitor
-def my_agent_step(prompt):
-    return client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}]
-    )
-```
-
-### 3. Audit a block of code
-
-```python
-with air_trust.session("my-pipeline") as s:
-    result = my_agent_step("Analyze this document")
-    s.log("Pipeline complete", risk_level="low")
-```
-
-### 4. Verify the chain
-
-```python
+# Verify the chain anytime
 result = air_trust.verify()
-# {'valid': True, 'records': 1847, 'broken_at': None}
+# {'valid': True, 'records': 42, 'broken_at': None}
 ```
 
 Or from the CLI:
 
 ```bash
 python3 -m air_trust verify
+# INTEGRITY     PASS  42 events, 42 valid HMAC links
+# COMPLETENESS  PASS  3 sessions complete, no gaps
 ```
+
+## What It Proves
+
+air-trust gives you three layers of cryptographic proof. Each is backward-compatible — you can start with v1.0 and add layers as you need them.
+
+| Layer | What It Proves | How |
+|---|---|---|
+| Integrity (v1.0) | No record was changed after it was written | HMAC-SHA256 chained signatures |
+| Completeness (v1.1) | No record was silently dropped | Monotonic sequence numbers + gap detection |
+| Handoff provenance (v1.2) | Agent A handed data to Agent B, and B acknowledged it | Ed25519 asymmetric signatures |
 
 ## Framework Auto-Detection
 
-`air_trust.trust()` detects what you pass it and applies the right adapter automatically:
+Pass anything to `air_trust.trust()` and it figures out the rest:
+
+```python
+client = air_trust.trust(OpenAI())         # Proxy adapter
+crew = air_trust.trust(my_crew)            # CrewAI decorator adapter
+handler = air_trust.trust(my_chain)        # LangChain callback adapter
+```
 
 | Adapter | Frameworks |
 |---|---|
-| **Proxy** (intercepts SDK calls) | OpenAI, Anthropic, Google GenAI, Google ADK, Ollama, vLLM, LiteLLM, Together, Groq, Mistral, Cohere |
-| **Callback** (framework events) | LangChain, LangGraph, LlamaIndex, Haystack |
-| **Decorator** (wraps functions) | CrewAI, Smolagents, PydanticAI, DSPy, AutoGen, Browser Use |
-| **OpenTelemetry** (reads gen_ai spans) | Semantic Kernel, any OTel-instrumented system |
-| **MCP** (protocol-level) | Claude Desktop, Cursor, Claude Code, Windsurf |
+| Proxy | OpenAI, Anthropic, Google GenAI, Ollama, vLLM, LiteLLM, Together, Groq, Mistral, Cohere |
+| Callback | LangChain, LangGraph, LlamaIndex, Haystack |
+| Decorator | CrewAI, Smolagents, PydanticAI, DSPy, AutoGen, Browser Use |
+| OpenTelemetry | Semantic Kernel, any OTel-instrumented system |
+| MCP | Claude Desktop, Cursor, Claude Code, Windsurf |
 
-## Signed Handoffs (v1.2)
+## Signed Handoffs
 
-When agents hand off work to other agents, how do you prove it happened? Signed handoffs add three record types — `handoff_request`, `handoff_ack`, `handoff_result` — each signed with the agent's Ed25519 private key.
+When agents pass work to other agents, signed handoffs create cryptographic proof of who sent what to whom. Three record types — handoff_request, handoff_ack, handoff_result — each signed with the sending agent's Ed25519 private key.
 
 ```bash
 pip install "air-trust[handoffs]"
-```
-
-### Generate keypairs
-
-```bash
 python3 -m air_trust keygen --agent research-bot
 python3 -m air_trust keygen --agent writer-bot
 ```
 
-Keys stored at `~/.air-trust/keys/` with `0600` permissions.
-
-### Instrument the handoff
-
 ```python
-from air_trust import AuditChain, AgentIdentity
-from air_trust.keys import generate_keypair, compute_payload_hash, generate_nonce
-
-chain = AuditChain()
-
 # Agent A requests handoff — auto-signed with Ed25519
 chain.write(Event(
     type="handoff_request",
@@ -128,118 +103,48 @@ chain.write(Event(
     payload_hash=compute_payload_hash("Summarize this document"),
     nonce=generate_nonce(),
 ))
-
-# Agent B acknowledges, does work, returns result
-chain.write(Event(type="handoff_ack", ...))
-chain.write(Event(type="handoff_result", ...))
 ```
-
-### Verify
 
 ```bash
 python3 -m air_trust verify
-
 # HANDOFFS      PASS  1 interaction verified
-#   interaction task-001:
-#     request   PASS  Ed25519 OK (research-bot)
-#     ack       PASS  Ed25519 OK (writer-bot)
-#     result    PASS  Ed25519 OK (writer-bot)
-#     payload   PASS  SHA-256 hash match
-#     nonce     PASS  unique
+#   request   PASS  Ed25519 OK (research-bot)
+#   ack       PASS  Ed25519 OK (writer-bot)
+#   result    PASS  Ed25519 OK (writer-bot)
+#   payload   PASS  SHA-256 hash match
 ```
 
-Tamper with the payload? The verifier catches it:
+Tamper with the payload? The verifier catches it immediately.
 
-```
-# HANDOFFS      FAIL  1 interaction failed
-#   result    FAIL  payload hash mismatch
-```
+[Try the interactive demo →](https://airblackbox.ai/demo/signed-handoff)
 
-**[Interactive demo →](https://airblackbox.ai/demo/signed-handoff)**
+## How It Works
 
-## How the Audit Chain Works
-
-Every event is signed and linked:
+Every event is signed and chained to the previous one:
 
 ```
 HMAC(key, previous_hash_bytes || JSON(record, sort_keys=True))
 ```
 
-This means:
-- Modify any record → chain breaks at that point
-- Delete a record → next record's previous_hash won't match
-- Reorder records → HMAC sequence breaks
-- Replay an old record → session sequence numbers catch it
+Modify any record → the chain breaks. Delete a record → the next hash won't match. Reorder records → sequence breaks. Replay an old record → session numbers catch it.
 
-The signing key is auto-generated and stored at `~/.air-trust/signing.key`. All evidence is stored locally in SQLite at `~/.air-trust/events.db`.
+Everything is stored locally in SQLite at `~/.air-trust/events.db`. The signing key auto-generates at `~/.air-trust/signing.key`. No cloud, no network calls.
 
-## Built-in Scanning
+## Who Made This
 
-### PII Detection
+Built by [Jason Shotwell](mailto:jason@airblackbox.ai) as the cryptographic backbone of [AIR Blackbox](https://airblackbox.ai) — open-source EU AI Act compliance tooling for developers.
 
-```python
-result = air_trust.scan_text("Contact me at test@example.com, SSN 123-45-6789")
-# {'pii': [{'type': 'email', 'count': 1}, {'type': 'ssn', 'count': 1}]}
-```
+EU AI Act Article 12 requires high-risk AI systems to maintain logs "sufficient to ensure traceability." air-trust provides exactly that: tamper-evident proof of what happened, stored on your infrastructure.
 
-Detects: email, SSN, phone, credit card, IBAN, national ID.
+Enforcement deadline: August 2, 2026.
 
-### Prompt Injection
+## Learn More
 
-```python
-result = air_trust.scan_text("Ignore all previous instructions")
-# {'injection': {'score': 0.95, 'alerts': [...]}}
-```
-
-20 weighted patterns across 5 attack categories.
-
-## Why Not Langfuse / Helicone?
-
-| | air-trust | SaaS observability |
-|---|---|---|
-| Data location | Your machine (SQLite) | Vendor's cloud |
-| Works offline | Yes | No |
-| API key required | No | Yes |
-| Tamper-evident | HMAC-SHA256 chain | No |
-| Signed handoffs | Ed25519 | No |
-| Dependencies | Zero | SDK + network |
-| Framework lock-in | None (auto-detect) | Per-vendor |
-
-Use both: Langfuse for dashboards, air-trust for cryptographic proof.
-
-## Configuration
-
-```python
-from air_trust import AuditChain
-
-chain = AuditChain(
-    db_path="/custom/path/events.db",
-    signing_key="your-key-here",  # or set AIR_TRUST_KEY env var
-)
-```
-
-| Env Variable | Default | Description |
-|---|---|---|
-| `AIR_TRUST_KEY` | *(auto-generated)* | HMAC-SHA256 signing key |
-| `AIR_TRUST_DB` | `~/.air-trust/events.db` | SQLite database path |
-
-## EU AI Act
-
-air-trust is built for EU AI Act Article 12 (Record-Keeping) — the requirement that high-risk AI systems maintain logs "sufficient to ensure traceability." The tamper-evident audit chain provides exactly that: cryptographic proof of what happened, stored on your infrastructure.
-
-**Enforcement deadline: August 2, 2026.**
-
-## Spec & Tests
-
-The full protocol specification is in [SPEC.md](air-trust/SPEC.md). The test suite covers 305 tests including integrity, completeness, signed handoffs, false positives, false negatives, mixed-version chains, and edge cases.
-
-```bash
-cd air-trust && python -m pytest tests/ -v
-```
-
-## Part of AIR Blackbox
-
-air-trust is the cryptographic backbone of the [AIR Blackbox](https://airblackbox.ai) ecosystem — open-source EU AI Act compliance tooling for developers. The scanner finds problems. air-trust proves what happened.
+- [Interactive demo](https://airblackbox.ai/demo/signed-handoff) — see signed handoffs in action (no install needed)
+- [Spec v1.2](air-trust/SPEC.md) — the full protocol specification
+- [Changelog](air-trust/CHANGELOG.md) — what shipped in each version
+- [airblackbox.ai](https://airblackbox.ai) — the project homepage
+- [PyPI](https://pypi.org/project/air-trust/) — package page
 
 ## License
 
@@ -247,4 +152,4 @@ Apache-2.0. See [LICENSE](LICENSE).
 
 ---
 
-[PyPI](https://pypi.org/project/air-trust/) · [Demo](https://airblackbox.ai/demo/signed-handoff) · [Spec](air-trust/SPEC.md) · [Changelog](air-trust/CHANGELOG.md)
+If this helps you prepare for EU AI Act enforcement, [star the repo](https://github.com/airblackbox/air-trust) — it helps other teams find it.
