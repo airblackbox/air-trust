@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "air-trust"
-version = "0.5.0"
+version = "0.6.0"
 description = "Universal compliance trust layer for AI systems. One install, any framework. HMAC-SHA256 audit chain, agent identity, policy enforcement, CSA Agentic Trust Framework (ATF) conformance, verify CLI."
 readme = "README.md"
 license = "Apache-2.0"
@@ -53,6 +53,7 @@ pydantic-ai = ["pydantic-ai>=0.1.0"]
 dspy = ["dspy>=2.0.0"]
 otel = ["opentelemetry-sdk>=1.20.0"]
 mcp = ["mcp>=1.0.0"]
+handoffs = ["cryptography>=42.0.0"]
 
 # All frameworks
 all = [

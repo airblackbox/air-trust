@@ -5,6 +5,29 @@ All notable changes to air-trust will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-04-10
+
+**Added — Signed Handoffs (Spec v1.2)**
+
+- Ed25519 key management: `air_trust.keys` module for keypair generation, storage (`~/.air-trust/keys/`), loading, signing, and verification
+- Three new handoff record types: `handoff_request`, `handoff_ack`, `handoff_result`
+- Seven new Event fields for handoffs: `interaction_id`, `counterparty_id`, `payload_hash`, `nonce`, `signature`, `signature_alg`, `public_key`
+- Auto-signing: `AuditChain.write()` automatically Ed25519-signs handoff records when agent has a keypair
+- Handoff verifier in `verify()`: checks structural completeness, Ed25519 signature validity, payload hash matching, counterparty matching, nonce uniqueness
+- `verify()` now returns three sections: `integrity` + `completeness` + `handoffs`
+- CLI `python3 -m air_trust verify` shows handoff verification with PASS/WARN/FAIL
+- CLI JSON output includes handoff section
+- End-to-end signed handoff demo: `examples/signed_handoff.py`
+- `SPEC.md` updated to v1.2 with handoff protocol, Ed25519 signing rules, and threat model
+- 32 new handoff tests (286 total)
+- Backward compatible: v1.0 and v1.1 records still verify cleanly
+
+**Changed**
+
+- Event.version default bumped from "1.1.0" to "1.2.0"
+- `verify()` output structure changed: now returns `handoffs` section alongside `integrity` and `completeness`
+- First external dependency: `cryptography` library (optional, required only for Ed25519 handoffs)
+
 ## [0.5.0] - 2026-04-10
 
 **Added — Session Completeness (Spec v1.1)**

@@ -1,13 +1,17 @@
 """
-HMAC-SHA256 tamper-evident audit chain.
+HMAC-SHA256 tamper-evident audit chain with Ed25519 handoff signing.
 
-Thin wrapper around the existing air-gate chain logic.
-Every Event gets signed and linked to the previous record.
+Every Event gets HMAC-signed and linked to the previous record (integrity).
+Handoff records also get Ed25519-signed for cross-agent identity proof (v1.2).
 
-Chain formula:
+Chain formula (integrity, v1.0):
     HMAC(key, previous_hash_bytes || JSON(record, sort_keys=True))
 
-If anyone modifies a record after the fact, the chain breaks.
+Handoff signing (identity, v1.2):
+    Ed25519.sign(agent_private_key, interaction_id|counterparty_id|payload_hash|nonce|type|timestamp)
+
+If anyone modifies a record after the fact, the HMAC chain breaks.
+If anyone forges a handoff record, the Ed25519 signature fails.
 """
 
 from __future__ import annotations
@@ -113,7 +117,11 @@ class AuditChain:
         # Migration: add columns if they don't exist (for existing DBs)
         # Must run BEFORE creating indexes on these columns
         for col, col_type in [("agent_identity", "TEXT"), ("owner", "TEXT"), ("fingerprint", "TEXT"),
-                               ("session_seq", "INTEGER"), ("prev_session_seq", "INTEGER")]:
+                               ("session_seq", "INTEGER"), ("prev_session_seq", "INTEGER"),
+                               ("interaction_id", "TEXT"), ("counterparty_id", "TEXT"),
+                               ("payload_hash", "TEXT"), ("nonce", "TEXT"),
+                               ("signature", "TEXT"), ("signature_alg", "TEXT"),
+                               ("public_key", "TEXT")]:
             try:
                 conn.execute(f"ALTER TABLE events ADD COLUMN {col} {col_type}")
             except sqlite3.OperationalError:
@@ -121,6 +129,7 @@ class AuditChain:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_owner ON events(owner)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_fingerprint ON events(fingerprint)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_session_id ON events(trace_id)")  # session_id stored in data
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_interaction_id ON events(interaction_id)")
         conn.commit()
         conn.close()
 
@@ -159,6 +168,29 @@ class AuditChain:
                 event.prev_session_seq = seq - 1
                 self._session_seqs[sid] = seq + 1
 
+            # v1.2: auto-sign handoff records with Ed25519
+            _HANDOFF_TYPES = {"handoff_request", "handoff_ack", "handoff_result"}
+            if event.type in _HANDOFF_TYPES and event.signature is None:
+                # Only sign if the event has the required handoff fields
+                if (event.interaction_id and event.counterparty_id
+                        and event.payload_hash and event.nonce
+                        and event.identity and event.identity.fingerprint):
+                    try:
+                        from air_trust.keys import build_signing_payload, sign as ed25519_sign, load_public_key_hex
+                        signing_data = build_signing_payload(
+                            event.interaction_id,
+                            event.counterparty_id,
+                            event.payload_hash,
+                            event.nonce,
+                            event.type,
+                            event.timestamp,
+                        )
+                        event.signature = ed25519_sign(event.identity.fingerprint, signing_data)
+                        event.signature_alg = "ed25519"
+                        event.public_key = load_public_key_hex(event.identity.fingerprint)
+                    except (FileNotFoundError, ImportError):
+                        pass  # No key available — skip auto-signing
+
             record = event.to_dict()
 
             # Compute HMAC-SHA256
@@ -184,8 +216,12 @@ class AuditChain:
             conn = sqlite3.connect(self._db_path)
             conn.execute(
                 """INSERT INTO events
-                   (run_id, trace_id, timestamp, type, framework, agent, model, status, chain_hash, agent_identity, owner, fingerprint, session_seq, prev_session_seq, data)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (run_id, trace_id, timestamp, type, framework, agent, model, status,
+                    chain_hash, agent_identity, owner, fingerprint,
+                    session_seq, prev_session_seq,
+                    interaction_id, counterparty_id, payload_hash, nonce,
+                    signature, signature_alg, public_key, data)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     event.run_id,
                     event.trace_id,
@@ -201,6 +237,13 @@ class AuditChain:
                     fingerprint,
                     event.session_seq,
                     event.prev_session_seq,
+                    event.interaction_id,
+                    event.counterparty_id,
+                    event.payload_hash,
+                    event.nonce,
+                    event.signature,
+                    event.signature_alg,
+                    event.public_key,
                     json.dumps(record, default=str),
                 ),
             )
@@ -219,15 +262,16 @@ class AuditChain:
             return chain_hash
 
     def verify(self) -> Dict:
-        """Verify the entire chain for integrity AND session completeness.
+        """Verify the entire chain: integrity, completeness, and handoffs.
 
-        Returns a dict with two sections:
+        Returns a dict with three sections:
             {
                 "integrity": {"valid": bool, "records": int, "broken_at": int|None},
-                "completeness": {
-                    "sessions_checked": int,
-                    "sessions_complete": int,
-                    "sessions_incomplete": int,
+                "completeness": {...},
+                "handoffs": {
+                    "interactions_checked": int,
+                    "interactions_complete": int,
+                    "interactions_incomplete": int,
                     "issues": [...]
                 }
             }
@@ -261,10 +305,14 @@ class AuditChain:
         # ── Completeness check (v1.1) ────────────────────────────
         completeness = self._check_completeness(all_records)
 
+        # ── Handoff check (v1.2) ─────────────────────────────────
+        handoffs = self._check_handoffs(all_records)
+
         return {
-            # v1.1 structured output
+            # v1.2 structured output
             "integrity": integrity,
             "completeness": completeness,
+            "handoffs": handoffs,
             # v1.0 backward compat (mirror integrity at top level)
             "valid": integrity["valid"],
             "records": integrity["records"],
@@ -363,6 +411,162 @@ class AuditChain:
             "sessions_checked": len(sessions),
             "sessions_complete": sessions_complete,
             "sessions_incomplete": len(sessions) - sessions_complete,
+            "issues": issues,
+        }
+
+    def _check_handoffs(self, records: list) -> Dict:
+        """Check handoff protocol compliance across all records (v1.2).
+
+        Groups records by interaction_id, then checks each handoff for:
+        - Structural completeness (request + ack + result)
+        - Ed25519 signature validity
+        - Payload hash matching between request and ack
+        - Counterparty matching
+        - Nonce uniqueness
+        """
+        _HANDOFF_TYPES = {"handoff_request", "handoff_ack", "handoff_result"}
+
+        # Group handoff records by interaction_id
+        interactions: dict = {}  # interaction_id -> {type: record}
+        all_nonces: list = []    # for global uniqueness check
+
+        for i, record in enumerate(records):
+            rtype = record.get("type", "")
+            iid = record.get("interaction_id")
+            if rtype not in _HANDOFF_TYPES or iid is None:
+                continue
+            if iid not in interactions:
+                interactions[iid] = {}
+            interactions[iid][rtype] = (i, record)
+
+            nonce = record.get("nonce")
+            if nonce:
+                all_nonces.append((nonce, iid, i))
+
+        if not interactions:
+            return {
+                "interactions_checked": 0,
+                "interactions_complete": 0,
+                "interactions_incomplete": 0,
+                "issues": [],
+            }
+
+        issues = []
+        interactions_complete = 0
+
+        # Check nonce uniqueness across all handoff records
+        seen_nonces: dict = {}  # nonce -> (interaction_id, record_index)
+        for nonce, iid, idx in all_nonces:
+            if nonce in seen_nonces:
+                issues.append({
+                    "interaction_id": iid,
+                    "issue": "duplicate_nonce",
+                    "severity": "warn",
+                    "nonce": nonce,
+                    "record_index": idx,
+                    "first_seen_index": seen_nonces[nonce][1],
+                })
+            else:
+                seen_nonces[nonce] = (iid, idx)
+
+        for iid, type_map in interactions.items():
+            interaction_issues = []
+            has_request = "handoff_request" in type_map
+            has_ack = "handoff_ack" in type_map
+            has_result = "handoff_result" in type_map
+
+            # ── Structural completeness ───────────────────────────
+            if has_request and not has_ack and not has_result:
+                interaction_issues.append({
+                    "interaction_id": iid,
+                    "issue": "missing_ack",
+                    "severity": "warn",
+                })
+            elif has_request and has_ack and not has_result:
+                interaction_issues.append({
+                    "interaction_id": iid,
+                    "issue": "missing_result",
+                    "severity": "info",
+                })
+            elif not has_request and (has_ack or has_result):
+                interaction_issues.append({
+                    "interaction_id": iid,
+                    "issue": "orphaned_response",
+                    "severity": "warn",
+                })
+
+            # ── Signature verification ────────────────────────────
+            try:
+                from air_trust.keys import build_signing_payload, verify_signature
+                _can_verify_sigs = True
+            except ImportError:
+                _can_verify_sigs = False
+
+            for rtype, (idx, record) in type_map.items():
+                sig = record.get("signature")
+                pub = record.get("public_key")
+                if sig and pub and _can_verify_sigs:
+                    signing_data = build_signing_payload(
+                        record.get("interaction_id", ""),
+                        record.get("counterparty_id", ""),
+                        record.get("payload_hash", ""),
+                        record.get("nonce", ""),
+                        record.get("type", ""),
+                        record.get("timestamp", ""),
+                    )
+                    if not verify_signature(pub, sig, signing_data):
+                        interaction_issues.append({
+                            "interaction_id": iid,
+                            "issue": "signature_invalid",
+                            "severity": "fail",
+                            "record_type": rtype,
+                            "record_index": idx,
+                        })
+
+            # ── Payload hash matching (request vs ack) ────────────
+            if has_request and has_ack:
+                req_hash = type_map["handoff_request"][1].get("payload_hash")
+                ack_hash = type_map["handoff_ack"][1].get("payload_hash")
+                if req_hash and ack_hash and req_hash != ack_hash:
+                    interaction_issues.append({
+                        "interaction_id": iid,
+                        "issue": "payload_mismatch",
+                        "severity": "warn",
+                        "request_hash": req_hash,
+                        "ack_hash": ack_hash,
+                    })
+
+            # ── Counterparty matching ─────────────────────────────
+            if has_request and has_ack:
+                req_counterparty = type_map["handoff_request"][1].get("counterparty_id")
+                ack_public_key = type_map["handoff_ack"][1].get("public_key")
+                # The request's counterparty_id should match the ack signer's identity
+                # We check if the request named Agent B as counterparty,
+                # and the ack's signer public key is consistent
+                req_public_key = type_map["handoff_request"][1].get("public_key")
+                ack_counterparty = type_map["handoff_ack"][1].get("counterparty_id")
+                # ack's counterparty_id should reference the requester's fingerprint
+                # We can check identity field if present
+                req_identity = type_map["handoff_request"][1].get("identity")
+                ack_identity = type_map["handoff_ack"][1].get("identity")
+                if req_identity and ack_counterparty:
+                    req_fp = req_identity.get("fingerprint", "") if isinstance(req_identity, dict) else ""
+                    if req_fp and ack_counterparty != req_fp:
+                        interaction_issues.append({
+                            "interaction_id": iid,
+                            "issue": "counterparty_mismatch",
+                            "severity": "warn",
+                            "detail": "ack counterparty_id does not match request agent fingerprint",
+                        })
+
+            if len(interaction_issues) == 0 and has_request and has_ack and has_result:
+                interactions_complete += 1
+            issues.extend(interaction_issues)
+
+        return {
+            "interactions_checked": len(interactions),
+            "interactions_complete": interactions_complete,
+            "interactions_incomplete": len(interactions) - interactions_complete,
             "issues": issues,
         }
 

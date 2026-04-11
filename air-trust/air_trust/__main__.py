@@ -62,18 +62,26 @@ def cmd_verify(args):
 
         # JSON output mode for CI/CD
         if args.json_output:
-            print(json.dumps({
+            output = {
                 "integrity": result["integrity"],
                 "completeness": result["completeness"],
-            }, indent=2))
+            }
+            if "handoffs" in result:
+                output["handoffs"] = result["handoffs"]
+            print(json.dumps(output, indent=2))
             if not result["integrity"]["valid"]:
+                return 1
+            # Check for handoff signature failures (FAIL severity)
+            handoff_fails = [i for i in result.get("handoffs", {}).get("issues", [])
+                             if i.get("severity") == "fail"]
+            if handoff_fails:
                 return 1
             if result["completeness"]["sessions_incomplete"] > 0:
                 return 2  # warn exit code
             return 0
 
         # Human-readable output
-        print_header("AIR Trust — Chain Verification (v1.1)")
+        print_header("AIR Trust — Chain Verification (v1.2)")
 
         integrity = result["integrity"]
         completeness = result["completeness"]
@@ -117,6 +125,54 @@ def cmd_verify(args):
                     print(f"  Session {sid_short}: missing session_end (last seq: {issue.get('last_seq')})")
                 elif itype == "missing_session_start":
                     print(f"  Session {sid_short}: missing session_start")
+
+        # ── Handoffs (v1.2) ──
+        handoffs = result.get("handoffs", {})
+        if handoffs.get("interactions_checked", 0) > 0:
+            print(f"\n  Handoffs checked:    {handoffs['interactions_checked']}")
+            print(f"  Handoffs complete:   {handoffs['interactions_complete']}")
+            print(f"  Handoffs incomplete: {handoffs['interactions_incomplete']}")
+
+            # Check for FAIL-severity issues (signature failures)
+            fail_issues = [i for i in handoffs.get("issues", []) if i.get("severity") == "fail"]
+            warn_issues = [i for i in handoffs.get("issues", []) if i.get("severity") == "warn"]
+            info_issues = [i for i in handoffs.get("issues", []) if i.get("severity") == "info"]
+
+            if fail_issues:
+                print(f"\n{RED}✗ FAIL{RESET}: Handoffs — signature verification failed:")
+                for issue in fail_issues:
+                    iid_short = issue.get("interaction_id", "?")[:12] + "..."
+                    print(f"  Handoff {iid_short}: {issue['issue']} ({issue.get('record_type', '')})")
+                return 1
+
+            if warn_issues:
+                print(f"\n{YELLOW}⚠ WARN{RESET}: Handoffs — issues detected:")
+                for issue in warn_issues:
+                    iid_short = issue.get("interaction_id", "?")[:12] + "..."
+                    itype = issue["issue"]
+                    if itype == "missing_ack":
+                        print(f"  Handoff {iid_short}: request sent but never acknowledged")
+                    elif itype == "payload_mismatch":
+                        print(f"  Handoff {iid_short}: payload hash mismatch (request vs ack)")
+                    elif itype == "counterparty_mismatch":
+                        print(f"  Handoff {iid_short}: wrong agent acknowledged")
+                    elif itype == "duplicate_nonce":
+                        print(f"  Handoff {iid_short}: duplicate nonce (possible replay)")
+                    elif itype == "orphaned_response":
+                        print(f"  Handoff {iid_short}: ack/result without matching request")
+                    else:
+                        print(f"  Handoff {iid_short}: {itype}")
+
+            if info_issues:
+                for issue in info_issues:
+                    iid_short = issue.get("interaction_id", "?")[:12] + "..."
+                    if issue["issue"] == "missing_result":
+                        print(f"  {YELLOW}INFO{RESET}: Handoff {iid_short}: acknowledged but no result yet")
+
+            if not fail_issues and not warn_issues:
+                print(f"\n{GREEN}✓ PASS{RESET}: Handoffs — all handoffs verified (Ed25519)")
+        else:
+            print(f"\n  INFO: No handoff records found (v1.2 handoff verification not applicable)")
 
         return 0
 
@@ -408,7 +464,7 @@ def cmd_register(args):
         "org": org or None,
         "use_case": use_case or None,
         "registered_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "air_trust_version": "0.5.0",
+        "air_trust_version": "0.6.0",
     }
 
     os.makedirs(os.path.dirname(reg_path), exist_ok=True)

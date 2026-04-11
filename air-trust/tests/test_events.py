@@ -13,7 +13,7 @@ class TestEvent:
         assert e.type == "llm_call"
         assert e.framework == "openai"
         assert e.status == "success"
-        assert e.version == "1.1.0"
+        assert e.version == "1.2.0"
         assert e.timestamp is not None
 
     def test_full_event(self):

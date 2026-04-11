@@ -249,9 +249,19 @@ class Event:
     session_seq: Optional[int] = None         # monotonic counter within session (starts at 0)
     prev_session_seq: Optional[int] = None    # previous record's session_seq (-1 for first)
 
+    # ── v1.2: Signed Handoffs ─────────────────────────────────────
+    # Present only on handoff_request, handoff_ack, handoff_result records.
+    interaction_id: Optional[str] = None      # UUID linking all records in one handoff
+    counterparty_id: Optional[str] = None     # fingerprint of the other agent
+    payload_hash: Optional[str] = None        # sha256:hex of the handoff payload
+    nonce: Optional[str] = None               # random 16-byte hex, unique per record
+    signature: Optional[str] = None           # ed25519:hex of the signing payload
+    signature_alg: Optional[str] = None       # "ed25519" in v1.2
+    public_key: Optional[str] = None          # ed25519:hex of signing agent's public key
+
     # Set by AuditChain after signing — never set manually
     chain_hash: Optional[str] = None
-    version: str = "1.1.0"
+    version: str = "1.2.0"
 
     def to_dict(self) -> dict:
         """Serialize to dict for the HMAC chain, dropping None values."""

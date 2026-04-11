@@ -21,7 +21,7 @@ That's it. HMAC-SHA256 signed audit chain, PII detection,
 prompt injection scanning, evidence export — all local, no API key.
 """
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 from air_trust.core import trust, monitor, session, get_chain, get_identity, verify, stats, scan_text, enforce
 from air_trust.chain import AuditChain
