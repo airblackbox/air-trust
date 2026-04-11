@@ -464,7 +464,7 @@ def cmd_register(args):
         "org": org or None,
         "use_case": use_case or None,
         "registered_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "air_trust_version": "0.6.0",
+        "air_trust_version": "0.6.1",
     }
 
     os.makedirs(os.path.dirname(reg_path), exist_ok=True)

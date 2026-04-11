@@ -201,7 +201,7 @@ class TestPackageImports:
     """Test that the package exposes the right public API."""
 
     def test_version(self):
-        assert air_trust.__version__ == "0.6.0"
+        assert air_trust.__version__ == "0.6.1"
 
     def test_trust_callable(self):
         assert callable(air_trust.trust)

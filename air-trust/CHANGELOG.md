@@ -5,6 +5,24 @@ All notable changes to air-trust will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-04-10
+
+**Fixed**
+
+- **CRITICAL**: Handoff records now raise `ImportError` if `cryptography` package is missing (previously silent no-op)
+- **CRITICAL**: Handoff records without a keypair now emit `UserWarning` instead of silently writing unsigned records
+- **CRITICAL**: Verifier now flags unsigned handoff records as `missing_signature` (previously skipped them)
+- **HIGH**: Verifier validates all required signing fields before attempting signature verification (`malformed_record` check)
+- **HIGH**: Session `__exit__` now resets `_active_session_id` ContextVar in a `finally` block (prevents session ID leak on exception)
+- **HIGH**: Global `_global_chain` and `_global_identity` protected by threading lock (prevents cross-thread identity clobbering)
+- **HIGH**: HMAC signing key validated on load — warns on loose permissions, rejects invalid hex content
+- Handoff structural completeness: added missing branch for request + result without ack
+- Stress test suite: 19 additional tests covering false positives, false negatives, mixed-version chains, and edge cases
+
+**Changed**
+
+- README now documents Ed25519 signed handoffs and the `[handoffs]` optional extra
+
 ## [0.6.0] - 2026-04-10
 
 **Added — Signed Handoffs (Spec v1.2)**

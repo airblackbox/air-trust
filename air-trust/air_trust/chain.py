@@ -79,10 +79,41 @@ class AuditChain:
         self._load_last_hash()
 
     def _ensure_key(self) -> str:
-        """Generate and persist a signing key on first run."""
+        """Generate and persist a signing key on first run.
+
+        On read, validates that:
+        - The key file has restricted permissions (owner-only, 0o600)
+        - The key content is valid hex (64 hex chars = SHA-256 output)
+
+        Raises:
+            PermissionError: If signing.key has loose permissions (group/world readable).
+            ValueError: If signing.key contains invalid hex content.
+        """
         key_path = os.path.expanduser("~/.air-trust/signing.key")
         if os.path.exists(key_path):
-            return Path(key_path).read_text().strip()
+            # Validate permissions on existing key (skip on Windows)
+            if hasattr(os, "chmod"):
+                import stat
+                file_stat = os.stat(key_path)
+                if file_stat.st_mode & 0o077:
+                    import warnings
+                    warnings.warn(
+                        f"Signing key at {key_path} has loose permissions "
+                        f"(mode {oct(file_stat.st_mode & 0o777)}). "
+                        f"Run: chmod 600 {key_path}",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+            key_content = Path(key_path).read_text().strip()
+            # Validate hex format
+            try:
+                bytes.fromhex(key_content)
+            except ValueError:
+                raise ValueError(
+                    f"Signing key at {key_path} contains invalid hex. "
+                    f"Delete the file and restart to auto-generate a new key."
+                )
+            return key_content
         key = hashlib.sha256(os.urandom(32)).hexdigest()
         os.makedirs(os.path.dirname(key_path), exist_ok=True)
         Path(key_path).write_text(key)
@@ -188,8 +219,21 @@ class AuditChain:
                         event.signature = ed25519_sign(event.identity.fingerprint, signing_data)
                         event.signature_alg = "ed25519"
                         event.public_key = load_public_key_hex(event.identity.fingerprint)
-                    except (FileNotFoundError, ImportError):
-                        pass  # No key available — skip auto-signing
+                    except ImportError:
+                        raise ImportError(
+                            "Ed25519 handoff signatures require the 'cryptography' package. "
+                            "Install with: pip install air-trust[handoffs]"
+                        )
+                    except FileNotFoundError:
+                        import warnings
+                        warnings.warn(
+                            f"No Ed25519 private key for agent '{event.identity.fingerprint}'. "
+                            f"Handoff record written WITHOUT cryptographic signature. "
+                            f"Generate a keypair with: "
+                            f"air_trust.keys.generate_keypair('{event.identity.fingerprint}')",
+                            UserWarning,
+                            stacklevel=2,
+                        )
 
             record = event.to_dict()
 
@@ -512,23 +556,53 @@ class AuditChain:
             for rtype, (idx, record) in type_map.items():
                 sig = record.get("signature")
                 pub = record.get("public_key")
-                if sig and pub and _can_verify_sigs:
-                    signing_data = build_signing_payload(
-                        record.get("interaction_id", ""),
-                        record.get("counterparty_id", ""),
-                        record.get("payload_hash", ""),
-                        record.get("nonce", ""),
-                        record.get("type", ""),
-                        record.get("timestamp", ""),
-                    )
-                    if not verify_signature(pub, sig, signing_data):
-                        interaction_issues.append({
-                            "interaction_id": iid,
-                            "issue": "signature_invalid",
-                            "severity": "fail",
-                            "record_type": rtype,
-                            "record_index": idx,
-                        })
+
+                # Check for missing signature on handoff records
+                if not sig or not pub:
+                    interaction_issues.append({
+                        "interaction_id": iid,
+                        "issue": "missing_signature",
+                        "severity": "warn",
+                        "record_type": rtype,
+                        "record_index": idx,
+                        "detail": "Handoff record has no Ed25519 signature",
+                    })
+                    continue
+
+                if not _can_verify_sigs:
+                    continue  # Can't verify without cryptography library
+
+                # Validate all required signing fields are present
+                required_fields = ["interaction_id", "counterparty_id",
+                                   "payload_hash", "nonce", "type", "timestamp"]
+                missing = [f for f in required_fields if not record.get(f)]
+                if missing:
+                    interaction_issues.append({
+                        "interaction_id": iid,
+                        "issue": "malformed_record",
+                        "severity": "fail",
+                        "record_type": rtype,
+                        "record_index": idx,
+                        "detail": f"Missing fields for signature verification: {missing}",
+                    })
+                    continue
+
+                signing_data = build_signing_payload(
+                    record["interaction_id"],
+                    record["counterparty_id"],
+                    record["payload_hash"],
+                    record["nonce"],
+                    record["type"],
+                    record["timestamp"],
+                )
+                if not verify_signature(pub, sig, signing_data):
+                    interaction_issues.append({
+                        "interaction_id": iid,
+                        "issue": "signature_invalid",
+                        "severity": "fail",
+                        "record_type": rtype,
+                        "record_index": idx,
+                    })
 
             # ── Payload hash matching (request vs ack) ────────────
             if has_request and has_ack:

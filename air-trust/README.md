@@ -29,7 +29,7 @@ with air_trust.session("my-pipeline") as s:
     s.log("Pipeline complete", risk_level="low")
 ```
 
-That's it. HMAC-SHA256 signed audit chain, PII detection, prompt injection scanning — all local, no API key, no network calls.
+That's it. HMAC-SHA256 signed audit chain, Ed25519 signed handoffs, PII detection, prompt injection scanning — all local, no API key, no network calls.
 
 ## Why air-trust?
 
@@ -134,6 +134,45 @@ with air_trust.session("document-analysis") as s:
     result = client.chat.completions.create(...)
 
     s.log("Analysis complete", risk_level="low")
+```
+
+### Signed Handoffs (v1.2)
+
+When agents pass work to other agents, signed handoffs provide cryptographic proof of who sent what to whom:
+
+```bash
+pip install air-trust[handoffs]  # adds Ed25519 via cryptography library
+```
+
+```python
+from air_trust import AuditChain, AgentIdentity
+from air_trust.events import Event
+from air_trust.keys import generate_keypair, compute_payload_hash, generate_nonce
+
+# Each agent gets an Ed25519 keypair
+identity_a = AgentIdentity(agent_name="research-bot", owner="jason@airblackbox.ai")
+identity_b = AgentIdentity(agent_name="writer-bot", owner="jason@airblackbox.ai")
+generate_keypair(identity_a.fingerprint)
+generate_keypair(identity_b.fingerprint)
+
+# Agent A sends a handoff request — auto-signed with Ed25519
+chain = AuditChain(db_path="handoffs.db", signing_key="my-key")
+chain.write(Event(
+    type="handoff_request",
+    identity=identity_a,
+    interaction_id="task-001",
+    counterparty_id=identity_b.fingerprint,
+    payload_hash=compute_payload_hash("Summarize this document"),
+    nonce=generate_nonce(),
+))
+```
+
+Verify handoffs alongside integrity and completeness:
+
+```bash
+python3 -m air_trust verify --db handoffs.db
+# ✓ PASS: Integrity — chain is intact (HMAC-SHA256)
+# ✓ PASS: Handoffs — all handoffs verified (Ed25519)
 ```
 
 ## Storage

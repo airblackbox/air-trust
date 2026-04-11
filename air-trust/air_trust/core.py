@@ -34,18 +34,27 @@ from air_trust.scan import scan_pii, scan_injection
 
 
 # ── Global State ────────────────────────────────────────────────
+#
+# Thread safety: _global_chain and _global_identity are protected by
+# _global_lock. In multi-threaded applications, concurrent calls to
+# trust() with different identities are serialized. For per-thread
+# identity isolation, use session() with explicit identity instead.
 
+import threading as _threading
+
+_global_lock = _threading.Lock()
 _global_chain: Optional[AuditChain] = None
 _global_identity: Optional[AgentIdentity] = None
 _adapters: dict = {}  # framework_id -> adapter instance
 
 
 def _get_chain() -> AuditChain:
-    """Get or create the global audit chain."""
+    """Get or create the global audit chain (thread-safe)."""
     global _global_chain
-    if _global_chain is None:
-        _global_chain = AuditChain()
-    return _global_chain
+    with _global_lock:
+        if _global_chain is None:
+            _global_chain = AuditChain()
+        return _global_chain
 
 
 # ── trust() — The One-Liner ────────────────────────────────────
@@ -87,9 +96,11 @@ def trust(obj: Any, *, chain: Optional[AuditChain] = None,
     global _global_identity
     c = chain or _get_chain()
 
-    # Store identity globally so adapters can attach it to events
+    # Store identity globally so adapters can attach it to events.
+    # Protected by lock to prevent cross-thread identity clobbering.
     if identity is not None:
-        _global_identity = identity
+        with _global_lock:
+            _global_identity = identity
     detection = None
 
     if framework:
@@ -288,22 +299,26 @@ class AirTrustSession:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        import time
-        duration = int((time.time() - self._start_time) * 1000)
-        events_in_session = self._chain._count - self._event_count_start
-        self._chain.write(Event(
-            type="session_end",
-            framework="air_trust",
-            session_id=self._session_id,
-            description=f"Session: {self.name}",
-            duration_ms=duration,
-            status="error" if exc_type else "success",
-            error=str(exc_val) if exc_val else None,
-            identity=self._identity,
-            meta={"events_recorded": events_in_session},
-        ))
-        # v1.1: Clear the active session_id
-        _active_session_id.reset(self._session_token)
+        try:
+            import time
+            duration = int((time.time() - self._start_time) * 1000)
+            events_in_session = self._chain._count - self._event_count_start
+            self._chain.write(Event(
+                type="session_end",
+                framework="air_trust",
+                session_id=self._session_id,
+                description=f"Session: {self.name}",
+                duration_ms=duration,
+                status="error" if exc_type else "success",
+                error=str(exc_val) if exc_val else None,
+                identity=self._identity,
+                meta={"events_recorded": events_in_session},
+            ))
+        finally:
+            # v1.1: Always clear the active session_id, even if
+            # session_end write fails. Prevents session_id leaking
+            # into subsequent events in the same thread/context.
+            _active_session_id.reset(self._session_token)
         return False  # Don't suppress exceptions
 
     @property
