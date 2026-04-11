@@ -482,6 +482,13 @@ class AuditChain:
                     "issue": "missing_ack",
                     "severity": "warn",
                 })
+            elif has_request and not has_ack and has_result:
+                # Result without ack — ack was deleted or never written
+                interaction_issues.append({
+                    "interaction_id": iid,
+                    "issue": "missing_ack",
+                    "severity": "warn",
+                })
             elif has_request and has_ack and not has_result:
                 interaction_issues.append({
                     "interaction_id": iid,
