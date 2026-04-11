@@ -8,6 +8,10 @@ One package. Any framework. Any LLM. Any agent. Zero dependencies.
 pip install air-trust
 ```
 
+<p align="center">
+  <img src="demo.gif" alt="air-trust demo" width="820">
+</p>
+
 ## Quick Start
 
 ```python
