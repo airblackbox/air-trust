@@ -59,7 +59,9 @@ The wedge is single-agent tamper-evident logging (shipped). The expansion is cro
 
 ---
 
-## Phase 2 — Signed Handoffs (Days 1–30, COMMITTED)
+## Phase 2 — Signed Handoffs ✅ SHIPPED
+
+**Shipped:** April 10, 2026 as `air-trust` v0.6.1 (28 days ahead of schedule)
 
 ### The problem Phase 2 solves
 
@@ -255,7 +257,7 @@ Verification rules:
 | v1.0 | ✅ Shipped | Integrity only (HMAC chain) | Live |
 | v0.9.1 ATF | ✅ Shipped in v0.4.0 | CSA Agentic Trust Framework | Live |
 | v1.1 | ✅ Shipped in v0.5.0 | Session completeness | April 10, 2026 |
-| **v1.2** | **Building** | **Signed handoffs (Ed25519)** | **May 8, 2026 (Day 30)** |
+| **v1.2** | **✅ Shipped in v0.6.1** | **Signed handoffs (Ed25519)** | **April 10, 2026** |
 | v1.3-alpha | Vision (demo only) | Co-attestation / bilateral proof | Unscheduled |
 
 ---

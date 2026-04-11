@@ -149,6 +149,44 @@ air.log_correction(
 # Improves model accuracy on future scans
 ```
 
+### 8. Ed25519 Signed Handoffs: Cross-Agent Trust (air-trust v0.6.1)
+
+When agents pass work to other agents, signed handoffs provide cryptographic proof of who sent what to whom. Built on Ed25519 asymmetric signatures — Agent A signs with its private key, Agent B (and auditors) verify with Agent A's public key.
+
+```bash
+pip install air-trust[handoffs]
+```
+
+```python
+import air_trust
+from air_trust.keys import generate_keypair, compute_payload_hash, generate_nonce
+
+# Each agent gets an Ed25519 keypair
+identity_a = air_trust.AgentIdentity(agent_name="researcher", owner="jason@airblackbox.ai")
+generate_keypair(identity_a.fingerprint)
+
+# Handoff records are auto-signed when written to the chain
+chain.write(air_trust.Event(
+    type="handoff_request",
+    identity=identity_a,
+    interaction_id="task-001",
+    counterparty_id=agent_b.fingerprint,
+    payload_hash=compute_payload_hash("Research EU AI Act deadlines"),
+    nonce=generate_nonce(),
+))
+```
+
+Verify the full chain — integrity, session completeness, and handoff signatures:
+
+```bash
+python3 -m air_trust verify
+# ✓ PASS: Integrity — chain is intact (HMAC-SHA256)
+# ✓ PASS: Completeness — all sessions are complete
+# ✓ PASS: Handoffs — all handoffs verified (Ed25519)
+```
+
+See [air-trust](https://github.com/airblackbox/air-trust) for the full handoff protocol and spec v1.2.
+
 ### Bonus: Pre-commit Hooks & Audit Chain Spec
 
 **4 pre-commit hook configurations:**
@@ -692,14 +730,19 @@ See [airblackbox.ai](https://airblackbox.ai) for details.
 | [`air-rag-trust`](https://pypi.org/project/air-rag-trust/) | Trust layer for RAG pipelines |
 | [`air-gate`](https://pypi.org/project/air-gate/) | HMAC-SHA256 audit chain engine with tool gating |
 
-## Related Repositories
+## Ecosystem Architecture
 
-- **[air-trust](https://github.com/airblackbox/air-trust)** — Universal compliance trust layer for AI systems (the `air-trust` PyPI package)
-- **[air-gate](https://github.com/airblackbox/air-gate)** — HMAC-SHA256 audit chain engine with human-in-the-loop tool gating
-- **[air-platform](https://github.com/airblackbox/air-platform)** — Full-stack deployment: Gateway + Episode Store + Policy Engine + Jaeger
-- **[air-blackbox-mcp](https://github.com/airblackbox/air-blackbox-mcp)** — MCP server for Claude Desktop and other MCP clients
-- **[air-controls](https://github.com/airblackbox/air-controls)** — Runtime visibility for LangChain, CrewAI, AutoGen, and custom agents
-- **[compliance-action](https://github.com/airblackbox/compliance-action)** — GitHub Action for EU AI Act checks on pull requests
+AIR Blackbox is a modular trust infrastructure stack. Each component handles a different concern — use one, some, or all. See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full architecture guide, data flow diagrams, and composition examples.
+
+| Layer | Package | What It Does | Current Version |
+|---|---|---|---|
+| **Runtime evidence** | [air-trust](https://github.com/airblackbox/air-trust) | HMAC-SHA256 tamper-evident audit chain + Ed25519 signed cross-agent handoffs + session completeness. The cryptographic backbone. | v0.6.1 (spec v1.2) |
+| **Approval gates** | [air-gate](https://github.com/airblackbox/air-gate) | Human-in-the-loop tool approval — pauses agents before dangerous actions and audits the decision. | — |
+| **Compliance scanning** | [air-blackbox](https://pypi.org/project/air-blackbox/) (this repo) | 39 EU AI Act checks, GDPR, bias/fairness, prompt injection detection, standards crosswalk. The scanner. | v1.8.0 |
+| **Deployment** | [air-platform](https://github.com/airblackbox/air-platform) | Full-stack Docker bundle: Gateway proxy + Jaeger tracing + MinIO storage + Prometheus metrics. | — |
+| **MCP server** | [air-blackbox-mcp](https://github.com/airblackbox/air-blackbox-mcp) | 14 compliance tools for Claude Desktop, Cursor, Claude Code, and any MCP client. | — |
+| **Runtime visibility** | [air-controls](https://github.com/airblackbox/air-controls) | Dashboards and observability for LangChain, CrewAI, AutoGen agents. | — |
+| **CI/CD** | [compliance-action](https://github.com/airblackbox/compliance-action) | GitHub Action — run EU AI Act compliance checks on every pull request. | — |
 
 ## Contributing
 
