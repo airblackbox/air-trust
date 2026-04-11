@@ -40,3 +40,6 @@ model/*.gguf
 code_scanner.py
 engine.py
 github_replies.md
+training/training_data_v[6-9].jsonl
+training/training_data_v1[0-1].jsonl
+compliance-action/
