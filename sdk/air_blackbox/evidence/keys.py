@@ -110,7 +110,9 @@ class KeyManager:
             "implementation": ALGORITHM_IMPL,
             "key_id": key_id,
             "public_key_hash": hashlib.sha256(public_key).hexdigest(),
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            # Date-only precision to avoid leaking exact timing of key
+            # generation, which reveals when a compliance program started.
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "key_size_bytes": {
                 "public": len(public_key),
                 "private": len(private_key),

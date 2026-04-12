@@ -8,6 +8,7 @@ AIR Blackbox CLI — AI governance control plane.
     air-blackbox sign        # ML-DSA-65 quantum-safe signing of evidence
     air-blackbox verify      # Verify signed evidence files
     air-blackbox bundle      # Self-verifying .air-evidence package for auditors
+    air-blackbox attest      # Create/list/verify compliance attestations
     air-blackbox replay      # Incident reconstruction from audit chain
     air-blackbox export      # JSON/PDF evidence export
     air-blackbox validate    # Pre-execution runtime checks
@@ -2250,3 +2251,304 @@ def verify(file, signature, public_key, key_dir, as_json):
 
     if not result["verified"]:
         raise SystemExit(1)
+
+
+# ---------------------------------------------------------------------------
+# attest -- compliance oracle attestations
+# ---------------------------------------------------------------------------
+
+@main.command()
+@click.argument("action", type=click.Choice(["create", "list", "show", "badge"]), default="create")
+@click.option("--scan", default=".", type=click.Path(exists=True),
+              help="Path to scan for code-level checks (default: current dir)")
+@click.option("--name", default="", help="Human-readable name for the AI system")
+@click.option("--version", "sys_version", default="", help="Version string for the AI system")
+@click.option("--frameworks", default=None,
+              help="Compliance frameworks (eu,iso42001,nist,colorado). Default: all")
+@click.option("--key-dir", default=None, type=click.Path(),
+              help="Custom key storage directory")
+@click.option("--bundle", default=None, type=click.Path(exists=True),
+              help="Link attestation to an existing .air-evidence bundle")
+@click.option("--id", "att_id", default=None, help="Attestation ID (for show/badge)")
+@click.option("--output", "-o", default=None, type=click.Path(),
+              help="Save badge SVG to file (for badge action)")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id, output, as_json):
+    """Create, list, and manage compliance attestations.
+
+    Attestations are signed proofs that an AI system was scanned. They contain
+    enough information for independent verification without revealing source code.
+
+    \b
+    Actions:
+        create  Scan a project and create a signed attestation (default)
+        list    Show all attestations in the local registry
+        show    Display details of a specific attestation
+        badge   Generate an SVG badge for a specific attestation
+
+    \b
+    Examples:
+        air-blackbox attest create --scan ~/myproject --name "My AI System"
+        air-blackbox attest list
+        air-blackbox attest show --id air-att-2026-04-12-a7f3c2e1
+        air-blackbox attest badge --id air-att-2026-04-12-a7f3c2e1 -o badge.svg
+    """
+    import json as _json
+    import hashlib as _hashlib
+    from pathlib import Path as _Path
+
+    try:
+        from air_blackbox.attestation.schema import AttestationRecord, SubjectInfo, ScanInfo, EvidenceInfo, CryptoInfo
+        from air_blackbox.attestation.registry import LocalRegistry
+        from air_blackbox.attestation.badge import badge_for_attestation, badge_markdown
+        from air_blackbox.evidence.keys import KeyManager
+        from air_blackbox.evidence.signer import EvidenceSigner
+    except ImportError as e:
+        console.print(f"[red]Error:[/red] Missing dependency: {e}")
+        raise SystemExit(1)
+
+    key_dir_path = _Path(key_dir) if key_dir else None
+    km = KeyManager(key_dir=key_dir_path)
+    registry = LocalRegistry()
+
+    # --- LIST ---
+    if action == "list":
+        records = registry.list_all()
+        if not records:
+            console.print("[dim]No attestations found. Create one with:[/dim]")
+            console.print("  [bold]air-blackbox attest create --scan .[/bold]")
+            return
+
+        if as_json:
+            console.print(_json.dumps([r.to_dict() for r in records], indent=2))
+            return
+
+        table = Table(title="Attestation Registry", show_lines=True)
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("System", style="white")
+        table.add_column("Frameworks", style="blue")
+        table.add_column("Result", style="green")
+        table.add_column("Signed", style="yellow")
+        table.add_column("Date", style="dim")
+
+        for r in records:
+            fw_str = ", ".join(r.scan.frameworks[:3])
+            if len(r.scan.frameworks) > 3:
+                fw_str += f" +{len(r.scan.frameworks) - 3}"
+            result_str = f"{r.scan.checks_passed}/{r.scan.checks_total}"
+            if r.scan.checks_failed > 0:
+                result_str = f"[red]{result_str}[/red]"
+            elif r.scan.checks_warned > 0:
+                result_str = f"[yellow]{result_str}[/yellow]"
+            else:
+                result_str = f"[green]{result_str}[/green]"
+            signed = "[green]Yes[/green]" if r.crypto.signature else "[dim]No[/dim]"
+            sys_name = r.subject.system_name or r.subject.system_hash[:12] + "..."
+            date_str = r.created_at[:10] if r.created_at else ""
+
+            table.add_row(r.attestation_id, sys_name, fw_str, result_str, signed, date_str)
+
+        console.print(table)
+        console.print(f"\n[dim]{len(records)} attestation(s) in registry[/dim]")
+        return
+
+    # --- SHOW ---
+    if action == "show":
+        if not att_id:
+            console.print("[red]Error:[/red] Provide --id for the attestation to show.")
+            raise SystemExit(1)
+
+        record = registry.load(att_id)
+        if not record:
+            console.print(f"[red]Error:[/red] Attestation not found: {att_id}")
+            raise SystemExit(1)
+
+        if as_json:
+            console.print(record.to_json())
+            return
+
+        s = record.scan
+        console.print()
+        console.print(Panel.fit(
+            f"[bold cyan]{record.attestation_id}[/bold cyan]\n\n"
+            f"System:       {record.subject.system_name or '(unnamed)'}\n"
+            f"System hash:  {record.subject.system_hash[:32]}...\n"
+            f"Files:        {record.subject.files_scanned}\n"
+            f"Version:      {record.subject.system_version or '(none)'}\n\n"
+            f"Frameworks:   {', '.join(s.frameworks)}\n"
+            f"Checks:       {s.checks_passed} passed, {s.checks_warned} warned, {s.checks_failed} failed / {s.checks_total} total\n"
+            f"Risk:         {s.risk_classification or '(unclassified)'}\n"
+            f"Scanner:      {s.scanner_version}\n\n"
+            f"Signed:       {'Yes (ML-DSA-65)' if record.crypto.signature else 'No'}\n"
+            f"Key:          {record.crypto.public_key_fingerprint[:16]}...\n"
+            f"Created:      {record.created_at}\n"
+            f"Record hash:  {record.record_hash()[:32]}...",
+            title="[bold cyan]Attestation Details[/bold cyan]",
+            border_style="cyan",
+        ))
+        return
+
+    # --- BADGE ---
+    if action == "badge":
+        if not att_id:
+            console.print("[red]Error:[/red] Provide --id for the attestation.")
+            raise SystemExit(1)
+
+        record = registry.load(att_id)
+        if not record:
+            console.print(f"[red]Error:[/red] Attestation not found: {att_id}")
+            raise SystemExit(1)
+
+        svg = badge_for_attestation(record)
+
+        if output:
+            _Path(output).write_text(svg, encoding="utf-8")
+            console.print(f"[green]Badge saved:[/green] {output}")
+        else:
+            console.print(svg)
+
+        console.print()
+        console.print("[dim]Markdown embed code:[/dim]")
+        console.print(f"  {badge_markdown(record)}")
+        return
+
+    # --- CREATE ---
+    if not km.has_keys():
+        console.print("[red]Error:[/red] No signing keys found.")
+        console.print("Generate keys first: [bold]air-blackbox sign --keygen[/bold]")
+        raise SystemExit(1)
+
+    console.print("\n[bold cyan]AIR Blackbox[/] -- Attestation Oracle\n")
+
+    fw_list = ["eu", "iso42001", "nist", "colorado"]
+    if frameworks:
+        fw_list = [f.strip().lower() for f in frameworks.split(",")]
+
+    # Step 1: Hash the scanned codebase
+    console.print(f"[blue]Step 1/4:[/blue] Hashing codebase at {scan}...")
+    scan_path = _Path(scan)
+    py_files = []
+    if scan_path.is_file():
+        py_files = [scan_path]
+    elif scan_path.is_dir():
+        py_files = list(scan_path.glob("**/*.py"))
+
+    # Create system hash from all file contents
+    hasher = _hashlib.sha256()
+    file_count = 0
+    for pf in sorted(py_files)[:500]:  # Sort for determinism, cap at 500
+        try:
+            hasher.update(pf.read_bytes())
+            file_count += 1
+        except Exception:
+            pass
+    system_hash = hasher.hexdigest()
+    console.print(f"  {file_count} files hashed -> {system_hash[:16]}...")
+
+    # Step 2: Run compliance scan
+    console.print(f"[blue]Step 2/4:[/blue] Running compliance scan...")
+    checks_passed = 0
+    checks_warned = 0
+    checks_failed = 0
+    checks_total = 0
+    try:
+        from air_blackbox.compliance.engine import run_all_checks
+        from air_blackbox.gateway_client import GatewayClient, GatewayStatus
+        try:
+            client = GatewayClient(gateway_url="http://localhost:8080", runs_dir="./runs")
+            status = client.get_status()
+        except Exception:
+            status = GatewayStatus(
+                reachable=False, vault_enabled=False,
+                guardrails_enabled=False, trust_signing_key_set=False,
+                model_name="", provider=""
+            )
+        compliance = run_all_checks(status, scan)
+        if isinstance(compliance, list):
+            for article in compliance:
+                for check in article.get("checks", []):
+                    checks_total += 1
+                    s = check.get("status", "")
+                    if s == "pass":
+                        checks_passed += 1
+                    elif s == "warn":
+                        checks_warned += 1
+                    elif s == "fail":
+                        checks_failed += 1
+    except Exception as e:
+        console.print(f"[yellow]Warning:[/yellow] Scan error: {e}")
+
+    console.print(f"  {checks_passed} passed, {checks_warned} warned, {checks_failed} failed / {checks_total} total")
+
+    # Step 3: Build the attestation record
+    console.print(f"[blue]Step 3/4:[/blue] Building attestation record...")
+    try:
+        from air_blackbox import __version__ as ab_version
+    except ImportError:
+        ab_version = "unknown"
+
+    # Hash the bundle if provided
+    bundle_hash = ""
+    if bundle:
+        bundle_hash = _hashlib.sha256(_Path(bundle).read_bytes()).hexdigest()
+
+    pk = km.load_public_key()
+    pk_fingerprint = _hashlib.sha256(pk).hexdigest()
+
+    record = AttestationRecord(
+        subject=SubjectInfo(
+            system_hash=system_hash,
+            system_name=name,
+            system_version=sys_version,
+            files_scanned=file_count,
+        ),
+        scan=ScanInfo(
+            scanner_version=f"air-blackbox {ab_version}",
+            frameworks=fw_list,
+            checks_passed=checks_passed,
+            checks_warned=checks_warned,
+            checks_failed=checks_failed,
+            checks_total=checks_total,
+        ),
+        evidence=EvidenceInfo(
+            bundle_hash=bundle_hash,
+        ),
+        crypto=CryptoInfo(
+            algorithm="ML-DSA-65",
+            public_key_fingerprint=pk_fingerprint,
+        ),
+    )
+
+    # Populate verification URLs (placeholder until registry API ships)
+    record.verification.verify_url = f"https://airblackbox.ai/verify/{record.attestation_id}"
+    record.verification.badge_url = f"https://airblackbox.ai/badge/{record.attestation_id}.svg"
+
+    # Step 4: Sign the attestation
+    console.print(f"[blue]Step 4/4:[/blue] Signing attestation with ML-DSA-65...")
+    signer = EvidenceSigner(key_manager=km)
+    canonical_bytes = record.to_canonical_bytes()
+    envelope = signer.sign_bytes(canonical_bytes)
+    record.crypto.signature = envelope["signature_hex"]
+
+    # Save to local registry
+    path = registry.save(record)
+    console.print(f"  Saved to: {path}")
+
+    console.print()
+    if as_json:
+        console.print(record.to_json())
+    else:
+        console.print(Panel.fit(
+            f"[bold green]Attestation created[/bold green]\n\n"
+            f"ID:          {record.attestation_id}\n"
+            f"System:      {name or system_hash[:16] + '...'}\n"
+            f"Frameworks:  {', '.join(fw_list)}\n"
+            f"Checks:      {checks_passed}/{checks_total} passed\n"
+            f"Signed:      ML-DSA-65 ({km.get_key_id()})\n"
+            f"Record hash: {record.record_hash()[:32]}...\n\n"
+            f"[dim]View:  air-blackbox attest show --id {record.attestation_id}[/dim]\n"
+            f"[dim]Badge: air-blackbox attest badge --id {record.attestation_id}[/dim]\n"
+            f"[dim]List:  air-blackbox attest list[/dim]",
+            title="[bold cyan]Compliance Oracle[/bold cyan]",
+            border_style="green",
+        ))

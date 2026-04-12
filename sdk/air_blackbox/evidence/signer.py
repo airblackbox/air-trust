@@ -99,7 +99,9 @@ class EvidenceSigner:
 
         data = path.read_bytes()
         envelope = self.sign_bytes(data)
-        envelope["file"] = str(path.resolve())
+        # Store only the filename -- never the absolute path, which would
+        # leak internal directory structure, username, and project layout.
+        envelope["file"] = path.name
         envelope["file_size_bytes"] = len(data)
         return envelope
 

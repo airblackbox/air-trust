@@ -39,6 +39,29 @@ def _pretty_json(obj: Any) -> str:
     return json.dumps(obj, indent=2, ensure_ascii=False)
 
 
+def _anonymize_file_paths(file_hashes: Dict[str, str]) -> Dict[str, str]:
+    """Anonymize directory paths while keeping filenames readable.
+
+    Replaces directory components with a short SHA-256 hash so that
+    internal project structure is not leaked in evidence bundles.
+
+    Example:
+        "src/models/trainer.py" -> "a3b1f9c2/trainer.py"
+        "main.py"               -> "main.py"  (no directory to anonymize)
+    """
+    result: Dict[str, str] = {}
+    for filepath, content_hash in file_hashes.items():
+        parts = filepath.replace("\\", "/")  # normalize Windows paths
+        if "/" in parts:
+            dir_part, filename = parts.rsplit("/", 1)
+            dir_hash = hashlib.sha256(dir_part.encode("utf-8")).hexdigest()[:8]
+            safe_path = f"{dir_hash}/{filename}"
+        else:
+            safe_path = parts
+        result[safe_path] = content_hash
+    return result
+
+
 class EvidenceBundleBuilder:
     """Builds self-verifying .air-evidence ZIP bundles.
 
@@ -148,11 +171,14 @@ class EvidenceBundleBuilder:
             from air_blackbox import __version__ as ab_version
         except ImportError:
             ab_version = "unknown"
+        # Only include the OS family (e.g. "Linux", "Darwin", "Windows").
+        # Never include the kernel release (e.g. "5.15.0-100-generic")
+        # because it lets an attacker cross-reference against known CVEs.
         scanner_meta = {
             "tool": "air-blackbox",
             "version": ab_version,
             "python_version": platform.python_version(),
-            "os": f"{platform.system()} {platform.release()}",
+            "os": platform.system(),
             "architecture": platform.machine(),
         }
         files["metadata/scanner.json"] = _pretty_json(scanner_meta).encode("utf-8")
@@ -173,8 +199,12 @@ class EvidenceBundleBuilder:
         files["metadata/frameworks.json"] = _pretty_json(fw_meta).encode("utf-8")
 
         # --- metadata/scanned_files.json (binds evidence to codebase) ---
+        # Anonymize directory paths to prevent leaking internal project
+        # structure while preserving file names for human readability.
+        # Original: "src/models/trainer.py" -> "a3b1f.../trainer.py"
         if scanned_files_hashes:
-            files["metadata/scanned_files.json"] = _pretty_json(scanned_files_hashes).encode("utf-8")
+            safe_hashes = _anonymize_file_paths(scanned_files_hashes)
+            files["metadata/scanned_files.json"] = _pretty_json(safe_hashes).encode("utf-8")
 
         # --- keys/public_key.bin ---
         public_key = self.key_manager.load_public_key()
