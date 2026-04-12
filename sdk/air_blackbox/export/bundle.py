@@ -25,7 +25,16 @@ def generate_evidence_bundle(gateway_url="http://localhost:8080",
 
     Combines all AIR Blackbox data into one auditor-ready document.
     """
-    key = (signing_key or os.environ.get("TRUST_SIGNING_KEY", "air-blackbox-default"))
+    key = signing_key or os.environ.get("TRUST_SIGNING_KEY", "")
+    if not key:
+        import secrets as _secrets
+        import warnings
+        key = _secrets.token_hex(32)
+        warnings.warn(
+            "TRUST_SIGNING_KEY not set. Using a random ephemeral key. "
+            "Set TRUST_SIGNING_KEY env var for persistent tamper-evident chains.",
+            stacklevel=2,
+        )
     now = datetime.utcnow().isoformat() + "Z"
 
     # 1. Gateway status

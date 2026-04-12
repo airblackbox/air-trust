@@ -19,7 +19,7 @@ pip install air-blackbox
 air-blackbox comply --scan .
 ```
 
-That's it. 39 checks across 6 EU AI Act articles. No config, no API keys, no Docker.
+That's it. 48 checks across 6 EU AI Act articles + GDPR. No config, no API keys, no Docker.
 
 Want the demo instead? Generate sample data and see everything in action:
 
@@ -30,14 +30,15 @@ air-blackbox demo
 ## What you get
 
 ```
-Article  9 (Risk Management):      PASS  (5 checks)
-Article 10 (Data Governance):      WARN  (2 findings)
-Article 11 (Technical Docs):       FAIL  (3 findings)
-Article 12 (Record-Keeping):       PASS  (4 checks)
-Article 14 (Human Oversight):      WARN  (1 finding)
-Article 15 (Robustness):           PASS  (3 checks)
+Article  9 (Risk Management):       3/5  (1 warn, 1 fail)
+Article 10 (Data Governance):       3/5  (2 fail)
+Article 11 (Technical Docs):        3/5  (1 warn, 1 fail)
+Article 12 (Record-Keeping):        6/8  (2 warn)
+Article 14 (Human Oversight):       8/9  (1 warn)
+Article 15 (Robustness):            3/8  (4 warn, 1 fail)
+GDPR (Data Protection):             8/8  (all pass)
 
-Compliance Summary: 22 passing  3 warnings  3 failing  out of 28 checks
+Compliance: 34 passed  9 warned  5 failed  out of 48 checks
 
 Run with -v to see fix hints for each failing check.
 ```

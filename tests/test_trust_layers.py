@@ -322,35 +322,45 @@ def test_claude_hooks_produce_verifiable_chain():
         _make_pre_tool_hook, _make_post_tool_hook, _make_stop_hook
     )
 
+    test_key = "test-signing-key-for-chain-verification"
     with tempfile.TemporaryDirectory() as d:
-        pre = _make_pre_tool_hook(runs_dir=d)
-        post = _make_post_tool_hook(runs_dir=d)
-        stop = _make_stop_hook(runs_dir=d)
+        import os
+        old_key = os.environ.get("TRUST_SIGNING_KEY")
+        os.environ["TRUST_SIGNING_KEY"] = test_key
+        try:
+            pre = _make_pre_tool_hook(runs_dir=d)
+            post = _make_post_tool_hook(runs_dir=d)
+            stop = _make_stop_hook(runs_dir=d)
 
-        # Simulate a session: 3 tool calls + session end
-        for i in range(3):
-            _run_async(pre({
-                "hook_event_name": "PreToolUse",
-                "tool_name": f"Tool_{i}",
-                "tool_input": {"command": f"echo {i}"},
+            # Simulate a session: 3 tool calls + session end
+            for i in range(3):
+                _run_async(pre({
+                    "hook_event_name": "PreToolUse",
+                    "tool_name": f"Tool_{i}",
+                    "tool_input": {"command": f"echo {i}"},
+                    "session_id": "test",
+                }, f"tu_{i}", None))
+
+                _run_async(post({
+                    "hook_event_name": "PostToolUse",
+                    "tool_name": f"Tool_{i}",
+                    "tool_input": {},
+                    "session_id": "test",
+                }, f"tu_{i}", None))
+
+            _run_async(stop({
+                "hook_event_name": "Stop",
                 "session_id": "test",
-            }, f"tu_{i}", None))
+            }, None, None))
 
-            _run_async(post({
-                "hook_event_name": "PostToolUse",
-                "tool_name": f"Tool_{i}",
-                "tool_input": {},
-                "session_id": "test",
-            }, f"tu_{i}", None))
-
-        _run_async(stop({
-            "hook_event_name": "Stop",
-            "session_id": "test",
-        }, None, None))
-
-        # Verify chain
-        intact, verified = _verify_chain(d, "air-blackbox-default")
-        assert intact, f"Chain should be intact, broke at {verified}"
+            # Verify chain
+            intact, verified = _verify_chain(d, test_key)
+            assert intact, f"Chain should be intact, broke at {verified}"
+        finally:
+            if old_key is not None:
+                os.environ["TRUST_SIGNING_KEY"] = old_key
+            else:
+                os.environ.pop("TRUST_SIGNING_KEY", None)
 
 
 def test_claude_text_extraction():

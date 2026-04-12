@@ -45,10 +45,17 @@ class AuditChain:
         signing_key: Optional[str] = None,
     ):
         self.runs_dir = runs_dir
-        self._key = (
-            signing_key
-            or os.environ.get("TRUST_SIGNING_KEY", "air-blackbox-default")
-        ).encode("utf-8")
+        resolved_key = signing_key or os.environ.get("TRUST_SIGNING_KEY", "")
+        if not resolved_key:
+            import secrets as _secrets
+            import warnings
+            resolved_key = _secrets.token_hex(32)
+            warnings.warn(
+                "TRUST_SIGNING_KEY not set. Using a random ephemeral key. "
+                "Set TRUST_SIGNING_KEY env var for persistent tamper-evident chains.",
+                stacklevel=2,
+            )
+        self._key = resolved_key.encode("utf-8")
         self._prev_hash = self.GENESIS
         self._lock = threading.Lock()
         self._record_count = 0

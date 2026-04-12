@@ -1,14 +1,16 @@
 """
-AIR Blackbox — AI governance control plane.
+AIR Blackbox -- AI governance control plane.
 
-One install. Four commands. 79% automated compliance.
+48 automated compliance checks. 6 EU AI Act articles + GDPR.
+ML-DSA-65 quantum-safe signing. Tamper-evident audit chains.
 
     pip install air-blackbox
 
+    air-blackbox comply      # EU AI Act compliance scan
+    air-blackbox attest      # Signed compliance attestations
     air-blackbox discover    # Shadow AI inventory + AI-BOM
-    air-blackbox comply      # EU AI Act compliance from live traffic
-    air-blackbox replay      # Incident reconstruction from audit chain
     air-blackbox export      # Signed evidence bundle for auditors
+    air-blackbox replay      # Incident reconstruction from audit chain
 """
 
 __version__ = "1.9.0"
