@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-04-12
+
+### Added
+- Compliance Oracle and Attestation Pool (Phase 2D)
+  - `air-blackbox attest create --publish` publishes signed attestations to public registry
+  - `air-blackbox attest publish --id` publishes existing local attestations
+  - Public verification pages at airblackbox.ai/verify/:id
+  - Embeddable SVG compliance badges at airblackbox.ai/badge/:id
+- Article 12 Compliance Layer rewrite with static + runtime code analysis
+  - Detects logging infrastructure, tamper-evident patterns, retention config
+  - Hybrid analysis: static pattern matching + runtime gateway verification
+- 48 total compliance checks (up from 39) across 6 EU AI Act articles + GDPR
+
+### Fixed
+- Injection module missing exports (broke 25 tests)
+- Injection detector regex too rigid for article prefixes
+- Removed internal business docs accidentally committed to public repo
+
+### Security
+- Replaced hardcoded HMAC default key with random ephemeral key + warning
+  - Previously all users shared the same default signing key "air-blackbox-default"
+  - Now generates cryptographically random key when TRUST_SIGNING_KEY is not set
+
+### Changed
+- License changed from MIT to Apache-2.0
+- SDK docstring updated to reflect actual command count and check count
+
+## [1.8.1] - 2026-04-05
+
+### Fixed
+- Tuple unpacking bug in 4 CLI commands
+- Version string consistency
+- Stale package count references
+
+## [1.8.0] - 2026-04-03
+
+### Added
+- Smart framework auto-detection in compliance scanner
+- Trust layer recommendations based on detected frameworks
+- Colorado SB 24-205 compliance crosswalk
+
+## [1.7.0] - 2026-03-31
+
+### Added
+- Phase 2A: Multi-framework compliance mapping (EU AI Act + ISO 42001 + NIST AI RMF + Colorado SB 24-205)
+- Phase 2B: ML-DSA-65 (FIPS 204) quantum-safe digital signatures for evidence
+- Phase 2C: Self-verifying .air-evidence ZIP bundles with embedded public key + manifest
+- `air-blackbox sign` command for key management and evidence signing
+- `air-blackbox attest` command for creating signed compliance attestations
+- `air-blackbox bundle` command for creating evidence bundles
+- `air-blackbox standards` command for browsing the 4-framework crosswalk
+
 ## [1.6.1] - 2026-03-28
 
 **Fixed**
