@@ -4,4 +4,6 @@ Provides tools for detecting and mitigating prompt injection attacks
 in AI system inputs and interactions.
 """
 
-__all__ = []
+from .detector import InjectionDetector, InjectionResult
+
+__all__ = ["InjectionDetector", "InjectionResult"]

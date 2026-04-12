@@ -8,6 +8,11 @@
 
 # Environment
 .env
+.env.local
+.env*.local
+
+# Vercel
+.vercel/
 
 # AIR records (local dev)
 /runs/
