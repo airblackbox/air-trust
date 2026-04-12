@@ -3,6 +3,7 @@
 **The EU AI Act enforcement deadline is August 2, 2026. Scan your AI agent in 5 minutes. Get audit-ready evidence for four compliance frameworks from a single scan.**
 
 [![PyPI](https://img.shields.io/pypi/v/air-blackbox)](https://pypi.org/project/air-blackbox/)
+[![SDK Tests](https://github.com/airblackbox/air-trust/actions/workflows/sdk-tests.yml/badge.svg)](https://github.com/airblackbox/air-trust/actions/workflows/sdk-tests.yml)
 [![Python](https://img.shields.io/pypi/pyversions/air-blackbox)](https://pypi.org/project/air-blackbox/)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://github.com/airblackbox/gateway/blob/main/LICENSE)
 [![EU AI Act](https://img.shields.io/badge/EU_AI_Act-ready-green)](https://airblackbox.ai)

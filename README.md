@@ -4,6 +4,7 @@ Tamper-evident audit chain for AI agents.
 
 [![PyPI](https://img.shields.io/pypi/v/air-trust)](https://pypi.org/project/air-trust/)
 [![Python](https://img.shields.io/pypi/pyversions/air-trust)](https://pypi.org/project/air-trust/)
+[![SDK Tests](https://github.com/airblackbox/air-trust/actions/workflows/sdk-tests.yml/badge.svg)](https://github.com/airblackbox/air-trust/actions/workflows/sdk-tests.yml)
 [![Tests](https://img.shields.io/badge/tests-305_passing-brightgreen)](air-trust/tests/)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
