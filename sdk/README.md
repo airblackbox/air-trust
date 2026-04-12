@@ -124,6 +124,8 @@ pip install air-blackbox-mcp
 | `air-blackbox test` | End-to-end stack validation |
 | `air-blackbox setup` | One-command model install + verification |
 | `air-blackbox init` | Create compliance doc templates in your project |
+| `air-blackbox attest` | Create, sign, and publish compliance attestations |
+| `air-blackbox sign` | ML-DSA-65 key management and evidence signing |
 
 ## Framework trust layers
 

@@ -17,6 +17,7 @@ Tamper-evident audit chain for AI agents.
 - HMAC-SHA256 chained signatures — if anyone modifies a record, the chain breaks
 - Ed25519 signed handoffs — cryptographic proof of which agent handed off to which
 - 25+ frameworks auto-detected — OpenAI, LangChain, CrewAI, Anthropic, Google ADK, and more
+- Attestation Pool — publish ML-DSA-65 signed compliance proofs to a public registry
 - Zero dependencies — pure Python, no cloud, no API keys, runs on your machine
 - 305 tests covering integrity, completeness, handoffs, and edge cases
 
@@ -117,6 +118,35 @@ python3 -m air_trust verify
 Tamper with the payload? The verifier catches it immediately.
 
 [Try the interactive demo →](https://airblackbox.ai/demo/signed-handoff)
+
+## Compliance Oracle & Attestation Pool
+
+Publish cryptographically signed compliance proofs to a public registry. Three-party trust: your team signs with ML-DSA-65, the registry stores it, anyone can verify independently.
+
+```bash
+# Scan, sign, and publish in one command
+air-blackbox attest create --publish --name "My AI System"
+
+# Output:
+# Published! Registry accepted the attestation.
+#   Verify: https://airblackbox.ai/verify/air-att-2026-04-12-a7f3c2e1
+#   Badge:  https://airblackbox.ai/badge/air-att-2026-04-12-a7f3c2e1
+```
+
+```bash
+# Or publish an existing local attestation
+air-blackbox attest publish --id air-att-2026-04-12-a7f3c2e1
+```
+
+Embeddable badge for your README:
+
+```markdown
+[![AIR Attested](https://airblackbox.ai/badge/air-att-2026-04-12-a7f3c2e1)](https://airblackbox.ai/verify/air-att-2026-04-12-a7f3c2e1)
+```
+
+No source code is stored. Only signed proofs — system hash, check counts, framework list, scanner version, and the ML-DSA-65 signature.
+
+[Learn more about the Attestation Pool →](https://airblackbox.ai/attest)
 
 ## How It Works
 
