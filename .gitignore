@@ -43,3 +43,55 @@ github_replies.md
 training/training_data_v[6-9].jsonl
 training/training_data_v1[0-1].jsonl
 compliance-action/
+
+# Internal business docs — NEVER commit to public repo
+content/
+AIR_Blackbox_Client_Pitch_Framing.md
+AIR_Blackbox_Brand_Guide.md
+AIR_Blackbox_Content_Distribution_Pack.md
+AIR_Blackbox_Visibility_Plan.md
+AIR_Blackbox_Competitor_Analysis_Keyword_Strategy.docx
+AIR_Blackbox_DevTo_Article.md
+Claude_Code_Leak_Content_Pack.md
+LinkedIn_Anthropic_Leak_Post.md
+AIR_Gate_DevTo_Article.md
+AIR_Gate_HN_Post.md
+
+# Outreach emails and replies
+email-*.md
+outreach-*.md
+deepchecks-reply.md
+haystack-reply.md
+pico-reply.md
+
+# Internal planning and launch docs
+ph-launch-kit.md
+ph-gallery-*.html
+ph-gallery-*.png
+tuesday-launch-checklist.md
+day2-*.md
+twitter-post.md
+hn-show-post.md
+devto-*.md
+outlines-compliance-report.md
+signed-handoff-demo.html
+architecture-preview.html
+
+# Draft READMEs and templates
+README_TEMPLATE.md
+BADGE_REFERENCE.md
+air-gate-README.md
+air-platform-README.md
+gateway-README.md
+compliance-action-README.md
+repo-readmes/
+
+# Internal tools and patches
+deploy-404-fixes.sh
+airblackbox-site-404-fixes.patch
+air_gate_demo.tape
+mcp-registry-server.json
+skills/
+
+# Telemetry dev
+air-blackbox-telemetry/
