@@ -4,6 +4,7 @@ AIR Blackbox CLI — AI governance control plane.
     air-blackbox setup       # One-command setup: install model + verify
     air-blackbox discover    # Shadow AI inventory + AI-BOM
     air-blackbox comply      # EU AI Act compliance from live traffic
+    air-blackbox standards   # Multi-framework crosswalk (EU, ISO, NIST, Colorado)
     air-blackbox replay      # Incident reconstruction from audit chain
     air-blackbox export      # Signed evidence bundle for auditors
     air-blackbox validate    # Pre-execution runtime checks
@@ -148,7 +149,8 @@ def setup():
 @click.option("--no-llm", is_flag=True, help="Skip LLM analysis, regex-only scan")
 @click.option("--model", default="air-compliance", help="Ollama model for deep scan")
 @click.option("--no-save", is_flag=True, help="Don't save results to compliance history")
-def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save):
+@click.option("--frameworks", default=None, help="Compliance frameworks to report (eu,iso42001,nist,colorado). Default: all")
+def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, frameworks):
     """Check EU AI Act compliance from live gateway traffic."""
     from air_blackbox.gateway_client import GatewayClient
     from air_blackbox.compliance.engine import run_all_checks
@@ -496,6 +498,66 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save):
     console.print(Panel(parts, title="[bold]Compliance Summary[/]", border_style="blue"))
     if failing > 0 and not verbose:
         console.print("\n[dim]Run with -v to see fix hints for each failing check.[/]")
+
+    # --- Multi-framework crosswalk report ---
+    if frameworks:
+        from air_blackbox.compliance.standards_map import (
+            SUPPORTED_FRAMEWORKS, generate_crosswalk_report,
+            render_crosswalk_markdown, calculate_compliance_scores,
+            generate_compliance_narrative,
+        )
+        # Parse comma-separated framework IDs
+        fw_list = [f.strip().lower() for f in frameworks.split(",")]
+        invalid = [f for f in fw_list if f not in SUPPORTED_FRAMEWORKS]
+        if invalid:
+            console.print(f"[yellow]Unknown framework(s): {', '.join(invalid)}[/]")
+            console.print(f"[dim]Valid options: {', '.join(SUPPORTED_FRAMEWORKS.keys())}[/]\n")
+            fw_list = [f for f in fw_list if f in SUPPORTED_FRAMEWORKS]
+        if fw_list:
+            # Convert articles to flat check list for crosswalk
+            flat_checks = []
+            article_to_category = {
+                9: "risk_management", 10: "data_governance",
+                11: "technical_documentation", 12: "record_keeping",
+                14: "human_oversight", 15: "robustness",
+            }
+            for article in articles:
+                cat = article_to_category.get(article.get("number"))
+                if not cat:
+                    continue
+                for check in article.get("checks", []):
+                    flat_checks.append({
+                        "category": cat,
+                        "check_id": check.get("name", ""),
+                        "status": check.get("status", "unknown"),
+                        "severity": check.get("tier", "static"),
+                        "description": check.get("evidence", ""),
+                        "remediation": check.get("fix_hint", ""),
+                    })
+
+            crosswalk_report = generate_crosswalk_report(flat_checks, frameworks=fw_list)
+            scores = calculate_compliance_scores(crosswalk_report)
+
+            # Display crosswalk scores
+            fw_names = [SUPPORTED_FRAMEWORKS[f]["name"] for f in fw_list]
+            console.print(Panel(
+                "[bold]Multi-Framework Compliance Scores[/]\n\n" +
+                "\n".join(
+                    f"  {SUPPORTED_FRAMEWORKS[f]['name']}: [bold]{scores.get(SUPPORTED_FRAMEWORKS[f]['key'], 0):.1f}%[/]"
+                    for f in fw_list
+                ) +
+                f"\n\n[dim]Frameworks: {', '.join(fw_names)}[/]",
+                title="[bold cyan]Standards Crosswalk[/]",
+                border_style="cyan",
+            ))
+
+            if fmt == "json":
+                import json as _json
+                click.echo(_json.dumps(crosswalk_report, indent=2))
+            elif verbose:
+                console.print()
+                narrative = generate_compliance_narrative(crosswalk_report)
+                console.print(narrative)
 
     # --- Trust layer recommendation ---
     from air_blackbox.compliance.engine import TRUST_LAYER_MAP
@@ -1151,6 +1213,162 @@ def history(path, compare, export_path, limit):
             console.print(f"\n  [bold]Trend:[/] {trend_str}  [dim](flat)[/]")
 
     console.print(f"\n  [dim]Run with --compare to diff last two scans, or --export to save as JSON[/]\n")
+
+
+@main.command()
+@click.option("--framework", "-f", default=None,
+              help="Show mappings for a specific framework (eu, iso42001, nist, colorado)")
+@click.option("--lookup", default=None,
+              help="Reverse lookup: find checks for a clause (e.g., 'Article 9', 'A.6.2.4', 'GOVERN 1', 'Section 6')")
+@click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
+def standards(framework, lookup, fmt):
+    """Show supported compliance frameworks and standards crosswalk.
+
+    Lists all four compliance frameworks (EU AI Act, ISO 42001, NIST AI RMF,
+    Colorado SB 205) and shows how AIR Blackbox checks map to each.
+
+    \b
+    Examples:
+        air-blackbox standards                          # Show all frameworks
+        air-blackbox standards -f iso42001              # Show ISO 42001 mappings
+        air-blackbox standards --lookup "Article 9"     # Find checks for EU Article 9
+        air-blackbox standards --lookup "GOVERN 1"      # Find checks for NIST function
+        air-blackbox standards --lookup "Section 6"     # Find checks for Colorado section
+        air-blackbox standards --lookup "A.6.2.4"       # Find checks for ISO clause
+    """
+    from air_blackbox.compliance.standards_map import (
+        STANDARDS_CROSSWALK, SUPPORTED_FRAMEWORKS,
+        get_checks_for_eu_article, get_checks_for_iso_clause,
+        get_checks_for_nist_function, get_checks_for_colorado_section,
+    )
+    import json as jsonlib
+
+    console.print("\n[bold blue]AIR Blackbox[/] -- Standards Crosswalk\n")
+
+    # Reverse lookup mode
+    if lookup:
+        lookup = lookup.strip()
+        matches = []
+
+        # Detect which lookup function to use
+        if lookup.lower().startswith("article"):
+            try:
+                art_num = int("".join(c for c in lookup if c.isdigit()))
+                matches = get_checks_for_eu_article(art_num)
+                console.print(f"  [bold]EU AI Act {lookup}[/] maps to:\n")
+            except ValueError:
+                console.print(f"  [red]Could not parse article number from '{lookup}'[/]\n")
+                return
+        elif lookup.upper().startswith(("GOVERN", "MAP", "MEASURE", "MANAGE")):
+            matches = get_checks_for_nist_function(lookup)
+            console.print(f"  [bold]NIST AI RMF {lookup}[/] maps to:\n")
+        elif lookup.lower().startswith("section"):
+            matches = get_checks_for_colorado_section(lookup)
+            console.print(f"  [bold]Colorado SB 205 {lookup}[/] maps to:\n")
+        else:
+            # Try ISO clause lookup
+            matches = get_checks_for_iso_clause(lookup)
+            console.print(f"  [bold]ISO 42001 {lookup}[/] maps to:\n")
+
+        if matches:
+            for cat in matches:
+                mapping = STANDARDS_CROSSWALK[cat]
+                console.print(f"    [green]>[/] [bold]{cat.replace('_', ' ').title()}[/]")
+                console.print(f"      EU: {mapping['eu_ai_act']}  |  ISO: {'; '.join(mapping['iso_42001'][:2])}")
+                console.print(f"      NIST: {'; '.join(mapping['nist_ai_rmf'])}  |  CO: {'; '.join(mapping.get('colorado_sb205', [])[:2])}")
+                console.print()
+        else:
+            console.print(f"    [yellow]No matching checks found for '{lookup}'[/]\n")
+        return
+
+    # Single framework detail mode
+    if framework:
+        fw = framework.lower().strip()
+        if fw not in SUPPORTED_FRAMEWORKS:
+            console.print(f"  [red]Unknown framework: {fw}[/]")
+            console.print(f"  [dim]Valid options: {', '.join(SUPPORTED_FRAMEWORKS.keys())}[/]\n")
+            return
+
+        fw_info = SUPPORTED_FRAMEWORKS[fw]
+        fw_key = fw_info["key"]
+        console.print(f"  [bold]{fw_info['name']}[/] mappings:\n")
+
+        if fmt == "json":
+            data = {}
+            for cat, mapping in sorted(STANDARDS_CROSSWALK.items()):
+                data[cat] = {
+                    "references": mapping[fw_key],
+                    "description": mapping["description"],
+                }
+            click.echo(jsonlib.dumps(data, indent=2))
+            return
+
+        t = Table(show_header=True, header_style="bold white on dark_blue")
+        t.add_column("Category", style="bold", width=24)
+        t.add_column(fw_info["name"], width=45)
+        t.add_column("Description", width=40)
+
+        for cat, mapping in sorted(STANDARDS_CROSSWALK.items()):
+            refs = mapping[fw_key]
+            if isinstance(refs, list):
+                ref_str = "; ".join(refs)
+            else:
+                ref_str = str(refs)
+            t.add_row(cat.replace("_", " ").title(), ref_str, mapping["description"][:40])
+
+        console.print(t)
+        console.print()
+        return
+
+    # Default: show all frameworks overview
+    if fmt == "json":
+        data = {
+            "frameworks": SUPPORTED_FRAMEWORKS,
+            "crosswalk": STANDARDS_CROSSWALK,
+        }
+        click.echo(jsonlib.dumps(data, indent=2, default=str))
+        return
+
+    # Frameworks summary table
+    t = Table(title="Supported Compliance Frameworks",
+              show_header=True, header_style="bold white on dark_blue")
+    t.add_column("ID", style="bold", width=10)
+    t.add_column("Framework", width=25)
+    t.add_column("Categories Covered", justify="center", width=20)
+
+    for fw_id, fw_info in SUPPORTED_FRAMEWORKS.items():
+        fw_key = fw_info["key"]
+        count = sum(1 for m in STANDARDS_CROSSWALK.values() if m.get(fw_key))
+        t.add_row(fw_id, fw_info["name"], f"{count}/{len(STANDARDS_CROSSWALK)}")
+
+    console.print(t)
+    console.print()
+
+    # Crosswalk overview table
+    t2 = Table(title="Standards Crosswalk",
+               show_header=True, header_style="bold white on dark_blue")
+    t2.add_column("Category", style="bold", width=22)
+    t2.add_column("EU AI Act", width=12)
+    t2.add_column("ISO 42001", width=18)
+    t2.add_column("NIST RMF", width=16)
+    t2.add_column("Colorado", width=18)
+
+    for cat, mapping in sorted(STANDARDS_CROSSWALK.items()):
+        eu = mapping["eu_ai_act"]
+        iso = "; ".join(mapping["iso_42001"][:2])
+        if len(mapping["iso_42001"]) > 2:
+            iso += "..."
+        nist = "; ".join(mapping["nist_ai_rmf"][:2])
+        co = "; ".join(mapping.get("colorado_sb205", [])[:1])
+        if len(mapping.get("colorado_sb205", [])) > 1:
+            co += "..."
+        t2.add_row(cat.replace("_", " ").title(), eu, iso, nist, co)
+
+    console.print(t2)
+    console.print()
+    console.print("[dim]Detail view: air-blackbox standards -f iso42001[/]")
+    console.print("[dim]Reverse lookup: air-blackbox standards --lookup 'Article 9'[/]")
+    console.print("[dim]Use with comply: air-blackbox comply --frameworks eu,iso42001,nist,colorado[/]\n")
 
 
 @main.command()
