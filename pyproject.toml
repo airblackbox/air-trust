@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "air-blackbox"
-version = "1.8.0"
+version = "1.9.0"
 description = "AI governance control plane — compliance, inventory, incident response, and audit for AI agents"
 readme = "sdk/README.md"
 license = "Apache-2.0"
@@ -34,6 +34,7 @@ dependencies = [
     "rich>=13.0",
     "httpx>=0.25.0",
     "pydantic>=2.0",
+    "dilithium-py>=1.4.0",
 ]
 
 [project.optional-dependencies]

@@ -5,8 +5,11 @@ AIR Blackbox CLI — AI governance control plane.
     air-blackbox discover    # Shadow AI inventory + AI-BOM
     air-blackbox comply      # EU AI Act compliance from live traffic
     air-blackbox standards   # Multi-framework crosswalk (EU, ISO, NIST, Colorado)
+    air-blackbox sign        # ML-DSA-65 quantum-safe signing of evidence
+    air-blackbox verify      # Verify signed evidence files
+    air-blackbox bundle      # Self-verifying .air-evidence package for auditors
     air-blackbox replay      # Incident reconstruction from audit chain
-    air-blackbox export      # Signed evidence bundle for auditors
+    air-blackbox export      # JSON/PDF evidence export
     air-blackbox validate    # Pre-execution runtime checks
     air-blackbox test        # End-to-end stack validation
     air-blackbox demo        # Zero-config demo with sample data
@@ -46,7 +49,7 @@ def print_banner():
 
 
 @click.group()
-@click.version_option(version="1.8.0", prog_name="air-blackbox")
+@click.version_option(version="1.9.0", prog_name="air-blackbox")
 @click.pass_context
 def main(ctx):
     """AIR Blackbox — AI governance control plane.
@@ -895,6 +898,181 @@ def export(gateway, runs_dir, scan, time_range, fmt, output):
         send_event(command="export", version=_ab_version)
     except Exception:
         pass
+
+
+# ---------------------------------------------------------------------------
+# bundle -- self-verifying .air-evidence ZIP
+# ---------------------------------------------------------------------------
+
+@main.command()
+@click.option("--scan", default=".", type=click.Path(exists=True),
+              help="Path to scan for code-level checks (default: current dir)")
+@click.option("--key-dir", default=None, type=click.Path(),
+              help="Custom key storage directory")
+@click.option("--output", "-o", default=".", type=click.Path(),
+              help="Output directory for the bundle (default: current dir)")
+@click.option("--frameworks", default=None,
+              help="Compliance frameworks (eu,iso42001,nist,colorado). Default: all")
+@click.option("--audit-chain", default=None, type=click.Path(exists=True),
+              help="Path to .jsonl audit chain file")
+def bundle(scan, key_dir, output, frameworks, audit_chain):
+    """Create a self-verifying .air-evidence bundle for auditors.
+
+    Packages compliance scan results, multi-framework mappings, and
+    ML-DSA-65 signatures into a single ZIP file. Auditors verify with:
+
+        python verify.py
+
+    No pip install required. Requires signing keys (run air-blackbox sign --keygen first).
+
+    \b
+    Examples:
+        air-blackbox bundle                          # scan current dir, bundle everything
+        air-blackbox bundle --scan ~/myproject       # scan a specific project
+        air-blackbox bundle --frameworks eu,iso42001 # specific frameworks only
+        air-blackbox bundle -o ./evidence            # save to a specific directory
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    try:
+        from air_blackbox.evidence.keys import KeyManager
+        from air_blackbox.evidence.bundle import EvidenceBundleBuilder
+    except ImportError:
+        console.print("[red]Error:[/red] dilithium-py is required for evidence bundles.")
+        console.print("Install it with: [bold]pip install dilithium-py[/bold]")
+        raise SystemExit(1)
+
+    key_dir_path = _Path(key_dir) if key_dir else None
+    km = KeyManager(key_dir=key_dir_path)
+
+    if not km.has_keys():
+        console.print("[red]Error:[/red] No signing keys found.")
+        console.print("Generate keys first: [bold]air-blackbox sign --keygen[/bold]")
+        raise SystemExit(1)
+
+    console.print("\n[bold cyan]AIR Blackbox[/] -- Evidence Bundle\n")
+
+    # Parse frameworks
+    fw_list = None
+    if frameworks:
+        fw_list = [f.strip().lower() for f in frameworks.split(",")]
+    else:
+        fw_list = ["eu", "iso42001", "nist", "colorado"]
+
+    # Step 1: Run compliance scan
+    console.print(f"[blue]Step 1/4:[/blue] Running compliance scan on {scan}...")
+    scan_results = {}
+    try:
+        from air_blackbox.compliance.engine import run_all_checks
+        from air_blackbox.gateway_client import GatewayClient
+        client = GatewayClient(gateway_url="http://localhost:8080", runs_dir="./runs")
+        try:
+            status = client.get_status()
+        except Exception:
+            # Gateway not running -- create a minimal status for code-only scan
+            from air_blackbox.gateway_client import GatewayStatus
+            status = GatewayStatus(
+                reachable=False, vault_enabled=False,
+                guardrails_enabled=False, trust_signing_key_set=False,
+                model_name="", provider=""
+            )
+        compliance = run_all_checks(status, scan)
+        scan_results = {
+            "framework": "EU AI Act",
+            "articles_checked": [9, 10, 11, 12, 14, 15],
+            "results": compliance,
+            "summary": {
+                "total_checks": sum(len(a.get("checks", [])) for a in compliance) if isinstance(compliance, list) else 0,
+                "passing": sum(1 for a in compliance for c in a.get("checks", []) if c.get("status") == "pass") if isinstance(compliance, list) else 0,
+                "warnings": sum(1 for a in compliance for c in a.get("checks", []) if c.get("status") == "warn") if isinstance(compliance, list) else 0,
+                "failing": sum(1 for a in compliance for c in a.get("checks", []) if c.get("status") == "fail") if isinstance(compliance, list) else 0,
+            }
+        }
+    except Exception as e:
+        console.print(f"[yellow]Warning:[/yellow] Scan engine error: {e}")
+        console.print("  Bundling with minimal scan results.")
+        scan_results = {"error": str(e), "framework": "EU AI Act"}
+
+    s = scan_results.get("summary", {})
+    console.print(f"  {s.get('passing', 0)} passing, {s.get('warnings', 0)} warnings, {s.get('failing', 0)} failing")
+
+    # Step 2: Generate crosswalk report
+    console.print(f"[blue]Step 2/4:[/blue] Generating multi-framework crosswalk...")
+    crosswalk = None
+    try:
+        from air_blackbox.compliance.standards_map import generate_crosswalk_report
+        check_results = {}
+        if isinstance(scan_results.get("results"), list):
+            for article in scan_results["results"]:
+                for check in article.get("checks", []):
+                    # Map check names to crosswalk categories
+                    name = check.get("name", "").lower()
+                    if "risk" in name:
+                        check_results["risk_management"] = check.get("status", "warn")
+                    elif "data" in name or "governance" in name:
+                        check_results["data_governance"] = check.get("status", "warn")
+                    elif "doc" in name:
+                        check_results["documentation"] = check.get("status", "warn")
+                    elif "record" in name or "audit" in name or "log" in name:
+                        check_results["record_keeping"] = check.get("status", "warn")
+                    elif "human" in name or "oversight" in name:
+                        check_results["human_oversight"] = check.get("status", "warn")
+                    elif "robust" in name or "security" in name:
+                        check_results["robustness"] = check.get("status", "warn")
+                    elif "transparen" in name:
+                        check_results["transparency"] = check.get("status", "warn")
+                    elif "bias" in name:
+                        check_results["bias_monitoring"] = check.get("status", "warn")
+        crosswalk = generate_crosswalk_report(check_results, fw_list)
+        console.print(f"  Mapped to {len(fw_list)} frameworks: {', '.join(fw_list)}")
+    except Exception as e:
+        console.print(f"[yellow]Warning:[/yellow] Crosswalk generation error: {e}")
+
+    # Step 3: Hash scanned files (binds evidence to codebase)
+    console.print(f"[blue]Step 3/4:[/blue] Hashing scanned source files...")
+    import hashlib as _hashlib
+    scanned_hashes = {}
+    scan_path = _Path(scan)
+    py_files = []
+    if scan_path.is_file():
+        py_files = [scan_path]
+    elif scan_path.is_dir():
+        py_files = list(scan_path.glob("**/*.py"))
+    for pf in py_files[:100]:  # cap at 100 files for bundle size
+        try:
+            content = pf.read_bytes()
+            scanned_hashes[str(pf.relative_to(scan_path))] = _hashlib.sha256(content).hexdigest()
+        except Exception:
+            pass
+    console.print(f"  Hashed {len(scanned_hashes)} Python files")
+
+    # Step 4: Build the bundle
+    console.print(f"[blue]Step 4/4:[/blue] Creating signed evidence bundle...")
+    builder = EvidenceBundleBuilder(key_manager=km)
+    bundle_path = builder.build(
+        scan_results=scan_results,
+        crosswalk_report=crosswalk,
+        audit_chain_path=_Path(audit_chain) if audit_chain else None,
+        frameworks=fw_list,
+        output_dir=_Path(output),
+        scanned_files_hashes=scanned_hashes if scanned_hashes else None,
+    )
+
+    console.print()
+    console.print(Panel.fit(
+        f"[bold green]Evidence bundle created[/bold green]\n\n"
+        f"File:       {bundle_path}\n"
+        f"Size:       {bundle_path.stat().st_size:,} bytes\n"
+        f"Signed by:  {km.get_key_id()} (ML-DSA-65)\n"
+        f"Frameworks: {', '.join(fw_list)}\n\n"
+        f"[dim]Auditor verification (no install required):[/dim]\n"
+        f"  unzip {bundle_path.name}\n"
+        f"  cd {bundle_path.stem}\n"
+        f"  python verify.py",
+        title="[bold cyan]Evidence Bundle[/bold cyan]",
+        border_style="green",
+    ))
 
 
 @main.command()
@@ -1856,3 +2034,219 @@ def test(gateway, verbose):
                 border_style="green",
             ))
     console.print()
+
+
+# ---------------------------------------------------------------------------
+# sign -- ML-DSA-65 quantum-safe signing
+# ---------------------------------------------------------------------------
+
+@main.command()
+@click.argument("file", required=False, type=click.Path())
+@click.option("--keygen", is_flag=True, help="Generate a new ML-DSA-65 key pair")
+@click.option("--force", is_flag=True, help="Overwrite existing keys (use with --keygen)")
+@click.option("--key-dir", default=None, type=click.Path(), help="Custom key storage directory")
+@click.option("--output", "-o", default=None, type=click.Path(), help="Save signature to file (default: <file>.sig)")
+def sign(file, keygen, force, key_dir, output):
+    """Sign a file with ML-DSA-65 quantum-safe signatures.
+
+    Generate keys first, then sign any file:
+
+        air-blackbox sign --keygen          # one-time key generation
+        air-blackbox sign results.json      # sign a scan result
+        air-blackbox sign results.json -o results.sig
+
+    Signatures use FIPS 204 ML-DSA-65 (Dilithium3), which is quantum-resistant.
+    Keys are stored locally and never leave your machine.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    try:
+        from air_blackbox.evidence.keys import KeyManager
+        from air_blackbox.evidence.signer import EvidenceSigner
+    except ImportError:
+        console.print("[red]Error:[/red] dilithium-py is required for signing.")
+        console.print("Install it with: [bold]pip install dilithium-py[/bold]")
+        raise SystemExit(1)
+
+    key_dir_path = _Path(key_dir) if key_dir else None
+    km = KeyManager(key_dir=key_dir_path)
+
+    # --- Key generation mode ---
+    if keygen:
+        try:
+            pk, _sk = km.generate(force=force)
+            console.print()
+            console.print(Panel.fit(
+                f"[bold green]ML-DSA-65 key pair generated[/bold green]\n\n"
+                f"Algorithm:   FIPS 204 ML-DSA-65 (Dilithium3)\n"
+                f"Key ID:      {km.get_key_id()}\n"
+                f"Public key:  {km.public_key_path}\n"
+                f"Private key: {km.private_key_path}\n\n"
+                f"[dim]Your private key never leaves this machine.\n"
+                f"Next: air-blackbox sign <file> to sign evidence.[/dim]",
+                title="[bold cyan]Key Generation[/bold cyan]",
+                border_style="cyan",
+            ))
+        except FileExistsError:
+            console.print("[yellow]Keys already exist.[/yellow] Use --force to overwrite.")
+            meta = km.get_metadata()
+            console.print(f"  Key ID:   {meta.get('key_id', 'unknown')}")
+            console.print(f"  Created:  {meta.get('created_at', 'unknown')}")
+            console.print(f"  Location: {km.key_dir}")
+        except ImportError as e:
+            console.print(f"[red]Error:[/red] {e}")
+            raise SystemExit(1)
+        return
+
+    # --- Signing mode ---
+    if not file:
+        console.print("[red]Error:[/red] Provide a file to sign, or use --keygen to generate keys.")
+        console.print("  Usage: air-blackbox sign <file>")
+        console.print("  Usage: air-blackbox sign --keygen")
+        raise SystemExit(1)
+
+    file_path = _Path(file)
+    if not file_path.exists():
+        console.print(f"[red]Error:[/red] File not found: {file_path}")
+        raise SystemExit(1)
+
+    if not km.has_keys():
+        console.print("[red]Error:[/red] No signing keys found.")
+        console.print("Generate keys first: [bold]air-blackbox sign --keygen[/bold]")
+        raise SystemExit(1)
+
+    signer = EvidenceSigner(key_manager=km)
+
+    console.print(f"[blue]Signing:[/blue] {file_path}")
+    envelope = signer.sign_file(file_path)
+
+    # Save the signature envelope
+    if output:
+        sig_path = _Path(output)
+    else:
+        sig_path = file_path.with_suffix(file_path.suffix + ".sig")
+
+    sig_path.write_text(
+        _json.dumps(envelope, indent=2), encoding="utf-8"
+    )
+
+    console.print()
+    console.print(Panel.fit(
+        f"[bold green]File signed successfully[/bold green]\n\n"
+        f"File:        {file_path}\n"
+        f"Signature:   {sig_path}\n"
+        f"Algorithm:   ML-DSA-65 (quantum-safe)\n"
+        f"Key ID:      {envelope['key_id']}\n"
+        f"SHA-256:     {envelope['data_sha256'][:32]}...\n"
+        f"Sig size:    {envelope['signature_size_bytes']} bytes\n\n"
+        f"[dim]Verify with: air-blackbox verify {file_path} {sig_path}[/dim]",
+        title="[bold cyan]Signed[/bold cyan]",
+        border_style="green",
+    ))
+
+
+# ---------------------------------------------------------------------------
+# verify -- verify ML-DSA-65 signed evidence
+# ---------------------------------------------------------------------------
+
+@main.command()
+@click.argument("file", type=click.Path(exists=True))
+@click.argument("signature", type=click.Path(exists=True))
+@click.option("--public-key", default=None, type=click.Path(exists=True),
+              help="Path to public key file (default: uses local key)")
+@click.option("--key-dir", default=None, type=click.Path(), help="Custom key storage directory")
+@click.option("--json", "as_json", is_flag=True, help="Output result as JSON")
+def verify(file, signature, public_key, key_dir, as_json):
+    """Verify a signed file using ML-DSA-65.
+
+    Verify that a file has not been tampered with since it was signed:
+
+        air-blackbox verify results.json results.json.sig
+        air-blackbox verify results.json results.json.sig --public-key auditor_key.bin
+
+    Returns exit code 0 if valid, 1 if invalid.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    try:
+        from air_blackbox.evidence.keys import KeyManager
+        from air_blackbox.evidence.signer import EvidenceSigner
+    except ImportError:
+        console.print("[red]Error:[/red] dilithium-py is required for verification.")
+        console.print("Install it with: [bold]pip install dilithium-py[/bold]")
+        raise SystemExit(1)
+
+    file_path = _Path(file)
+    sig_path = _Path(signature)
+
+    # Load the signature envelope
+    try:
+        envelope = _json.loads(sig_path.read_text(encoding="utf-8"))
+    except _json.JSONDecodeError as e:
+        console.print(f"[red]Error:[/red] Invalid signature file: {e}")
+        raise SystemExit(1)
+
+    # Load public key
+    pk_bytes = None
+    if public_key:
+        pk_bytes = _Path(public_key).read_bytes()
+    else:
+        key_dir_path = _Path(key_dir) if key_dir else None
+        km = KeyManager(key_dir=key_dir_path)
+        try:
+            pk_bytes = km.load_public_key()
+        except FileNotFoundError:
+            console.print("[red]Error:[/red] No public key found.")
+            console.print("Provide one with --public-key or generate keys with: air-blackbox sign --keygen")
+            raise SystemExit(1)
+
+    # Read the file and verify
+    data = file_path.read_bytes()
+    km_for_verify = KeyManager(key_dir=_Path(key_dir) if key_dir else None)
+    signer = EvidenceSigner(key_manager=km_for_verify)
+
+    result = signer.verify_envelope(data, envelope, public_key=pk_bytes)
+
+    if as_json:
+        console.print(_json.dumps(result, indent=2))
+    else:
+        console.print()
+        if result["verified"]:
+            console.print(Panel.fit(
+                f"[bold green]VERIFIED[/bold green] -- signature is valid\n\n"
+                f"File:      {file_path}\n"
+                f"Algorithm: {envelope.get('algorithm', 'unknown')}\n"
+                f"Key ID:    {envelope.get('key_id', 'unknown')}\n"
+                f"Signed at: {envelope.get('signed_at', 'unknown')}\n"
+                f"SHA-256:   {result['checks']['data_integrity']['actual'][:32]}...\n\n"
+                f"[green]All checks passed:[/green]\n"
+                f"  Algorithm:      {'PASS' if result['checks']['algorithm']['passed'] else 'FAIL'}\n"
+                f"  Data integrity: {'PASS' if result['checks']['data_integrity']['passed'] else 'FAIL'}\n"
+                f"  Signature:      {'PASS' if result['checks']['signature']['passed'] else 'FAIL'}",
+                title="[bold green]Verification Result[/bold green]",
+                border_style="green",
+            ))
+        else:
+            failed_checks = [
+                name for name, check in result["checks"].items()
+                if not check["passed"]
+            ]
+            console.print(Panel.fit(
+                f"[bold red]FAILED[/bold red] -- signature verification failed\n\n"
+                f"File:      {file_path}\n"
+                f"Algorithm: {envelope.get('algorithm', 'unknown')}\n"
+                f"Key ID:    {envelope.get('key_id', 'unknown')}\n\n"
+                f"[red]Failed checks:[/red] {', '.join(failed_checks)}\n\n"
+                f"  Algorithm:      {'PASS' if result['checks']['algorithm']['passed'] else 'FAIL'}\n"
+                f"  Data integrity: {'PASS' if result['checks']['data_integrity']['passed'] else 'FAIL'}\n"
+                f"  Signature:      {'PASS' if result['checks']['signature']['passed'] else 'FAIL'}\n\n"
+                f"[dim]The file may have been modified since signing.[/dim]",
+                title="[bold red]Verification Result[/bold red]",
+                border_style="red",
+            ))
+            raise SystemExit(1)
+
+    if not result["verified"]:
+        raise SystemExit(1)
