@@ -31,8 +31,11 @@ import threading
 from pathlib import Path
 
 
-# Telemetry endpoint — a simple Vercel serverless function
-TELEMETRY_URL = "https://airblackbox.ai/api/telemetry"
+# Telemetry endpoint — configurable via env for testing/sandbox
+TELEMETRY_URL = os.environ.get(
+    "AIR_BLACKBOX_TELEMETRY_URL",
+    "https://airblackbox.ai/api/telemetry",
+)
 
 # Local config file for anonymous ID
 _CONFIG_DIR = Path.home() / ".air-blackbox"
@@ -101,8 +104,8 @@ def send_event(
         "version": version,
         "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "os": platform.system(),
-        "os_version": platform.release(),
-        "arch": platform.machine(),
+        # os_version (kernel release) intentionally omitted to prevent
+        # fingerprinting against known CVEs
     }
 
     if extra:

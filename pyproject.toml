@@ -38,7 +38,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-langchain = ["langchain-core>=0.2.0"]
+langchain = ["langchain-core>=0.2.0", "langchain-openai>=0.1.0"]
 crewai = ["crewai>=0.50.0"]
 haystack = ["haystack-ai>=2.0.0"]
 openai = ["openai>=1.0"]

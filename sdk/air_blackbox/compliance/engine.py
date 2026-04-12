@@ -166,6 +166,37 @@ def _check_article_9(status, scan_path, code_findings=None, rec_pkg="air-langcha
         evidence="Risk assessment document found" if has_risk else "No risk assessment document found",
         fix_hint="Create RISK_ASSESSMENT.md documenting identified risks, likelihood, impact, and mitigations",
         tier="static"))
+
+    # Article 6 requires risk CLASSIFICATION before Article 9 mitigations apply.
+    # Check if the risk assessment actually classifies the system's risk level.
+    risk_classified = False
+    if has_risk:
+        for rf in risk_files:
+            rfp = os.path.join(scan_path, rf)
+            if os.path.exists(rfp):
+                try:
+                    with open(rfp, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read().lower()
+                    import re
+                    # Look for actual risk classification content
+                    classification_patterns = [
+                        r"risk\s+(?:level|classification|category)",
+                        r"(?:high|minimal|limited|unacceptable)[\s-]*risk",
+                        r"annex\s+iii", r"article\s+6",
+                        r"prohibited|high-risk|limited\s+risk|minimal\s+risk",
+                    ]
+                    if any(re.search(p, content) for p in classification_patterns):
+                        risk_classified = True
+                except Exception:
+                    pass
+    checks.append(ComplianceCheck(name="Risk classification (Article 6)", article=9, detection="static",
+        status="pass" if risk_classified else ("warn" if has_risk else "fail"),
+        evidence="Risk classification found in assessment document" if risk_classified
+            else ("Risk document exists but no risk level classification found" if has_risk
+                  else "No risk classification. Article 6 requires classifying the system before applying mitigations"),
+        fix_hint="Add risk classification to RISK_ASSESSMENT.md: classify as prohibited/high/limited/minimal per EU AI Act Article 6 and Annex III",
+        tier="static"))
+
     mits = []
     if status.guardrails_enabled: mits.append("guardrails")
     if status.vault_enabled: mits.append("data vault")
@@ -315,28 +346,92 @@ def _check_article_12(status, scan_path, code_findings=None, rec_pkg="air-langch
 
 def _check_article_14(status, scan_path, code_findings=None, rec_pkg="air-langchain-trust"):
     checks = []
-    if status.total_runs > 0:
-        checks.append(ComplianceCheck(name="Human-in-the-loop mechanism", article=14, detection="auto", status="warn",
-            evidence=f"{status.total_runs:,} actions logged. No human approval gates detected.",
-            fix_hint="Add approval gates: air.require_approval(action)",
+
+    # Static analysis: scan code for human-in-the-loop patterns
+    import re as _re
+    hitl_patterns = [
+        r"require_approval", r"human_review", r"human_in_the_loop",
+        r"approval_gate", r"manual_review", r"human_override",
+        r"await_confirmation", r"human_decision", r"escalate_to_human",
+        r"needs_review", r"pending_approval", r"review_required",
+    ]
+    hitl_combined = "|".join(hitl_patterns)
+    hitl_found_in = []
+    try:
+        for root, dirs, files in os.walk(scan_path):
+            dirs[:] = [d for d in dirs if d not in {"__pycache__", ".git", "node_modules", ".venv", "venv"}]
+            for fname in files:
+                if fname.endswith(".py"):
+                    fp = os.path.join(root, fname)
+                    try:
+                        with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                            content = f.read()
+                        if _re.search(hitl_combined, content, _re.IGNORECASE):
+                            hitl_found_in.append(os.path.relpath(fp, scan_path))
+                    except Exception:
+                        continue
+    except Exception:
+        pass
+
+    if hitl_found_in:
+        checks.append(ComplianceCheck(name="Human-in-the-loop mechanism", article=14, detection="static",
+            status="pass",
+            evidence=f"Human oversight patterns found in {len(hitl_found_in)} file(s): {', '.join(hitl_found_in[:3])}",
+            tier="static"))
+    elif status.total_runs > 0:
+        checks.append(ComplianceCheck(name="Human-in-the-loop mechanism", article=14, detection="hybrid", status="warn",
+            evidence=f"{status.total_runs:,} actions logged but no human approval gates detected in code.",
+            fix_hint="Add approval gates: air.require_approval(action) or human_review() before critical decisions",
             tier="runtime"))
     else:
-        checks.append(ComplianceCheck(name="Human-in-the-loop mechanism", article=14, detection="auto", status="warn",
-            evidence="No traffic data to analyze for oversight patterns.",
-            tier="runtime"))
+        checks.append(ComplianceCheck(name="Human-in-the-loop mechanism", article=14, detection="static", status="warn",
+            evidence="No human-in-the-loop patterns detected in code.",
+            fix_hint="Add human approval gates for high-risk decisions per Article 14(4)",
+            tier="static"))
+
+    # Kill switch: check both runtime AND static patterns
+    kill_switch_patterns = [
+        r"kill_switch", r"emergency_stop", r"shutdown", r"circuit_breaker",
+        r"disable_agent", r"stop_all", r"halt_execution", r"force_stop",
+    ]
+    ks_combined = "|".join(kill_switch_patterns)
+    has_code_kill_switch = False
+    try:
+        for root, dirs, files in os.walk(scan_path):
+            dirs[:] = [d for d in dirs if d not in {"__pycache__", ".git", "node_modules", ".venv", "venv"}]
+            for fname in files:
+                if fname.endswith(".py"):
+                    fp = os.path.join(root, fname)
+                    try:
+                        with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                            if _re.search(ks_combined, f.read(), _re.IGNORECASE):
+                                has_code_kill_switch = True
+                                break
+                    except Exception:
+                        continue
+            if has_code_kill_switch:
+                break
+    except Exception:
+        pass
+
     if status.reachable and status.guardrails_enabled:
         checks.append(ComplianceCheck(name="Kill switch / stop mechanism", article=14, detection="auto", status="pass",
             evidence="Gateway active with guardrails. Kill switch available.",
             tier="runtime"))
+    elif has_code_kill_switch:
+        checks.append(ComplianceCheck(name="Kill switch / stop mechanism", article=14, detection="static", status="pass",
+            evidence="Kill switch / emergency stop pattern found in code.",
+            tier="static"))
     elif status.reachable:
         checks.append(ComplianceCheck(name="Kill switch / stop mechanism", article=14, detection="auto", status="warn",
             evidence="Gateway running but guardrails not configured.", fix_hint="Create guardrails.yaml",
             tier="runtime"))
     else:
-        checks.append(ComplianceCheck(name="Kill switch / stop mechanism", article=14, detection="auto", status="fail",
-            evidence="Gateway not running. No kill switch.",
-            fix_hint=f"pip install {rec_pkg}  # or start gateway: docker compose up",
-            tier="runtime"))
+        checks.append(ComplianceCheck(name="Kill switch / stop mechanism", article=14, detection="static", status="fail",
+            evidence="No kill switch or emergency stop mechanism found in code or runtime.",
+            fix_hint=f"Add emergency stop mechanism. pip install {rec_pkg} or implement kill_switch()",
+            tier="static"))
+
     op_files = ["OPERATOR_GUIDE.md", "operator_guide.md", "RUNBOOK.md"]
     has_ops = any(os.path.exists(os.path.join(scan_path, f)) for f in op_files)
     checks.append(ComplianceCheck(name="Operator understanding documentation", article=14, detection="manual",

@@ -76,11 +76,33 @@ def _check_consent_management(
         fp for fp, c in file_contents.items()
         if re.search(moderate, c, re.IGNORECASE) and fp not in strong_hits
     ]
-    if strong_hits:
+
+    # Verify enforcement: check that consent is actually gated, not just referenced
+    # Look for control flow patterns (if/raise/return/assert) near consent keywords
+    enforced = False
+    for fp in strong_hits:
+        content = file_contents[fp]
+        enforcement_patterns = [
+            r"if\s+.*consent", r"if\s+not\s+.*consent",
+            r"assert\s+.*consent", r"raise.*consent",
+            r"consent.*required", r"require.*consent",
+        ]
+        if any(re.search(p, content, re.IGNORECASE) for p in enforcement_patterns):
+            enforced = True
+            break
+
+    if strong_hits and enforced:
         return [CodeFinding(
             article=6, name="GDPR consent management",
             status="pass",
-            evidence=f"Consent management found in {len(strong_hits)} file(s)",
+            evidence=f"Consent management with enforcement gates found in {len(strong_hits)} file(s)",
+        )]
+    if strong_hits and not enforced:
+        return [CodeFinding(
+            article=6, name="GDPR consent management",
+            status="warn",
+            evidence=f"Consent patterns found in {len(strong_hits)} file(s) but no enforcement gates detected (if/raise/assert)",
+            fix_hint="Add conditional checks that block processing without valid consent (GDPR Art. 6/7)",
         )]
     if moderate_hits:
         return [CodeFinding(

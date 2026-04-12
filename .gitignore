@@ -36,6 +36,18 @@ model/*.gguf
 # Generated reports
 *.pdf
 
+# Dead root-level stubs (real code lives in sdk/air_blackbox/)
+# Use /prefix to match ONLY root-level, not sdk/ subdirectories
+/aibom/
+/compliance/
+/policy/
+/episodes/
+/eval/
+/otel/
+/sandbox/
+/mcp/
+/sample_agent.py
+
 # Scratch files
 code_scanner.py
 engine.py

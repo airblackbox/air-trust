@@ -376,6 +376,10 @@ def _sanitize_model_output(raw: str) -> str:
     # Remove "Install the <Name> Trust Layer for full compliance" pattern
     raw = re.sub(r'(?i)install\s+(?:the\s+)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+trust\s+layer\s+for\s+full\s+compliance',
                  'Install a trust layer package for full compliance', raw)
+    # Remove hallucinated file references (files that don't exist)
+    # The LLM sometimes invents evidence like "Found in utils.py" for files
+    # that don't exist. We mark these for post-parse verification rather than
+    # stripping them here, since we need the scan_path context.
     return raw
 
 
@@ -518,19 +522,42 @@ def _parse_llm_output(raw: str) -> list:
     return [f for f in findings if f is not None]
 
 
-def _validate_finding(f) -> Optional[dict]:
-    """Validate a finding dict has required fields."""
+def _validate_finding(f, scan_path: str = None) -> Optional[dict]:
+    """Validate a finding dict has required fields.
+
+    If scan_path is provided, also checks that any file references in the
+    evidence string actually exist on disk. This prevents the LLM from
+    hallucinating evidence like 'Found in utils.py' for nonexistent files.
+    """
     if not isinstance(f, dict):
         return None
     if "article" not in f or "name" not in f or "status" not in f:
         return None
     if f["status"] not in ("pass", "warn", "fail"):
         f["status"] = "warn"
+
+    evidence = str(f.get("evidence", ""))
+
+    # Hallucination guard: verify file references in evidence actually exist
+    if scan_path and evidence:
+        import re as _re
+        # Match patterns like "in utils.py", "Found in src/agent.py", etc.
+        file_refs = _re.findall(r'(?:in|from|file)\s+[`"\']?(\S+\.py)[`"\']?', evidence, _re.IGNORECASE)
+        for ref in file_refs:
+            import os as _os
+            candidate = _os.path.join(scan_path, ref)
+            if not _os.path.exists(candidate):
+                # LLM hallucinated a file reference -- downgrade to warn
+                # and flag the hallucination in the evidence
+                evidence += f" [WARNING: referenced file '{ref}' not found in codebase]"
+                if f["status"] == "pass":
+                    f["status"] = "warn"
+
     return {
         "article": int(f.get("article", 0)),
         "name": str(f.get("name", "")),
         "status": f["status"],
-        "evidence": str(f.get("evidence", "")),
+        "evidence": evidence,
         "fix_hint": str(f.get("fix_hint", "")),
         "source": "llm",
     }

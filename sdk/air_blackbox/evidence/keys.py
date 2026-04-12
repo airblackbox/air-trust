@@ -200,7 +200,11 @@ class KeyManager:
                     os.chmod(tmp_path, stat.S_IRUSR | stat.S_IWUSR)
                 except OSError:
                     # Some filesystems (Docker, mounted volumes) may not support chmod
-                    pass
+                    console.print(
+                        "[yellow]Warning:[/yellow] Could not restrict private key permissions "
+                        f"(chmod 600) on {path.name}. This may happen on Docker or mounted "
+                        "filesystems. Ensure the key file is not world-readable."
+                    )
             tmp_path.rename(path)
         except Exception:
             tmp_path.unlink(missing_ok=True)

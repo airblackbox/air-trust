@@ -96,7 +96,10 @@ STANDARDS_CROSSWALK = {
         "description": "Injection defense, error resilience, adversarial robustness, recovery capabilities",
     },
     "consent_management": {
-        "eu_ai_act": "GDPR Article 6/7",
+        # Note: Consent is a GDPR requirement (separate regulation), not an
+        # EU AI Act article. The EU AI Act addresses data governance (Art. 10)
+        # and transparency (Art. 13), which complement GDPR consent obligations.
+        "eu_ai_act": "Article 10 (Data Governance) + Article 13 (Transparency)",
         "iso_42001": [
             "A.6.2.5 (Data management and governance)",
             "A.6.2.11 (Use of data subject rights)",
@@ -105,10 +108,16 @@ STANDARDS_CROSSWALK = {
         "colorado_sb205": [
             "Section 5 (Consumer disclosure and notice requirements)",
         ],
-        "description": "Lawful basis tracking, consent gates, data subject rights management, withdrawal mechanisms",
+        "gdpr": "Article 6 (Lawful basis) + Article 7 (Conditions for consent)",
+        "description": "Lawful basis tracking, consent gates, data subject rights management, withdrawal mechanisms. "
+                       "GDPR Article 6/7 applies when AI processes personal data; EU AI Act Article 10 governs data governance.",
     },
     "bias_fairness": {
-        "eu_ai_act": "Article 10 (Data Governance)",
+        # Bias/fairness spans multiple EU AI Act articles:
+        # Art. 10 (data governance/bias in training data),
+        # Art. 14 (human oversight to catch bias), and
+        # Art. 15 (robustness against discriminatory outcomes)
+        "eu_ai_act": "Article 10 (Data Governance) + Article 14 (Human Oversight) + Article 15 (Robustness)",
         "iso_42001": [
             "A.6.2.4 (Data quality and fairness)",
             "A.6.2.10 (AI system fairness and non-discrimination)",
