@@ -2258,7 +2258,7 @@ def verify(file, signature, public_key, key_dir, as_json):
 # ---------------------------------------------------------------------------
 
 @main.command()
-@click.argument("action", type=click.Choice(["create", "list", "show", "badge"]), default="create")
+@click.argument("action", type=click.Choice(["create", "list", "show", "badge", "publish"]), default="create")
 @click.option("--scan", default=".", type=click.Path(exists=True),
               help="Path to scan for code-level checks (default: current dir)")
 @click.option("--name", default="", help="Human-readable name for the AI system")
@@ -2273,7 +2273,8 @@ def verify(file, signature, public_key, key_dir, as_json):
 @click.option("--output", "-o", default=None, type=click.Path(),
               help="Save badge SVG to file (for badge action)")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
-def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id, output, as_json):
+@click.option("--publish", is_flag=True, help="Publish attestation to the public registry at airblackbox.ai")
+def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id, output, as_json, publish):
     """Create, list, and manage compliance attestations.
 
     Attestations are signed proofs that an AI system was scanned. They contain
@@ -2281,14 +2282,17 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
 
     \b
     Actions:
-        create  Scan a project and create a signed attestation (default)
-        list    Show all attestations in the local registry
-        show    Display details of a specific attestation
-        badge   Generate an SVG badge for a specific attestation
+        create   Scan a project and create a signed attestation (default)
+        list     Show all attestations in the local registry
+        show     Display details of a specific attestation
+        badge    Generate an SVG badge for a specific attestation
+        publish  Publish an existing local attestation to the public registry
 
     \b
     Examples:
         air-blackbox attest create --scan ~/myproject --name "My AI System"
+        air-blackbox attest create --scan . --publish --name "My AI System"
+        air-blackbox attest publish --id air-att-2026-04-12-a7f3c2e1
         air-blackbox attest list
         air-blackbox attest show --id air-att-2026-04-12-a7f3c2e1
         air-blackbox attest badge --id air-att-2026-04-12-a7f3c2e1 -o badge.svg
@@ -2412,6 +2416,62 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
         console.print(f"  {badge_markdown(record)}")
         return
 
+    # --- PUBLISH (standalone) ---
+    if action == "publish":
+        if not att_id:
+            console.print("[red]Error:[/red] Provide --id for the attestation to publish.")
+            raise SystemExit(1)
+
+        record = registry.load(att_id)
+        if not record:
+            console.print(f"[red]Error:[/red] Attestation not found locally: {att_id}")
+            raise SystemExit(1)
+
+        if not record.crypto.signature:
+            console.print("[red]Error:[/red] Attestation is not signed. The public registry requires a signature.")
+            raise SystemExit(1)
+
+        console.print(f"\n[bold cyan]AIR Blackbox[/] -- Publishing to Public Registry\n")
+        console.print(f"[blue]Attestation:[/blue] {att_id}")
+        console.print(f"[blue]Sending to:[/blue]  https://airblackbox.ai/api/attest\n")
+
+        try:
+            import httpx
+
+            payload = record.to_dict()
+            resp = httpx.post(
+                "https://airblackbox.ai/api/attest",
+                json=payload,
+                timeout=30,
+            )
+
+            if resp.status_code == 201:
+                data = resp.json()
+                console.print(f"[green]Published![/green]")
+                console.print(f"  Verify: {data.get('verify_url', '')}")
+                console.print(f"  Badge:  {data.get('badge_url', '')}")
+                console.print()
+                console.print("[dim]Embed in your README:[/dim]")
+                md = f"[![AIR Attested](https://airblackbox.ai/badge/{att_id})](https://airblackbox.ai/verify/{att_id})"
+                console.print(f"  {md}")
+            elif resp.status_code == 409:
+                console.print(f"[yellow]Already published:[/yellow] This attestation ID exists in the registry.")
+                console.print(f"  Verify: https://airblackbox.ai/verify/{att_id}")
+            else:
+                err_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+                err_msg = err_data.get("error", resp.text[:200])
+                console.print(f"[red]Registry rejected:[/red] {err_msg}")
+                if "issues" in err_data:
+                    for issue in err_data["issues"]:
+                        console.print(f"  - {issue}")
+        except httpx.ConnectError:
+            console.print("[red]Error:[/red] Cannot connect to airblackbox.ai. Check your network.")
+        except httpx.TimeoutException:
+            console.print("[red]Error:[/red] Request timed out. Try again later.")
+        except Exception as e:
+            console.print(f"[red]Error:[/red] Publish failed: {e}")
+        return
+
     # --- CREATE ---
     if not km.has_keys():
         console.print("[red]Error:[/red] No signing keys found.")
@@ -2519,7 +2579,7 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
         ),
     )
 
-    # Populate verification URLs (placeholder until registry API ships)
+    # Populate verification URLs
     record.verification.verify_url = f"https://airblackbox.ai/verify/{record.attestation_id}"
     record.verification.badge_url = f"https://airblackbox.ai/badge/{record.attestation_id}.svg"
 
@@ -2534,10 +2594,60 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
     path = registry.save(record)
     console.print(f"  Saved to: {path}")
 
+    # --- PUBLISH to public registry ---
+    publish_ok = False
+    verify_url = ""
+    badge_url = ""
+    if publish:
+        console.print()
+        console.print("[blue]Publishing:[/blue] Sending attestation to public registry...")
+        try:
+            import httpx
+
+            payload = record.to_dict()
+            resp = httpx.post(
+                "https://airblackbox.ai/api/attest",
+                json=payload,
+                timeout=30,
+            )
+
+            if resp.status_code == 201:
+                data = resp.json()
+                verify_url = data.get("verify_url", "")
+                badge_url = data.get("badge_url", "")
+                publish_ok = True
+                console.print(f"  [green]Published![/green] Registry accepted the attestation.")
+                console.print(f"  Verify:  {verify_url}")
+                console.print(f"  Badge:   {badge_url}")
+            elif resp.status_code == 409:
+                console.print(f"  [yellow]Already published:[/yellow] This attestation ID exists in the registry.")
+                publish_ok = True  # Not a failure -- it is already there
+            else:
+                err_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+                err_msg = err_data.get("error", resp.text[:200])
+                console.print(f"  [red]Registry rejected:[/red] {err_msg}")
+                console.print(f"  [dim]HTTP {resp.status_code}. The attestation is still saved locally.[/dim]")
+        except httpx.ConnectError:
+            console.print("  [red]Error:[/red] Cannot connect to airblackbox.ai. Check your network.")
+            console.print("  [dim]The attestation is saved locally. Retry with:[/dim]")
+            console.print(f"  [dim]  air-blackbox attest publish --id {record.attestation_id}[/dim]")
+        except httpx.TimeoutException:
+            console.print("  [red]Error:[/red] Request to airblackbox.ai timed out.")
+            console.print("  [dim]The attestation is saved locally. Retry later.[/dim]")
+        except Exception as e:
+            console.print(f"  [red]Error:[/red] Publish failed: {e}")
+            console.print("  [dim]The attestation is saved locally.[/dim]")
+
     console.print()
     if as_json:
         console.print(record.to_json())
     else:
+        publish_line = ""
+        if publish and publish_ok:
+            publish_line = f"\n[green]Published: {verify_url}[/green]"
+        elif publish and not publish_ok:
+            publish_line = "\n[yellow]Publish failed (saved locally)[/yellow]"
+
         console.print(Panel.fit(
             f"[bold green]Attestation created[/bold green]\n\n"
             f"ID:          {record.attestation_id}\n"
@@ -2545,7 +2655,7 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
             f"Frameworks:  {', '.join(fw_list)}\n"
             f"Checks:      {checks_passed}/{checks_total} passed\n"
             f"Signed:      ML-DSA-65 ({km.get_key_id()})\n"
-            f"Record hash: {record.record_hash()[:32]}...\n\n"
+            f"Record hash: {record.record_hash()[:32]}...{publish_line}\n\n"
             f"[dim]View:  air-blackbox attest show --id {record.attestation_id}[/dim]\n"
             f"[dim]Badge: air-blackbox attest badge --id {record.attestation_id}[/dim]\n"
             f"[dim]List:  air-blackbox attest list[/dim]",
