@@ -288,38 +288,143 @@ def _check_article_11(status, scan_path, code_findings=None, rec_pkg="air-langch
 
 
 def _check_article_12(status, scan_path, code_findings=None, rec_pkg="air-langchain-trust"):
+    """Article 12: Record-Keeping.
+
+    EU AI Act Article 12 requires:
+    1. Automatic logging of AI system operations
+    2. Tamper-evident record keeping (logs resistant to modification)
+    3. Traceability through the AI lifecycle
+    4. Log retention for post-market monitoring
+
+    This check uses BOTH runtime data (gateway/trust layer) AND static
+    code analysis (logging infrastructure in the codebase).
+    """
+    import re as _re
+
     checks = []
+
+    # ---- Check 1: Automatic event logging (runtime + static) ----
+    # Runtime check: is the gateway or trust layer actively logging?
+    has_runtime_logging = False
     if status.reachable and status.total_runs > 0:
-        checks.append(ComplianceCheck(name="Automatic event logging", article=12, detection="auto", status="pass",
+        has_runtime_logging = True
+        checks.append(ComplianceCheck(name="Automatic event logging (runtime)", article=12, detection="auto", status="pass",
             evidence=f"Gateway active. {status.total_runs:,} events logged. Period: {status.date_range_start} to {status.date_range_end}.",
             tier="runtime"))
     elif status.total_runs > 0:
-        checks.append(ComplianceCheck(name="Automatic event logging", article=12, detection="auto", status="pass",
+        has_runtime_logging = True
+        checks.append(ComplianceCheck(name="Automatic event logging (runtime)", article=12, detection="auto", status="pass",
             evidence=f"Trust layer active. {status.total_runs:,} events logged. Period: {status.date_range_start} to {status.date_range_end}.",
             tier="runtime"))
-    elif status.reachable:
-        checks.append(ComplianceCheck(name="Automatic event logging", article=12, detection="auto", status="warn",
-            evidence=f"Gateway running but no events logged yet.", fix_hint="Route traffic through gateway",
-            tier="runtime"))
+
+    # Static check: does the codebase have logging infrastructure?
+    logging_patterns = {
+        "python_logging": r"(?:import\s+logging|from\s+logging\s+import|getLogger)",
+        "structured_logging": r"(?:import\s+structlog|from\s+structlog|import\s+loguru|from\s+loguru)",
+        "opentelemetry": r"(?:import\s+opentelemetry|from\s+opentelemetry|TracerProvider|MeterProvider|LoggerProvider)",
+        "otel_shorthand": r"(?:from\s+otel|import\s+otel|OTLPSpanExporter|OTLPLogExporter)",
+        "audit_trail": r"(?:audit_log|audit_trail|audit_record|AuditChain|write_audit|log_event)",
+        "air_trust": r"(?:from\s+air_trust|import\s+air_trust|from\s+air_blackbox\.trust|AuditChain)",
+    }
+    logging_found = {}
+    logging_files = []
+    try:
+        for root, dirs, files in os.walk(scan_path):
+            dirs[:] = [d for d in dirs if d not in {"__pycache__", ".git", "node_modules", ".venv", "venv"}]
+            for fname in files:
+                if fname.endswith(".py"):
+                    fp = os.path.join(root, fname)
+                    try:
+                        with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                            content = f.read()
+                        for pattern_name, pattern in logging_patterns.items():
+                            if _re.search(pattern, content):
+                                logging_found[pattern_name] = logging_found.get(pattern_name, 0) + 1
+                                rel = os.path.relpath(fp, scan_path)
+                                if rel not in logging_files:
+                                    logging_files.append(rel)
+                    except Exception:
+                        continue
+    except Exception:
+        pass
+
+    has_static_logging = len(logging_found) > 0
+    if has_static_logging:
+        infra_types = ", ".join(sorted(logging_found.keys()))
+        checks.append(ComplianceCheck(name="Logging infrastructure in code", article=12, detection="static",
+            status="pass",
+            evidence=f"Logging infrastructure found in {len(logging_files)} file(s): {infra_types}",
+            tier="static"))
     else:
-        checks.append(ComplianceCheck(name="Automatic event logging", article=12, detection="auto", status="fail",
-            evidence=f"Gateway not reachable. Install a trust layer for inline logging.",
-            fix_hint=f"pip install {rec_pkg}  # or start gateway: docker compose up",
+        checks.append(ComplianceCheck(name="Logging infrastructure in code", article=12, detection="static",
+            status="warn" if has_runtime_logging else "fail",
+            evidence="No logging infrastructure detected in codebase (no Python logging, structlog, OpenTelemetry, or audit trail patterns).",
+            fix_hint="Add structured logging: import logging; logger = logging.getLogger(__name__) or install air-trust for HMAC-chained audit trails",
+            tier="static"))
+
+    # If neither runtime nor static logging exists, add the runtime fail
+    if not has_runtime_logging and not has_static_logging:
+        checks.append(ComplianceCheck(name="Automatic event logging (runtime)", article=12, detection="auto", status="fail",
+            evidence="No runtime logging active and no logging infrastructure in code.",
+            fix_hint=f"pip install {rec_pkg}  # or add Python logging/OpenTelemetry to your code",
             tier="runtime"))
+    elif not has_runtime_logging:
+        checks.append(ComplianceCheck(name="Automatic event logging (runtime)", article=12, detection="auto", status="warn",
+            evidence="Logging infrastructure exists in code but no active runtime logging detected. Ensure logs are being written during operation.",
+            fix_hint="Route traffic through gateway or verify your logging is active in production",
+            tier="runtime"))
+
+    # ---- Check 2: Tamper-evident audit chain ----
+    # Runtime: HMAC chain from gateway/trust layer
+    has_tamper_evident = False
     if status.audit_chain_intact and status.audit_chain_length > 0:
-        checks.append(ComplianceCheck(name="Tamper-evident audit chain", article=12, detection="auto", status="pass",
-            evidence=f"HMAC-SHA256 chain intact. {status.audit_chain_length:,} records.",
+        has_tamper_evident = True
+        checks.append(ComplianceCheck(name="Tamper-evident audit chain (runtime)", article=12, detection="auto", status="pass",
+            evidence=f"HMAC-SHA256 chain intact. {status.audit_chain_length:,} records. Each record cryptographically linked to the previous.",
             tier="runtime"))
     elif status.trust_signing_key_set:
-        checks.append(ComplianceCheck(name="Tamper-evident audit chain", article=12, detection="auto", status="pass",
+        has_tamper_evident = True
+        checks.append(ComplianceCheck(name="Tamper-evident audit chain (runtime)", article=12, detection="auto", status="pass",
             evidence="TRUST_SIGNING_KEY configured. HMAC chain will activate on traffic.",
             tier="runtime"))
-    else:
-        checks.append(ComplianceCheck(name="Tamper-evident audit chain", article=12, detection="auto",
-            status="warn" if status.reachable else "fail",
-            evidence="No TRUST_SIGNING_KEY set. Logs recorded but not tamper-evident.",
-            fix_hint="Set TRUST_SIGNING_KEY in .env or install a trust layer package",
-            tier="runtime"))
+
+    # Static: does code implement tamper-evident patterns?
+    tamper_evident_patterns = [
+        r"hmac\.", r"HMAC", r"chain_hash", r"previous_hash", r"prev_hash",
+        r"hash_chain", r"audit_chain", r"tamper_evident", r"merkle",
+        r"append_only", r"immutable_log", r"signed_log",
+    ]
+    te_combined = "|".join(tamper_evident_patterns)
+    te_files = []
+    try:
+        for root, dirs, files in os.walk(scan_path):
+            dirs[:] = [d for d in dirs if d not in {"__pycache__", ".git", "node_modules", ".venv", "venv"}]
+            for fname in files:
+                if fname.endswith(".py"):
+                    fp = os.path.join(root, fname)
+                    try:
+                        with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                            if _re.search(te_combined, f.read(), _re.IGNORECASE):
+                                te_files.append(os.path.relpath(fp, scan_path))
+                    except Exception:
+                        continue
+    except Exception:
+        pass
+
+    has_static_tamper_evident = len(te_files) > 0
+    if has_static_tamper_evident:
+        checks.append(ComplianceCheck(name="Tamper-evident patterns in code", article=12, detection="static",
+            status="pass",
+            evidence=f"Tamper-evident logging patterns (HMAC/hash chain) found in {len(te_files)} file(s): {', '.join(te_files[:3])}",
+            tier="static"))
+    elif not has_tamper_evident:
+        checks.append(ComplianceCheck(name="Tamper-evident audit chain", article=12, detection="hybrid",
+            status="fail",
+            evidence="No tamper-evident logging found in code or runtime. Article 12 requires logs resistant to modification for high-risk AI systems.",
+            fix_hint="Set TRUST_SIGNING_KEY in .env for HMAC-SHA256 chaining, or implement hash-chained logging",
+            tier="static"))
+
+    # ---- Check 3: Log detail and traceability ----
     if status.total_runs > 0:
         sample = status.recent_runs[0] if status.recent_runs else None
         if sample and all(sample.get(f) for f in ["run_id", "model", "timestamp"]):
@@ -330,14 +435,57 @@ def _check_article_12(status, scan_path, code_findings=None, rec_pkg="air-langch
             checks.append(ComplianceCheck(name="Log detail and traceability", article=12, detection="auto", status="warn",
                 evidence="Records found but missing some traceability fields.",
                 tier="runtime"))
+    elif has_static_logging:
+        checks.append(ComplianceCheck(name="Log detail and traceability", article=12, detection="static", status="warn",
+            evidence="Logging infrastructure found but no runtime records to verify traceability fields.",
+            fix_hint="Ensure logs include: unique ID, timestamp, model/system identifier, input/output summary",
+            tier="static"))
     else:
         checks.append(ComplianceCheck(name="Log detail and traceability", article=12, detection="auto", status="fail",
-            evidence="No logged records.", fix_hint="Route traffic through gateway or install a trust layer.",
+            evidence="No logged records and no logging infrastructure.", fix_hint="Route traffic through gateway or add structured logging.",
             tier="runtime"))
+
+    # ---- Check 4: Log retention ----
     if status.total_runs > 0 and status.date_range_start:
         checks.append(ComplianceCheck(name="Log retention", article=12, detection="auto", status="pass",
             evidence=f"Records retained from {status.date_range_start}. Storage: {'vault' if status.vault_enabled else 'local'}.",
             tier="runtime"))
+    else:
+        # Check for retention config patterns in code
+        retention_patterns = [
+            r"retention", r"ttl", r"expire_after", r"max_age",
+            r"log_rotation", r"log_archive", r"backup_logs",
+        ]
+        ret_combined = "|".join(retention_patterns)
+        has_retention = False
+        try:
+            for root, dirs, files in os.walk(scan_path):
+                dirs[:] = [d for d in dirs if d not in {"__pycache__", ".git", "node_modules", ".venv", "venv"}]
+                for fname in files:
+                    if fname.endswith((".py", ".yaml", ".yml", ".json", ".toml")):
+                        fp = os.path.join(root, fname)
+                        try:
+                            with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                                if _re.search(ret_combined, f.read(), _re.IGNORECASE):
+                                    has_retention = True
+                                    break
+                        except Exception:
+                            continue
+                if has_retention:
+                    break
+        except Exception:
+            pass
+
+        if has_retention:
+            checks.append(ComplianceCheck(name="Log retention", article=12, detection="static", status="pass",
+                evidence="Retention/TTL configuration patterns found in codebase.",
+                tier="static"))
+        else:
+            checks.append(ComplianceCheck(name="Log retention", article=12, detection="static", status="warn",
+                evidence="No log retention policy detected. Logs must be retained for the operational lifetime of the AI system.",
+                fix_hint="Configure log retention: set TTL, archival, or backup policy for audit records",
+                tier="static"))
+
     result = {"number": 12, "title": "Record-Keeping", "checks": [_c2d(c) for c in checks]}
     for f in (code_findings or []):
         result["checks"].append(_finding_to_dict(f))
