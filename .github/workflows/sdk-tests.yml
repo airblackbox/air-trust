@@ -45,7 +45,7 @@ jobs:
       - name: Run unit tests with coverage
         env:
           TRUST_SIGNING_KEY: ci-test-key
-        run: pytest tests/ --ignore=tests/integration -x -q --tb=short --cov=air_blackbox --cov-report=term-missing --cov-fail-under=65
+        run: pytest tests/ --ignore=tests/integration -x -q --tb=short --cov=air_blackbox --cov-report=term-missing --cov-fail-under=70
 
       - name: Run integration tests (LangChain + OpenAI)
         env:
