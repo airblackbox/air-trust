@@ -178,7 +178,7 @@ def generate_crosswalk_report(
     category_status_map = {}
     for result in scan_results:
         category = result.get("category")
-        status = result.get("status", "unknown")
+        result.get("status", "unknown")  # status used in future mapping
 
         if category not in category_status_map:
             category_status_map[category] = []
@@ -295,7 +295,7 @@ def render_crosswalk_markdown(report: Dict) -> str:
             f"{nist_funcs} | {colorado_refs} |\n"
         )
 
-    lines.append(f"\n## Category Descriptions\n\n")
+    lines.append("\n## Category Descriptions\n\n")
     for category, entry in sorted(report["by_category"].items()):
         lines.append(f"### {category.replace('_', ' ').title()}\n")
         lines.append(f"{entry['description']}\n\n")

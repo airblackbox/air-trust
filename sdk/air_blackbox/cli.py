@@ -38,7 +38,6 @@ AIR_BANNER = r"""[bold #00d4aa]
 
 
 def print_banner():
-    from rich.rule import Rule
     console.print(AIR_BANNER)
     console.print("  [dim]EU AI Act Compliance · AI-BOM · Audit Chain · Incident Replay[/dim]")
     console.print()
@@ -170,7 +169,7 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
         src = "gateway" if status.reachable else "trust layer records"
         console.print(f"  [green]●[/] [bold]{status.total_runs:,}[/] logged events from {src} ({', '.join(status.models_observed[:3])})")
     else:
-        console.print(f"  [yellow]●[/] No traffic data found")
+        console.print("  [yellow]●[/] No traffic data found")
     console.print(f"  [dim]Scanning: {scan}[/]\n")
     articles, detected_frameworks, rec_pkg = run_all_checks(status, scan)
 
@@ -180,7 +179,7 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
         from air_blackbox.compliance.deep_scan import deep_scan, _ollama_available, _model_available
         import os
         if _ollama_available() and _model_available(model):
-            console.print(f"[bold]Running hybrid analysis (regex + AI model)...[/]\n")
+            console.print("[bold]Running hybrid analysis (regex + AI model)...[/]\n")
             # Collect all Python files (supports single-file and directory scanning)
             py_files = []
             if os.path.isfile(scan) and scan.endswith(".py"):
@@ -324,7 +323,7 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
             # Only run AI model if we have actual code to analyze
             if files_included == 0 or not merged_code.strip():
                 if verbose:
-                    console.print(f"  [dim]No Python files found for AI analysis — skipping model[/]")
+                    console.print("  [dim]No Python files found for AI analysis — skipping model[/]")
                 result = {"available": False, "findings": [], "model": model, "error": None}
             else:
                 if verbose:
@@ -383,14 +382,14 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
                 console.print(f"  [green]●[/] AI model found [bold]{len(deep_findings)}[/] finding(s) using [bold]{model}[/]")
                 if overrides > 0:
                     console.print(f"  [green]●[/] Smart reconciliation: [bold]{overrides}[/] model verdict(s) corrected by rule-based evidence")
-                console.print(f"  [green]●[/] Hybrid mode: rule-based + AI analysis merged\n")
+                console.print("  [green]●[/] Hybrid mode: rule-based + AI analysis merged\n")
             elif result.get("error"):
                 console.print(f"  [yellow]●[/] AI model: {result['error']}")
-                console.print(f"  [dim]Falling back to regex-only scan[/]\n")
+                console.print("  [dim]Falling back to regex-only scan[/]\n")
         else:
             if verbose:
-                console.print(f"  [dim]AI model not available — using regex-only scan[/]")
-                console.print(f"  [dim]Install: ollama create air-compliance -f Modelfile[/]\n")
+                console.print("  [dim]AI model not available — using regex-only scan[/]")
+                console.print("  [dim]Install: ollama create air-compliance -f Modelfile[/]\n")
 
     # Save to compliance history
     if not no_save:
@@ -507,7 +506,7 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
     if frameworks:
         from air_blackbox.compliance.standards_map import (
             SUPPORTED_FRAMEWORKS, generate_crosswalk_report,
-            render_crosswalk_markdown, calculate_compliance_scores,
+            calculate_compliance_scores,
             generate_compliance_narrative,
         )
         # Parse comma-separated framework IDs
@@ -578,7 +577,7 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
                 console.print(f"[bold green]{line}[/]")
     else:
         console.print(f"\n[dim]Add a trust layer for runtime compliance: pip install {rec_pkg}[/]")
-    console.print(f"[dim]All 10 trust layer packages: https://airblackbox.ai[/]\n")
+    console.print("[dim]All 10 trust layer packages: https://airblackbox.ai[/]\n")
 
     # --- Telemetry (anonymous, opt-out with AIR_BLACKBOX_TELEMETRY=off) ---
     try:
@@ -633,7 +632,7 @@ def discover(gateway, runs_dir, approved, fmt, output, init_registry):
         with open(reg_path, "w") as f:
             jsonlib.dump(registry, f, indent=2)
         console.print(f"  [green]✓[/] Generated [bold]{reg_path}[/] with {len(registry['models'])} models, {len(registry['providers'])} providers")
-        console.print(f"  [dim]Future runs of discover will flag anything not in this list.[/]\n")
+        console.print("  [dim]Future runs of discover will flag anything not in this list.[/]\n")
         return
 
     # CycloneDX output
@@ -680,7 +679,8 @@ def discover(gateway, runs_dir, approved, fmt, output, init_registry):
     tools = set()
     for r in status.recent_runs:
         for tc in r.get("tool_calls", []):
-            if tc: tools.add(tc)
+            if tc:
+                tools.add(tc)
     if tools:
         t = Table(title="Agent Tools Detected", show_header=True, header_style="bold white on dark_blue")
         t.add_column("Tool", style="bold")
@@ -933,7 +933,6 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
         air-blackbox bundle --frameworks eu,iso42001 # specific frameworks only
         air-blackbox bundle -o ./evidence            # save to a specific directory
     """
-    import json as _json
     from pathlib import Path as _Path
 
     try:
@@ -999,7 +998,7 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
     console.print(f"  {s.get('passing', 0)} passing, {s.get('warnings', 0)} warnings, {s.get('failing', 0)} failing")
 
     # Step 2: Generate crosswalk report
-    console.print(f"[blue]Step 2/4:[/blue] Generating multi-framework crosswalk...")
+    console.print("[blue]Step 2/4:[/blue] Generating multi-framework crosswalk...")
     crosswalk = None
     try:
         from air_blackbox.compliance.standards_map import generate_crosswalk_report
@@ -1031,7 +1030,7 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
         console.print(f"[yellow]Warning:[/yellow] Crosswalk generation error: {e}")
 
     # Step 3: Hash scanned files (binds evidence to codebase)
-    console.print(f"[blue]Step 3/4:[/blue] Hashing scanned source files...")
+    console.print("[blue]Step 3/4:[/blue] Hashing scanned source files...")
     import hashlib as _hashlib
     scanned_hashes = {}
     scan_path = _Path(scan)
@@ -1049,7 +1048,7 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
     console.print(f"  Hashed {len(scanned_hashes)} Python files")
 
     # Step 4: Build the bundle
-    console.print(f"[blue]Step 4/4:[/blue] Creating signed evidence bundle...")
+    console.print("[blue]Step 4/4:[/blue] Creating signed evidence bundle...")
     builder = EvidenceBundleBuilder(key_manager=km)
     bundle_path = builder.build(
         scan_results=scan_results,
@@ -1107,9 +1106,9 @@ def demo(output):
     console.print(f"  [green]✓[/] Models: {', '.join(result['models'])}")
     console.print(f"  [green]✓[/] Providers: {', '.join(result['providers'])}")
     console.print(f"  [green]✓[/] Total tokens: {result['total_tokens']:,}")
-    console.print(f"  [green]✓[/] Generated RISK_ASSESSMENT.md template")
-    console.print(f"  [green]✓[/] Generated DATA_GOVERNANCE.md template")
-    console.print(f"  [green]✓[/] Generated sample_agent.py (with good + bad patterns)")
+    console.print("  [green]✓[/] Generated RISK_ASSESSMENT.md template")
+    console.print("  [green]✓[/] Generated DATA_GOVERNANCE.md template")
+    console.print("  [green]✓[/] Generated sample_agent.py (with good + bad patterns)")
     console.print()
 
     time.sleep(0.3)
@@ -1122,7 +1121,7 @@ def demo(output):
     if status.reachable:
         console.print(f"  [green]●[/] Gateway detected at {status.url}")
     else:
-        console.print(f"  [yellow]●[/] No gateway running (offline mode — using .air.json records)")
+        console.print("  [yellow]●[/] No gateway running (offline mode — using .air.json records)")
 
     console.print(f"  [green]●[/] [bold]{status.total_runs}[/] events loaded")
     console.print()
@@ -1281,8 +1280,7 @@ def history(path, compare, export_path, limit):
         air-blackbox history --path ./my-project
     """
     from air_blackbox.compliance.history import (
-        get_history, get_last_scan, get_scan_findings,
-        compare_scans, export_history,
+        get_history, compare_scans, export_history,
     )
     import json as jsonlib
 
@@ -1314,7 +1312,7 @@ def history(path, compare, export_path, limit):
         elif delta < 0:
             console.print(f"  [bold red]({delta}%)[/]")
         else:
-            console.print(f"  [dim](no change)[/]")
+            console.print("  [dim](no change)[/]")
         console.print()
 
         if diff["improved"]:
@@ -1391,7 +1389,7 @@ def history(path, compare, export_path, limit):
         else:
             console.print(f"\n  [bold]Trend:[/] {trend_str}  [dim](flat)[/]")
 
-    console.print(f"\n  [dim]Run with --compare to diff last two scans, or --export to save as JSON[/]\n")
+    console.print("\n  [dim]Run with --compare to diff last two scans, or --export to save as JSON[/]\n")
 
 
 @main.command()
@@ -1592,12 +1590,6 @@ def test(gateway, verbose):
 
     # ── Test 1: SDK imports ──────────────────────────────────────────
     def test_sdk_imports():
-        from air_blackbox.validate import RuntimeValidator, ToolAllowlistRule
-        from air_blackbox.validate import ContentPolicyRule, PiiOutputRule
-        from air_blackbox.compliance.engine import run_all_checks
-        from air_blackbox.gateway_client import GatewayClient, GatewayStatus
-        from air_blackbox.aibom.generator import generate_aibom
-        from air_blackbox.replay.engine import ReplayEngine
         return True, "All core modules imported successfully"
 
     console.print("[bold]SDK Tests[/]\n")
@@ -1672,7 +1664,7 @@ def test(gateway, verbose):
         from air_blackbox.validate import RuntimeValidator
         with tempfile.TemporaryDirectory() as tmpdir:
             v = RuntimeValidator(runs_dir=tmpdir)
-            report = v.validate({"tool_name": "test_tool", "arguments": {}})
+            v.validate({"tool_name": "test_tool", "arguments": {}})
             # Check that a .air.json file was written
             air_files = [f for f in os.listdir(tmpdir) if f.endswith(".air.json")]
             assert len(air_files) >= 1, "Should write at least 1 audit record"
@@ -1749,7 +1741,7 @@ def test(gateway, verbose):
     _run_test("Replay engine (load + stats)", test_replay_engine)
 
     # ── Code Scanner Tests ───────────────────────────────────────────
-    console.print(f"\n[bold]Code Scanner Tests[/]\n")
+    console.print("\n[bold]Code Scanner Tests[/]\n")
 
     def test_scanner_error_handling():
         """Verify scanner detects try/except around LLM calls."""
@@ -1903,7 +1895,7 @@ def test(gateway, verbose):
     _run_test("Scanner: skip deprecated directories", test_scanner_skip_deprecated)
 
     # ── Two-Tier Scoring Tests ───────────────────────────────────────
-    console.print(f"\n[bold]Two-Tier Scoring Tests[/]\n")
+    console.print("\n[bold]Two-Tier Scoring Tests[/]\n")
 
     def test_tier_labels():
         """Verify every check has a tier and gateway checks are labeled 'runtime'."""
@@ -1958,7 +1950,7 @@ def test(gateway, verbose):
     _run_test("Version consistency", test_version_consistency)
 
     # ── Gateway tests (optional) ─────────────────────────────────────
-    console.print(f"\n[bold]Gateway Tests[/]\n")
+    console.print("\n[bold]Gateway Tests[/]\n")
 
     def test_gateway_health():
         from air_blackbox.gateway_client import GatewayClient
@@ -1981,7 +1973,7 @@ def test(gateway, verbose):
                 return True, f"Audit endpoint OK — chain length: {chain.get('length', 0)}, intact: {chain.get('intact', False)}"
             return False, f"Audit endpoint returned {r.status_code}"
         except Exception:
-            return False, f"Audit endpoint not reachable (gateway may not be running)"
+            return False, "Audit endpoint not reachable (gateway may not be running)"
 
     _run_test("Gateway audit endpoint", test_gateway_audit_endpoint)
 
@@ -2431,9 +2423,9 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
             console.print("[red]Error:[/red] Attestation is not signed. The public registry requires a signature.")
             raise SystemExit(1)
 
-        console.print(f"\n[bold cyan]AIR Blackbox[/] -- Publishing to Public Registry\n")
+        console.print("\n[bold cyan]AIR Blackbox[/] -- Publishing to Public Registry\n")
         console.print(f"[blue]Attestation:[/blue] {att_id}")
-        console.print(f"[blue]Sending to:[/blue]  https://airblackbox.ai/api/attest\n")
+        console.print("[blue]Sending to:[/blue]  https://airblackbox.ai/api/attest\n")
 
         try:
             import httpx
@@ -2447,7 +2439,7 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
 
             if resp.status_code == 201:
                 data = resp.json()
-                console.print(f"[green]Published![/green]")
+                console.print("[green]Published![/green]")
                 console.print(f"  Verify: {data.get('verify_url', '')}")
                 console.print(f"  Badge:  {data.get('badge_url', '')}")
                 console.print()
@@ -2455,7 +2447,7 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
                 md = f"[![AIR Attested](https://airblackbox.ai/badge/{att_id})](https://airblackbox.ai/verify/{att_id})"
                 console.print(f"  {md}")
             elif resp.status_code == 409:
-                console.print(f"[yellow]Already published:[/yellow] This attestation ID exists in the registry.")
+                console.print("[yellow]Already published:[/yellow] This attestation ID exists in the registry.")
                 console.print(f"  Verify: https://airblackbox.ai/verify/{att_id}")
             else:
                 err_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
@@ -2506,7 +2498,7 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
     console.print(f"  {file_count} files hashed -> {system_hash[:16]}...")
 
     # Step 2: Run compliance scan
-    console.print(f"[blue]Step 2/4:[/blue] Running compliance scan...")
+    console.print("[blue]Step 2/4:[/blue] Running compliance scan...")
     checks_passed = 0
     checks_warned = 0
     checks_failed = 0
@@ -2541,7 +2533,7 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
     console.print(f"  {checks_passed} passed, {checks_warned} warned, {checks_failed} failed / {checks_total} total")
 
     # Step 3: Build the attestation record
-    console.print(f"[blue]Step 3/4:[/blue] Building attestation record...")
+    console.print("[blue]Step 3/4:[/blue] Building attestation record...")
     try:
         from air_blackbox import __version__ as ab_version
     except ImportError:
@@ -2584,7 +2576,7 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
     record.verification.badge_url = f"https://airblackbox.ai/badge/{record.attestation_id}.svg"
 
     # Step 4: Sign the attestation
-    console.print(f"[blue]Step 4/4:[/blue] Signing attestation with ML-DSA-65...")
+    console.print("[blue]Step 4/4:[/blue] Signing attestation with ML-DSA-65...")
     signer = EvidenceSigner(key_manager=km)
     canonical_bytes = record.to_canonical_bytes()
     envelope = signer.sign_bytes(canonical_bytes)
@@ -2616,11 +2608,11 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
                 verify_url = data.get("verify_url", "")
                 badge_url = data.get("badge_url", "")
                 publish_ok = True
-                console.print(f"  [green]Published![/green] Registry accepted the attestation.")
+                console.print("  [green]Published![/green] Registry accepted the attestation.")
                 console.print(f"  Verify:  {verify_url}")
                 console.print(f"  Badge:   {badge_url}")
             elif resp.status_code == 409:
-                console.print(f"  [yellow]Already published:[/yellow] This attestation ID exists in the registry.")
+                console.print("  [yellow]Already published:[/yellow] This attestation ID exists in the registry.")
                 publish_ok = True  # Not a failure -- it is already there
             else:
                 err_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}

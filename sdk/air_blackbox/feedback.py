@@ -5,7 +5,7 @@ on compliance scanning results.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from datetime import datetime
 from dataclasses import dataclass
 

@@ -14,14 +14,12 @@ These checks complement the EU AI Act scanner. Together
 they cover both AI governance and data protection.
 """
 
-import os
 import re
 from typing import List
 
 from air_blackbox.compliance.code_scanner import (
     CodeFinding,
     _find_python_files,
-    _rel,
 )
 
 

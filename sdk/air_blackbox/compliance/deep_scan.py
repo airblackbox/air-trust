@@ -334,7 +334,7 @@ def _auto_pull_model(model: str) -> bool:
     registry_name = REGISTRY_MODELS.get(model, model)
     print(f"\n  Model '{model}' not found locally.", file=sys.stderr)
     print(f"  Pulling from Ollama registry: {registry_name} ...", file=sys.stderr)
-    print(f"  (This is a one-time ~8GB download)\n", file=sys.stderr)
+    print("  (This is a one-time ~8GB download)\n", file=sys.stderr)
 
     try:
         # Stream the pull so user sees progress

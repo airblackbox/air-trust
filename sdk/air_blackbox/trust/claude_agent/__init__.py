@@ -32,10 +32,8 @@ Full setup:
 import json
 import os
 import re
-import time
 import uuid
 from datetime import datetime
-from typing import Any, Optional
 
 # ── PII patterns ──
 
@@ -129,7 +127,7 @@ def _scan_injection(text: str) -> tuple[list[dict], float]:
     return alerts, max_score
 
 
-def _get_chain(runs_dir: str) -> 'AuditChain':
+def _get_chain(runs_dir: str):
     """Get or create the shared AuditChain for this runs_dir."""
     if not hasattr(_get_chain, '_chains'):
         _get_chain._chains = {}
@@ -558,5 +556,5 @@ def attach_trust(agent_options, gateway_url="http://localhost:8080"):
                 existing = agent_options.hooks.get(event, [])
                 agent_options.hooks[event] = existing + matchers
 
-    print(f"[AIR] Claude Agent SDK trust layer attached. Events → ./runs")
+    print("[AIR] Claude Agent SDK trust layer attached. Events → ./runs")
     return agent_options

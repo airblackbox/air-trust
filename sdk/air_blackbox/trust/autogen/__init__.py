@@ -26,7 +26,7 @@ import uuid
 import os
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 try:
     from autogen import ConversableAgent, AssistantAgent, UserProxyAgent

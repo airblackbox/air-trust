@@ -10,7 +10,6 @@ Badge types:
   - AIR Attested: Multi-Framework (blue): Passed across 2+ frameworks
 """
 
-from typing import Optional
 
 from .schema import AttestationRecord
 

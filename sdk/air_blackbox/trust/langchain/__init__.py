@@ -24,7 +24,6 @@ import uuid
 import os
 import re
 from datetime import datetime
-from typing import Any, Optional
 
 try:
     from langchain_core.callbacks import BaseCallbackHandler
@@ -234,11 +233,16 @@ class AirLangChainHandler(BaseCallbackHandler):
     def _guess_provider(self, serialized: dict) -> str:
         cls = serialized.get("id", [""])
         cls_str = str(cls).lower()
-        if "openai" in cls_str: return "openai"
-        if "anthropic" in cls_str: return "anthropic"
-        if "google" in cls_str: return "google"
-        if "cohere" in cls_str: return "cohere"
-        if "mistral" in cls_str: return "mistral"
+        if "openai" in cls_str:
+            return "openai"
+        if "anthropic" in cls_str:
+            return "anthropic"
+        if "google" in cls_str:
+            return "google"
+        if "cohere" in cls_str:
+            return "cohere"
+        if "mistral" in cls_str:
+            return "mistral"
         return "unknown"
 
     @property

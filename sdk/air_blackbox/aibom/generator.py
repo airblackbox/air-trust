@@ -5,7 +5,7 @@ according to EU AI Act requirements.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from datetime import datetime
 from dataclasses import dataclass
 

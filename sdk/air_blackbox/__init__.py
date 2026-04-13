@@ -104,7 +104,7 @@ class AirTrust:
                 from air_blackbox.trust.claude_agent import attach_trust
                 return attach_trust(agent, self.gateway_url)
             else:
-                print(f"[AIR] Framework not auto-detected. Using generic wrapper.")
+                print("[AIR] Framework not auto-detected. Using generic wrapper.")
                 return agent
         except ImportError as e:
             print(f"[AIR] Import error attaching trust layer: {e}")

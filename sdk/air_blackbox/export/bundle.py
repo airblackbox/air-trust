@@ -10,7 +10,6 @@ import hashlib
 import hmac
 import os
 from datetime import datetime
-from typing import Optional
 
 from air_blackbox.gateway_client import GatewayClient
 from air_blackbox.compliance.engine import run_all_checks

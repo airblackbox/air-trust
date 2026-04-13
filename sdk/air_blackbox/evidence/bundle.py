@@ -8,9 +8,7 @@ auditor can verify with just Python 3.10+ -- no pip install required.
 
 import hashlib
 import json
-import os
 import platform
-import shutil
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,7 +16,7 @@ from typing import Any, Dict, List, Optional
 
 from rich.console import Console
 
-from .keys import KeyManager, ALGORITHM, ALGORITHM_IMPL
+from .keys import KeyManager, ALGORITHM
 from .signer import EvidenceSigner
 
 console = Console()

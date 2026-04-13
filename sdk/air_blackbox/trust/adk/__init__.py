@@ -28,8 +28,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 try:
-    from google.adk import Agent
-    from google.adk.tools import FunctionTool
+    from google.adk import Agent  # noqa: F401
     HAS_ADK = True
 except ImportError:
     try:

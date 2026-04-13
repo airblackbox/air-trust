@@ -122,7 +122,7 @@ class KeyManager:
             json.dumps(metadata, indent=2), encoding="utf-8"
         )
 
-        console.print(f"[green]Generated ML-DSA-65 key pair[/green]")
+        console.print("[green]Generated ML-DSA-65 key pair[/green]")
         console.print(f"  Key ID:      {key_id}")
         console.print(f"  Public key:  {self.public_key_path}")
         console.print(f"  Private key: {self.private_key_path}")

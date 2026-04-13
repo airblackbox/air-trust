@@ -9,9 +9,8 @@ The local registry is the source of truth. The cloud registry is a mirror.
 """
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from rich.console import Console
 
