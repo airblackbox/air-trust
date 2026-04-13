@@ -21,12 +21,12 @@ import threading
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from sdk.air_blackbox.a2a.transaction import (
+from air_blackbox.a2a.transaction import (
     _scan_text,
     TransactionRecord,
     TransactionLedger,
 )
-from sdk.air_blackbox.a2a.gateway import (
+from air_blackbox.a2a.gateway import (
     A2AGateway,
     GatewayResult,
     create_bilateral_channel,
