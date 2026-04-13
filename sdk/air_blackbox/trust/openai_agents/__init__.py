@@ -35,6 +35,7 @@ class AirOpenAIWrapper:
         self._client = client
         self.gateway_url = gateway_url
         self.runs_dir = runs_dir or os.environ.get("RUNS_DIR", "./runs")
+        self._chain = None  # Lazy-init; must be instance attr to avoid __getattr__ delegation
         os.makedirs(self.runs_dir, exist_ok=True)
         # Redirect to gateway if running
         if hasattr(client, "base_url") and gateway_url != "none":
@@ -50,7 +51,7 @@ class AirOpenAIWrapper:
     def _write_record(self, record: dict):
         """Write .air.json record with HMAC chain hash."""
         try:
-            if not hasattr(self, '_chain'):
+            if self._chain is None:
                 from air_blackbox.trust.chain import AuditChain
                 self._chain = AuditChain(runs_dir=self.runs_dir)
             self._chain.write(record)

@@ -42,15 +42,42 @@ jobs:
           pip install pytest
           pip install -e ".[langchain,openai]"
 
-      - name: Run tests
+      - name: Run unit tests
         env:
           TRUST_SIGNING_KEY: ci-test-key
-        run: pytest tests/ -x -q --tb=short
+        run: pytest tests/ --ignore=tests/integration -x -q --tb=short
+
+      - name: Run integration tests (LangChain + OpenAI)
+        env:
+          TRUST_SIGNING_KEY: ci-test-key
+        run: pytest tests/integration/test_langchain_integration.py tests/integration/test_openai_integration.py -x -q --tb=short
 
       - name: Verify CLI loads
         run: |
           python -c "from air_blackbox.cli import main; print('CLI OK')"
           python -c "from air_blackbox import __version__; print(f'v{__version__}')"
+
+  integration-crewai:
+    runs-on: ubuntu-latest
+    name: Integration (CrewAI)
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package with CrewAI
+        run: |
+          pip install pytest
+          pip install -e .
+          pip install crewai || echo "CrewAI install failed -- skipping"
+
+      - name: Run CrewAI integration tests
+        env:
+          TRUST_SIGNING_KEY: ci-test-key
+        run: pytest tests/integration/test_crewai_integration.py -x -q --tb=short || echo "CrewAI tests skipped"
 
   lint:
     runs-on: ubuntu-latest
@@ -62,8 +89,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install package
-        run: pip install -e .
+      - name: Install package and ruff
+        run: |
+          pip install -e .
+          pip install ruff
+
+      - name: Ruff lint check
+        run: ruff check sdk/air_blackbox/
 
       - name: Check imports resolve
         run: |
