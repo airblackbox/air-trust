@@ -43,7 +43,12 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -e ".[langchain,openai]"
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install pytest
+          pip install -e ".[langchain,openai]"
 
       - name: Run trust layer tests
-        run: python tests/test_trust_layers.py
+        env:
+          TRUST_SIGNING_KEY: ci-test-key
+        run: pytest tests/test_trust_layers.py -x --tb=long
