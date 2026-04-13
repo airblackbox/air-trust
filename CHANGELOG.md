@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-04-12
+
+### Added
+- **A2A Transaction Layer** -- signed, chained, tamper-evident agent-to-agent audit middleware
+  - `TransactionRecord`: core data structure with SHA-256 content hashing (content never stored)
+  - `TransactionLedger`: HMAC-SHA256 tamper-evident chain with optional ML-DSA-65 signing
+  - `A2AGateway`: middleware wrapping agent send/receive with PII detection and injection blocking
+  - `bilateral_verify()`: cross-verify two agents' ledgers agree on what happened
+  - `export_evidence_bundle()`: self-verifying .air-a2a-evidence ZIP with standalone Python verifier
+  - `build_transaction_trace()`: chronological timeline across multiple agents' ledgers
+- Framework adapters for A2A compliance (LangChain, OpenAI, CrewAI, AutoGen)
+- Co-attestation demo with bilateral ML-DSA-65 proof between agents
+- 295 new tests (459 total, up from 164) covering A2A layer, adapters, compliance engine, trust layers, and CLI
+
+### Fixed
+- **CrewAI adapter**: rewrote hallucinated `step_callback`/`task_callback` hooks that don't exist in CrewAI API
+- **AutoGen adapter**: rewrote to support both legacy pyautogen v0.2.x and modern autogen-agentchat v0.4+ (was targeting nonexistent API)
+- Removed 13 unused imports across A2A module (ruff clean)
+- Removed 5 dead timing variables in adapters
+
+### Changed
+- Test coverage increased from ~40% to ~80-85%
+- All 459 tests passing across Python 3.10, 3.11, 3.12
+
 ## [1.9.0] - 2026-04-12
 
 ### Added

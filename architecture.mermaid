@@ -1,0 +1,250 @@
+%%{ init: { "theme": "dark", "themeVariables": { "primaryColor": "#fbbf24", "primaryTextColor": "#e6edf3", "primaryBorderColor": "#fbbf24", "lineColor": "#8b949e", "secondaryColor": "#161b22", "tertiaryColor": "#0d1117", "fontSize": "14px" } } }%%
+
+graph TB
+    %% ═══════════════════════════════════════════════
+    %%  AIR BLACKBOX — ECOSYSTEM ARCHITECTURE
+    %%  Universal Trust Layer · Any Agent, Any LLM
+    %%  Local-First · HMAC-SHA256 Audit Chains
+    %% ═══════════════════════════════════════════════
+
+    %% ── LAYER 1: ANYTHING THAT CALLS AN LLM ────────
+    subgraph AGENTS["🤖 ANY AI SYSTEM"]
+        direction LR
+        LC["LangChain /<br/>LangGraph"]
+        CR["CrewAI"]
+        OA["OpenAI SDK"]
+        AN["Claude SDK"]
+        GK["Google ADK"]
+        RAG["RAG Pipelines"]
+        LOCAL["Local Models<br/><i>Ollama · vLLM · llama.cpp</i>"]
+        CUSTOM["Custom Agents<br/><i>raw Python · any language</i>"]
+    end
+
+    %% ── LAYER 2: UNIVERSAL TRUST LAYER ──────────────
+    subgraph TRUST["🔗 AIR TRUST  ·  pip install air-trust  ·  ONE PACKAGE"]
+        direction TB
+
+        subgraph DETECT["Auto-Detection"]
+            AUTODETECT["Framework Auto-Detect<br/><i>identifies what you're running</i>"]
+        end
+
+        subgraph ADAPTERS["Adapters  ·  activated automatically"]
+            direction LR
+            AD_CALLBACK["Callback<br/>Adapter<br/><i>LangChain, Haystack</i>"]
+            AD_DECORATOR["Decorator<br/>Adapter<br/><i>CrewAI, custom</i>"]
+            AD_PROXY["Proxy<br/>Adapter<br/><i>OpenAI, Anthropic, Google</i>"]
+            AD_OTEL["OTel<br/>Adapter<br/><i>any OTel-instrumented system</i>"]
+        end
+
+        AUTODETECT --> AD_CALLBACK
+        AUTODETECT --> AD_DECORATOR
+        AUTODETECT --> AD_PROXY
+        AUTODETECT --> AD_OTEL
+    end
+
+    LC --> AUTODETECT
+    CR --> AUTODETECT
+    OA --> AUTODETECT
+    AN --> AUTODETECT
+    GK --> AUTODETECT
+    RAG --> AUTODETECT
+    LOCAL --> AUTODETECT
+    CUSTOM --> AUTODETECT
+
+    %% ── LAYER 3: CORE ENGINE ────────────────────────
+    subgraph CORE["⚙️ CORE ENGINE  ·  air-gate"]
+        direction TB
+
+        subgraph CAPTURE["Event Capture"]
+            WRAP["Universal Wrapper<br/><i>traces LLM calls, tool use, decisions</i>"]
+            INJ["Injection Detector<br/><i>20 patterns · 5 categories</i>"]
+        end
+
+        subgraph SIGN["Cryptographic Signing"]
+            HMAC["HMAC-SHA256<br/>Signing Engine<br/><i>local keys · your process</i>"]
+            CHAIN["Tamper-Evident<br/>Audit Chain<br/><i>each record links to previous</i>"]
+        end
+
+        subgraph ENFORCE["Policy Enforcement"]
+            GATING["Tool Gating<br/><i>allow / deny / alert</i>"]
+            A2A["A2A Protocol<br/><i>agent-to-agent verification</i>"]
+        end
+
+        WRAP --> HMAC
+        HMAC --> CHAIN
+        INJ --> GATING
+    end
+
+    AD_CALLBACK --> WRAP
+    AD_DECORATOR --> WRAP
+    AD_PROXY --> WRAP
+    AD_OTEL --> WRAP
+
+    %% ── LAYER 4: COMPLIANCE SCANNERS ────────────────
+    subgraph SCAN["🔍 COMPLIANCE SCANNERS  ·  air-blackbox  +  air-compliance"]
+        direction TB
+
+        subgraph STATIC["Static Analysis  ·  26 checks"]
+            direction LR
+            ART9["Art. 9<br/>Risk Mgmt"]
+            ART10["Art. 10<br/>Data Gov"]
+            ART11["Art. 11<br/>Tech Docs"]
+        end
+
+        subgraph RUNTIME["Runtime Analysis  ·  13 checks"]
+            direction LR
+            ART12["Art. 12<br/>Records"]
+            ART14["Art. 14<br/>Human Oversight"]
+            ART15["Art. 15<br/>Accuracy"]
+        end
+
+        subgraph EXTRA["Additional Scanners"]
+            direction LR
+            GDPR["GDPR<br/><i>8 checks</i>"]
+            BIAS["Bias &<br/>Fairness<br/><i>6 checks</i>"]
+            XWALK["Standards<br/>Crosswalk<br/><i>ISO 42001 · NIST</i>"]
+        end
+    end
+
+    %% ── LAYER 5: EVIDENCE STORAGE ───────────────────
+    subgraph STORE["💾 EVIDENCE LAYER  ·  100% Your Infrastructure"]
+        direction TB
+
+        subgraph PRIMARY["Primary Storage"]
+            direction LR
+            AIRJSON[".air.json Records<br/><i>HMAC-signed chain</i>"]
+            SQLITE["SQLite EventStore<br/><i>~/.air-controls/events.db</i>"]
+        end
+
+        subgraph OUTPUTS["Evidence Outputs"]
+            direction LR
+            BUNDLE["Signed Evidence<br/>Bundle<br/><i>.zip with SHA-256</i>"]
+            AIBOM["AI Bill of<br/>Materials<br/><i>CycloneDX</i>"]
+            REPORT["Compliance<br/>Reports<br/><i>per framework</i>"]
+            CARD["A2A Compliance<br/>Cards<br/><i>signed certs</i>"]
+        end
+
+        subgraph OPTIONAL["Optional Backends"]
+            direction LR
+            S3["S3 / MinIO"]
+            OTEL["OpenTelemetry<br/>Collector"]
+            JAEGER["Jaeger<br/>Tracing"]
+        end
+    end
+
+    CHAIN --> AIRJSON
+    CHAIN --> SQLITE
+    SCAN --> REPORT
+    SCAN --> BUNDLE
+    A2A --> CARD
+    AIRJSON --> AIBOM
+    AIRJSON --> S3
+    SQLITE --> OTEL
+    OTEL --> JAEGER
+
+    %% ── LAYER 6: INTERFACES ─────────────────────────
+    subgraph UI["📡 INTERFACES"]
+        direction TB
+
+        subgraph CLI_T["CLI  ·  air-blackbox"]
+            direction LR
+            CLI_SCAN["scan<br/><i>39 checks</i>"]
+            CLI_INJ["scan-injection<br/><i>detect attacks</i>"]
+            CLI_GDPR["scan-gdpr<br/><i>8 checks</i>"]
+            CLI_EXPORT["evidence-export<br/><i>signed bundle</i>"]
+        end
+
+        subgraph CONTROLS["AIR Controls  ·  localhost:7420"]
+            direction LR
+            CLI_SERVE["air-controls serve<br/><i>HTTP API</i>"]
+            TIMELINE["Event<br/>Timeline"]
+            KILLSW["Kill<br/>Switch"]
+            TOKENLIM["Token Limit<br/>Auto-Stop"]
+            CHAINV["Chain<br/>Verify"]
+        end
+
+        subgraph MCP_S["MCP Server  ·  air-blackbox-mcp  ·  14 tools"]
+            direction LR
+            MCP_SCAN["scan_code"]
+            MCP_RISK["classify_risk"]
+            MCP_INJ["check_injection"]
+            MCP_FIX["suggest_fix"]
+            MCP_REPORT["generate_report"]
+        end
+
+        CLI_SERVE --> TIMELINE
+        CLI_SERVE --> KILLSW
+        CLI_SERVE --> TOKENLIM
+        CLI_SERVE --> CHAINV
+    end
+
+    SQLITE --> CLI_SERVE
+    SCAN --> CLI_SCAN
+    INJ --> MCP_INJ
+    SCAN --> MCP_SCAN
+
+    %% ── LAYER 7: INTEGRATIONS ───────────────────────
+    subgraph INTEGRATE["🔌 INTEGRATIONS"]
+        direction TB
+
+        subgraph EDITORS["Editor / IDE"]
+            direction LR
+            CLAUDE_DESK["Claude<br/>Desktop"]
+            CURSOR["Cursor"]
+            CLAUDE_CODE["Claude<br/>Code"]
+        end
+
+        subgraph CICD["CI/CD Pipeline"]
+            direction LR
+            PRECOMMIT["Pre-Commit<br/>Hooks<br/><i>4 configs</i>"]
+            GHA["GitHub<br/>Action<br/><i>compliance-action</i>"]
+            CIPIPE["CI Runner<br/><i>air-compliance scan .</i>"]
+        end
+    end
+
+    MCP_S --> CLAUDE_DESK
+    MCP_S --> CURSOR
+    MCP_S --> CLAUDE_CODE
+    SCAN --> PRECOMMIT
+    SCAN --> GHA
+    SCAN --> CIPIPE
+
+    %% ── LAYER 8: AI-POWERED ANALYSIS ────────────────
+    subgraph MODEL["🧠 AI-POWERED ANALYSIS  ·  Optional"]
+        direction LR
+        FINETUNED["air-compliance-model<br/><i>Fine-tuned LLaMA · LoRA</i>"]
+        OLLAMA["Ollama Runtime<br/><i>local inference · ~8GB</i>"]
+    end
+
+    FINETUNED --> OLLAMA
+    OLLAMA --> SCAN
+
+    %% ── LAYER 9: DEPLOYMENT ─────────────────────────
+    subgraph DEPLOY["📦 DEPLOYMENT"]
+        direction LR
+        PIP["pip install air-trust<br/><i>single package</i>"]
+        FULL["pip install air-blackbox<br/><i>full scanner + CLI</i>"]
+        DOCKER["air-platform<br/><i>Docker Compose stack</i>"]
+        MANAGED["Pro Tier<br/><i>managed VPS · $299/mo</i>"]
+    end
+
+    %% ── STYLING ─────────────────────────────────────
+    classDef agentStyle fill:#1a1e2e,stroke:#58a6ff,stroke-width:2px,color:#e6edf3
+    classDef trustStyle fill:#1a2e1a,stroke:#3fb950,stroke-width:2px,color:#e6edf3
+    classDef coreStyle fill:#2e2a1a,stroke:#fbbf24,stroke-width:2px,color:#e6edf3
+    classDef scanStyle fill:#2e1a1a,stroke:#f85149,stroke-width:2px,color:#e6edf3
+    classDef storeStyle fill:#1a1e2e,stroke:#8b949e,stroke-width:2px,color:#e6edf3
+    classDef uiStyle fill:#1e1a2e,stroke:#a78bfa,stroke-width:2px,color:#e6edf3
+    classDef intStyle fill:#1a2e2e,stroke:#58a6ff,stroke-width:2px,color:#e6edf3
+    classDef modelStyle fill:#2e1a2e,stroke:#c864ff,stroke-width:2px,color:#e6edf3
+    classDef deployStyle fill:#161b22,stroke:#484f58,stroke-width:2px,color:#e6edf3
+
+    class LC,CR,OA,AN,GK,RAG,LOCAL,CUSTOM agentStyle
+    class AUTODETECT,AD_CALLBACK,AD_DECORATOR,AD_PROXY,AD_OTEL trustStyle
+    class WRAP,INJ,HMAC,CHAIN,GATING,A2A coreStyle
+    class ART9,ART10,ART11,ART12,ART14,ART15,GDPR,BIAS,XWALK scanStyle
+    class AIRJSON,SQLITE,S3,OTEL,JAEGER,BUNDLE,AIBOM,REPORT,CARD storeStyle
+    class CLI_SCAN,CLI_INJ,CLI_GDPR,CLI_EXPORT,CLI_SERVE,TIMELINE,KILLSW,TOKENLIM,CHAINV,MCP_SCAN,MCP_RISK,MCP_INJ,MCP_FIX,MCP_REPORT uiStyle
+    class CLAUDE_DESK,CURSOR,CLAUDE_CODE,PRECOMMIT,GHA,CIPIPE intStyle
+    class FINETUNED,OLLAMA modelStyle
+    class PIP,FULL,DOCKER,MANAGED deployStyle

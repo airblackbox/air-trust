@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6 Technical Checks — EU AI Act Articles 9-15 — AIR Blackbox</title>
+<meta name="description" content="AIR Blackbox scans Python AI code against 6 EU AI Act technical requirement areas: Risk Management (Art. 9), Data Governance (Art. 10), Documentation (Art. 11), Record-Keeping (Art. 12), Human Oversight (Art. 14), and Security (Art. 15).">
+<link rel="canonical" href="https://airblackbox.ai/6-technical-checks">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #222222;
+    --text: #e0e0e0;
+    --text-dim: #888888;
+    --accent: #00d4aa;
+    --accent-dim: #00a080;
+    --red: #ff4d4d;
+    --orange: #ff9933;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+  }
+  .container { max-width: 800px; margin: 0 auto; }
+  h1 { color: var(--accent); margin-bottom: 0.5rem; font-size: 2rem; }
+  .subtitle { color: var(--text-dim); font-size: 1rem; margin-bottom: 2rem; }
+  .check-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .check-card h2 {
+    color: var(--accent);
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  .article-tag {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.8rem;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  p { margin-bottom: 0.75rem; }
+  .examples { color: var(--text-dim); font-size: 0.9rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .back { display: inline-block; margin-bottom: 2rem; }
+  .cta {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
+    border-radius: 6px;
+    text-decoration: none;
+  }
+  .cta:hover { background: var(--accent-dim); text-decoration: none; }
+  code {
+    background: var(--surface2);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="back">&larr; Back to AIR Blackbox</a>
+  <h1>The 6 Technical Checks</h1>
+  <p class="subtitle">AIR Blackbox scans your Python AI code against 6 EU AI Act technical requirement areas, running 39 automated checks total.</p>
+
+  <div class="check-card">
+    <span class="article-tag">Article 9</span>
+    <h2>Risk Management</h2>
+    <p>Checks for risk assessment documentation, active mitigations, LLM call error handling, and fallback/recovery patterns.</p>
+    <p class="examples">Looks for: <code>RISK_ASSESSMENT.md</code>, try/except around API calls, retry logic, graceful degradation patterns.</p>
+  </div>
+
+  <div class="check-card">
+    <span class="article-tag">Article 10</span>
+    <h2>Data Governance</h2>
+    <p>Checks for PII detection in prompts, data governance documentation, controlled data storage (vaults), input validation, and PII handling in code.</p>
+    <p class="examples">Looks for: <code>DATA_GOVERNANCE.md</code>, Pydantic validation, PII redaction libraries, data vault patterns.</p>
+  </div>
+
+  <div class="check-card">
+    <span class="article-tag">Article 11</span>
+    <h2>Technical Documentation</h2>
+    <p>Checks for system descriptions (README), runtime AI-BOM inventory, model cards, code documentation coverage, and type annotation coverage.</p>
+    <p class="examples">Looks for: <code>README.md</code>, <code>MODEL_CARD.md</code>, docstrings, type hints, CycloneDX AI-BOM.</p>
+  </div>
+
+  <div class="check-card">
+    <span class="article-tag">Article 12</span>
+    <h2>Record-Keeping</h2>
+    <p>Checks for automatic event logging, tamper-evident audit chains, log detail and traceability, application logging frameworks, and observability integration.</p>
+    <p class="examples">Looks for: <code>import logging</code>, structlog, OpenTelemetry, HMAC audit chains, trust layer integration.</p>
+  </div>
+
+  <div class="check-card">
+    <span class="article-tag">Article 14</span>
+    <h2>Human Oversight</h2>
+    <p>Checks for human-in-the-loop mechanisms, kill switches, operator documentation, usage limits, identity binding, token scoping, and action boundaries.</p>
+    <p class="examples">Looks for: <code>OPERATOR_GUIDE.md</code>, approval gates, budget limits, execution timeouts, ConsentGate patterns.</p>
+  </div>
+
+  <div class="check-card">
+    <span class="article-tag">Article 15</span>
+    <h2>Accuracy, Robustness &amp; Cybersecurity</h2>
+    <p>Checks for prompt injection protection, error resilience, API access control, adversarial testing, retry/backoff logic, input sanitization, and output validation.</p>
+    <p class="examples">Looks for: injection scanning, API key management, red team evidence, retry decorators, output schema validation.</p>
+  </div>
+
+  <a href="/quickstart" class="cta">Run Your First Scan &rarr;</a>
+</div>
+</body>
+</html>

@@ -109,7 +109,7 @@ def main():
         signer_a = EvidenceSigner(km_a)
 
         compliance_data = {
-            "scanner_version": "air-blackbox 1.9.0",
+            "scanner_version": "air-blackbox 1.10.0",
             "checks_passed": 43,
             "checks_warned": 3,
             "checks_failed": 2,
@@ -223,7 +223,7 @@ def main():
             agent_id="agent-alpha-001",
             agent_name="LangChain RAG Agent",
             framework="langchain",
-            trust_layer_version="1.9.0",
+            trust_layer_version="1.10.0",
             audit_chain_enabled=True,
             injection_protection=True,
             compliance_checks={
@@ -240,7 +240,7 @@ def main():
             agent_id="agent-beta-002",
             agent_name="CrewAI Research Team",
             framework="crewai",
-            trust_layer_version="1.9.0",
+            trust_layer_version="1.10.0",
             audit_chain_enabled=True,
             injection_protection=True,
             compliance_checks={

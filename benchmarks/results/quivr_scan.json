@@ -1,0 +1,414 @@
+{
+  "framework": "Quivr",
+  "key": "quivr",
+  "scan_path": "/tmp/quivr",
+  "timestamp": "2026-03-16T22:49:58.362169",
+  "elapsed_seconds": 86.4,
+  "total_python_files": 77,
+  "files_sampled": 5,
+  "chars_sampled": 10702,
+  "model_used": "air-compliance",
+  "model_findings_count": 6,
+  "reconciliation_overrides": 2,
+  "summary": {
+    "pass": 2,
+    "warn": 4,
+    "fail": 0,
+    "score": "2/6"
+  },
+  "articles": {
+    "9": {
+      "article": 9,
+      "name": "Risk Management",
+      "rule_status": "warn",
+      "rule_passes": 1,
+      "rule_warns": 1,
+      "rule_fails": 2,
+      "rule_checks": [
+        {
+          "name": "Risk assessment document",
+          "status": "fail",
+          "evidence": "No risk assessment document found",
+          "detection": "hybrid",
+          "fix_hint": "Create RISK_ASSESSMENT.md documenting identified risks, likelihood, impact, and mitigations",
+          "tier": "static"
+        },
+        {
+          "name": "Risk mitigations active",
+          "status": "fail",
+          "evidence": "0/4 mitigations active: none detected",
+          "detection": "hybrid",
+          "fix_hint": "Enable guardrails.yaml, set TRUST_SIGNING_KEY, configure vault and OTel endpoints",
+          "tier": "runtime"
+        },
+        {
+          "name": "LLM call error handling",
+          "status": "warn",
+          "evidence": "2/10 files with LLM calls have error handling. Missing: core/tests/fixture_chunks.py, core/quivr_core/rag/quivr_rag.py, examples/simple_question_megaparse.py, examples/pdf_document_from_yaml.py, examples/save_load_brain.py",
+          "detection": "auto",
+          "fix_hint": "Wrap LLM API calls in try/except to handle failures gracefully",
+          "tier": "static"
+        },
+        {
+          "name": "Fallback/recovery patterns",
+          "status": "pass",
+          "evidence": "Fallback patterns found in 3 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        }
+      ],
+      "model_status": "warn",
+      "model_evidence": "[Partial \u2014 rule-based found evidence] Fallback patterns found in 3 file(s). Model noted: No error handling or fallback mechanisms for LLM calls",
+      "model_fix_hint": "Address risk management requirements to comply with Article 9.",
+      "final_status": "warn"
+    },
+    "10": {
+      "article": 10,
+      "name": "Data Governance",
+      "rule_status": "warn",
+      "rule_passes": 1,
+      "rule_warns": 1,
+      "rule_fails": 3,
+      "rule_checks": [
+        {
+          "name": "PII detection in prompts",
+          "status": "fail",
+          "evidence": "Gateway not reachable. No data.",
+          "detection": "auto",
+          "fix_hint": "Start gateway or install a trust layer package (pip install air-langchain-trust)",
+          "tier": "runtime"
+        },
+        {
+          "name": "Data governance documentation",
+          "status": "fail",
+          "evidence": "No data governance documentation found",
+          "detection": "hybrid",
+          "fix_hint": "Create DATA_GOVERNANCE.md: data sources, consent, quality measures, retention",
+          "tier": "static"
+        },
+        {
+          "name": "Data vault (controlled storage)",
+          "status": "fail",
+          "evidence": "No vault configured.",
+          "detection": "auto",
+          "fix_hint": "Set VAULT_ENDPOINT, VAULT_ACCESS_KEY, VAULT_SECRET_KEY in .env or install a trust layer",
+          "tier": "runtime"
+        },
+        {
+          "name": "Input validation / schema enforcement",
+          "status": "pass",
+          "evidence": "Input validation found in 15/77 Python files (Pydantic, dataclass, or similar)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "PII handling in code",
+          "status": "warn",
+          "evidence": "No PII detection, redaction, or masking patterns found in code",
+          "detection": "auto",
+          "fix_hint": "Add PII detection before sending data to LLM providers (e.g., presidio, scrubadub)",
+          "tier": "static"
+        }
+      ],
+      "model_status": "pass",
+      "model_evidence": "Input validation or PII handling patterns detected",
+      "model_fix_hint": "",
+      "final_status": "warn"
+    },
+    "11": {
+      "article": 11,
+      "name": "Technical Documentation",
+      "rule_status": "pass",
+      "rule_passes": 2,
+      "rule_warns": 1,
+      "rule_fails": 2,
+      "rule_checks": [
+        {
+          "name": "System description (README)",
+          "status": "pass",
+          "evidence": "README.md found",
+          "detection": "hybrid",
+          "fix_hint": "Create README.md documenting system purpose, architecture, intended use",
+          "tier": "static"
+        },
+        {
+          "name": "Runtime system inventory (AI-BOM data)",
+          "status": "fail",
+          "evidence": "No traffic data. Route AI calls through gateway or install a trust layer.",
+          "detection": "auto",
+          "fix_hint": "pip install air-langchain-trust  # or start gateway: docker compose up",
+          "tier": "runtime"
+        },
+        {
+          "name": "Model card / system card",
+          "status": "warn",
+          "evidence": "No model card found. Run: air-blackbox discover --generate-card",
+          "detection": "hybrid",
+          "fix_hint": "Create MODEL_CARD.md: intended use, limitations, performance, ethics",
+          "tier": "static"
+        },
+        {
+          "name": "Code documentation (docstrings)",
+          "status": "fail",
+          "evidence": "47/222 public functions/classes have docstrings (21%)",
+          "detection": "auto",
+          "fix_hint": "Add docstrings to public functions and classes explaining purpose and parameters",
+          "tier": "static"
+        },
+        {
+          "name": "Type annotations",
+          "status": "pass",
+          "evidence": "107/136 public functions have type hints (79%)",
+          "detection": "auto",
+          "fix_hint": "Add type hints to function signatures for better documentation and tooling",
+          "tier": "static"
+        }
+      ],
+      "model_status": "warn",
+      "model_evidence": "Docstrings and type annotations present but incomplete",
+      "model_fix_hint": "Enhance technical documentation to fully comply with Article 11.",
+      "final_status": "pass"
+    },
+    "12": {
+      "article": 12,
+      "name": "Record-Keeping",
+      "rule_status": "pass",
+      "rule_passes": 2,
+      "rule_warns": 1,
+      "rule_fails": 3,
+      "rule_checks": [
+        {
+          "name": "Automatic event logging",
+          "status": "fail",
+          "evidence": "Gateway not reachable. Install a trust layer for inline logging.",
+          "detection": "auto",
+          "fix_hint": "pip install air-langchain-trust  # or start gateway: docker compose up",
+          "tier": "runtime"
+        },
+        {
+          "name": "Tamper-evident audit chain",
+          "status": "fail",
+          "evidence": "No TRUST_SIGNING_KEY set. Logs recorded but not tamper-evident.",
+          "detection": "auto",
+          "fix_hint": "Set TRUST_SIGNING_KEY in .env or install a trust layer package",
+          "tier": "runtime"
+        },
+        {
+          "name": "Log detail and traceability",
+          "status": "fail",
+          "evidence": "No logged records.",
+          "detection": "auto",
+          "fix_hint": "Route traffic through gateway or install a trust layer.",
+          "tier": "runtime"
+        },
+        {
+          "name": "Application logging",
+          "status": "warn",
+          "evidence": "Logging found in 14/77 files (18%)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Tracing / observability",
+          "status": "pass",
+          "evidence": "Tracing patterns found in 6 file(s) (includes 5 with production-grade tracing)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Agent action audit trail",
+          "status": "pass",
+          "evidence": "Action-level audit logging found in 1 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        }
+      ],
+      "model_status": "pass",
+      "model_evidence": "[Corrected by rule-based] Scanner found 2 passing checks: Tracing patterns found in 6 file(s) (includes 5 with product; Action-level audit logging found in 1 file(s). Model original: No logging, tracing, or audit trail detected",
+      "model_fix_hint": "",
+      "final_status": "pass"
+    },
+    "14": {
+      "article": 14,
+      "name": "Human Oversight",
+      "rule_status": "warn",
+      "rule_passes": 0,
+      "rule_warns": 7,
+      "rule_fails": 2,
+      "rule_checks": [
+        {
+          "name": "Human-in-the-loop mechanism",
+          "status": "warn",
+          "evidence": "No traffic data to analyze for oversight patterns.",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "runtime"
+        },
+        {
+          "name": "Kill switch / stop mechanism",
+          "status": "fail",
+          "evidence": "Gateway not running. No kill switch.",
+          "detection": "auto",
+          "fix_hint": "pip install air-langchain-trust  # or start gateway: docker compose up",
+          "tier": "runtime"
+        },
+        {
+          "name": "Operator understanding documentation",
+          "status": "warn",
+          "evidence": "No operator documentation found.",
+          "detection": "manual",
+          "fix_hint": "Create OPERATOR_GUIDE.md: capabilities, limitations, when to intervene",
+          "tier": "static"
+        },
+        {
+          "name": "Human-in-the-loop patterns",
+          "status": "warn",
+          "evidence": "No human approval gates or confirmation patterns detected",
+          "detection": "auto",
+          "fix_hint": "Add human approval gates for high-risk actions (e.g., sending emails, modifying data)",
+          "tier": "static"
+        },
+        {
+          "name": "Usage limits / budget controls",
+          "status": "warn",
+          "evidence": "Basic execution limits (max_tokens, max_iterations) in 5 file(s), but no explicit budget enforcement",
+          "detection": "auto",
+          "fix_hint": "Add explicit budget limits (cost_limit, usage_quota) that a human operator can configure",
+          "tier": "static"
+        },
+        {
+          "name": "Agent-to-user identity binding",
+          "status": "warn",
+          "evidence": "No user identity binding in agent context. Agent actions not tied to authorizing user.",
+          "detection": "auto",
+          "fix_hint": "Track user_id or auth_context alongside every agent action so you can answer 'who authorized this?'",
+          "tier": "static"
+        },
+        {
+          "name": "Token scope / permission validation",
+          "status": "warn",
+          "evidence": "No token scope validation detected. Agent may act beyond intended permissions.",
+          "detection": "auto",
+          "fix_hint": "Validate OAuth scopes or permissions before each agent action to prevent scope creep",
+          "tier": "static"
+        },
+        {
+          "name": "Token expiry / execution bounding",
+          "status": "fail",
+          "evidence": "No token expiry or execution bounding detected. Agent may run indefinitely.",
+          "detection": "auto",
+          "fix_hint": "Implement token expiry, execution_timeout, or revocation so rogue agents can be stopped",
+          "tier": "static"
+        },
+        {
+          "name": "Agent action boundaries",
+          "status": "warn",
+          "evidence": "No action boundaries detected. Agent has unrestricted tool/action access.",
+          "detection": "auto",
+          "fix_hint": "Define allowed_tools or action boundaries to limit what the agent can do with delegated auth",
+          "tier": "static"
+        }
+      ],
+      "model_status": "fail",
+      "model_evidence": "No human oversight or usage controls detected",
+      "model_fix_hint": "Address human oversight requirements to comply with Article 14.",
+      "final_status": "warn"
+    },
+    "15": {
+      "article": 15,
+      "name": "Accuracy & Security",
+      "rule_status": "warn",
+      "rule_passes": 2,
+      "rule_warns": 5,
+      "rule_fails": 1,
+      "rule_checks": [
+        {
+          "name": "Prompt injection protection",
+          "status": "fail",
+          "evidence": "No runtime injection protection. Install a trust layer for inline scanning.",
+          "detection": "auto",
+          "fix_hint": "pip install air-langchain-trust  # or start gateway: docker compose up",
+          "tier": "runtime"
+        },
+        {
+          "name": "Error resilience",
+          "status": "warn",
+          "evidence": "No traffic data to measure resilience.",
+          "detection": "auto",
+          "fix_hint": "Route traffic through gateway or install a trust layer.",
+          "tier": "runtime"
+        },
+        {
+          "name": "API access control",
+          "status": "warn",
+          "evidence": "No API keys detected.",
+          "detection": "hybrid",
+          "fix_hint": "Set API keys in .env",
+          "tier": "static"
+        },
+        {
+          "name": "Adversarial robustness testing",
+          "status": "warn",
+          "evidence": "No red team / adversarial testing evidence.",
+          "detection": "manual",
+          "fix_hint": "Conduct adversarial testing. Export: air-blackbox export --tag=redteam",
+          "tier": "static"
+        },
+        {
+          "name": "Retry / backoff logic",
+          "status": "pass",
+          "evidence": "Retry/backoff patterns found in 1 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Prompt injection defense",
+          "status": "warn",
+          "evidence": "No prompt injection defense patterns detected",
+          "detection": "auto",
+          "fix_hint": "Add input sanitization or use guardrails to detect prompt injection attempts",
+          "tier": "static"
+        },
+        {
+          "name": "Unsafe input handling",
+          "status": "warn",
+          "evidence": "Possible raw user input in prompts in 1 file(s): core/quivr_core/rag/quivr_rag_langgraph.py",
+          "detection": "auto",
+          "fix_hint": "Validate and sanitize user input before injecting into LLM prompts",
+          "tier": "static"
+        },
+        {
+          "name": "LLM output validation",
+          "status": "pass",
+          "evidence": "Output parsing/validation found in 2 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        }
+      ],
+      "model_status": "pass",
+      "model_evidence": "Security and robustness patterns detected This LangChain code has partial compliance (2/6 articles). Key gaps in Articles 9, 11, 12, 14. Focus on risk management, technical documentation, record-keeping, human oversight.",
+      "model_fix_hint": "",
+      "final_status": "warn"
+    }
+  },
+  "validation": {
+    "expected_matches": 5,
+    "total_articles": 6,
+    "accuracy": "5/6 (83%)",
+    "mismatches": [
+      {
+        "article": 12,
+        "expected": "warn",
+        "got": "pass",
+        "name": "Record-Keeping"
+      }
+    ]
+  }
+}

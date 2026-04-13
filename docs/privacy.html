@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — AIR Blackbox</title>
+<meta name="description" content="Privacy policy for AIR Blackbox, the open-source EU AI Act compliance scanner. Your code never leaves your machine.">
+<link rel="canonical" href="https://airblackbox.ai/privacy">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #222222;
+    --text: #e0e0e0;
+    --text-dim: #888888;
+    --accent: #00d4aa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  h1 { color: var(--accent); margin-bottom: 0.5rem; font-size: 2rem; }
+  .updated { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 2rem; }
+  h2 { color: var(--accent); margin-top: 2rem; margin-bottom: 0.75rem; font-size: 1.3rem; }
+  p { margin-bottom: 1rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .back { display: inline-block; margin-bottom: 2rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="back">&larr; Back to AIR Blackbox</a>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: April 7, 2026</p>
+
+  <h2>The Short Version</h2>
+  <p>AIR Blackbox is a local-first tool. Your code never leaves your machine. We don't collect, store, or transmit your source code, scan results, or compliance reports.</p>
+
+  <h2>CLI Scanner (air-blackbox)</h2>
+  <p>The AIR Blackbox CLI scanner runs 100% locally on your machine. It performs static analysis of your Python code against EU AI Act Articles 9 through 15. No code, file contents, or scan results are ever sent to any external server. All data stays on your local filesystem.</p>
+
+  <h2>MCP Server</h2>
+  <p>The AIR Blackbox MCP server runs locally within your IDE (Claude Desktop, Cursor, etc.). It provides the same scanning capabilities as the CLI. No data is transmitted externally by the MCP server itself.</p>
+
+  <h2>Trust Layers</h2>
+  <p>The optional trust layer packages (air-openai-trust, air-anthropic-trust, air-langchain-trust, etc.) intercept LLM API calls to add HMAC-SHA256 audit logging. Audit logs are stored locally in a SQLite database on your machine. The trust layers do not send data to AIR Blackbox servers.</p>
+
+  <h2>Website (airblackbox.ai)</h2>
+  <p>This website is a static site hosted on Vercel. We use Vercel Analytics for anonymous, aggregated page view counts. We do not use cookies for tracking. We do not collect personal information through the website unless you voluntarily contact us.</p>
+
+  <h2>PyPI Distribution</h2>
+  <p>AIR Blackbox packages are distributed through PyPI (the Python Package Index). Download counts are tracked by PyPI, not by us. We do not embed telemetry or analytics in any of our packages.</p>
+
+  <h2>Third-Party Services</h2>
+  <p>When you use trust layers with LLM providers (OpenAI, Anthropic, etc.), your prompts and responses are subject to those providers' privacy policies. AIR Blackbox does not control how those providers handle your data. The trust layers help you maintain local audit records of those interactions for compliance purposes.</p>
+
+  <h2>Open Source</h2>
+  <p>All AIR Blackbox code is open source under the Apache 2.0 license. You can audit the source code yourself to verify these privacy claims at <a href="https://github.com/air-blackbox">github.com/air-blackbox</a>.</p>
+
+  <h2>Contact</h2>
+  <p>For privacy questions, reach out via <a href="https://github.com/air-blackbox/gateway/issues">GitHub Issues</a>.</p>
+</div>
+</body>
+</html>

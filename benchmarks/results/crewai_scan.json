@@ -1,0 +1,407 @@
+{
+  "framework": "CrewAI",
+  "key": "crewai",
+  "scan_path": "/tmp/crewai",
+  "timestamp": "2026-03-16T22:46:49.995440",
+  "elapsed_seconds": 78.0,
+  "total_python_files": 1023,
+  "files_sampled": 4,
+  "chars_sampled": 11245,
+  "model_used": "air-compliance",
+  "model_findings_count": 6,
+  "reconciliation_overrides": 5,
+  "summary": {
+    "pass": 4,
+    "warn": 2,
+    "fail": 0,
+    "score": "4/6"
+  },
+  "articles": {
+    "9": {
+      "article": 9,
+      "name": "Risk Management",
+      "rule_status": "warn",
+      "rule_passes": 1,
+      "rule_warns": 1,
+      "rule_fails": 2,
+      "rule_checks": [
+        {
+          "name": "Risk assessment document",
+          "status": "fail",
+          "evidence": "No risk assessment document found",
+          "detection": "hybrid",
+          "fix_hint": "Create RISK_ASSESSMENT.md documenting identified risks, likelihood, impact, and mitigations",
+          "tier": "static"
+        },
+        {
+          "name": "Risk mitigations active",
+          "status": "fail",
+          "evidence": "0/4 mitigations active: none detected",
+          "detection": "hybrid",
+          "fix_hint": "Enable guardrails.yaml, set TRUST_SIGNING_KEY, configure vault and OTel endpoints",
+          "tier": "runtime"
+        },
+        {
+          "name": "LLM call error handling",
+          "status": "warn",
+          "evidence": "79/113 files with LLM calls have error handling. Missing: lib/crewai/tests/test_flow.py, lib/crewai/tests/test_async_human_feedback.py, lib/crewai/tests/experimental/evaluation/test_experiment_runner.py, lib/crewai/tests/tools/test_structured_tool.py, lib/crewai/tests/tools/test_tool_usage_limit.py",
+          "detection": "auto",
+          "fix_hint": "Wrap LLM API calls in try/except to handle failures gracefully",
+          "tier": "static"
+        },
+        {
+          "name": "Fallback/recovery patterns",
+          "status": "pass",
+          "evidence": "Fallback patterns found in 110 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        }
+      ],
+      "model_status": "pass",
+      "model_evidence": "Risk classification detected in _crewai/tasks/human_task_proxy.py. Error handling and fallback patterns present.",
+      "model_fix_hint": "",
+      "final_status": "warn"
+    },
+    "10": {
+      "article": 10,
+      "name": "Data Governance",
+      "rule_status": "warn",
+      "rule_passes": 1,
+      "rule_warns": 1,
+      "rule_fails": 3,
+      "rule_checks": [
+        {
+          "name": "PII detection in prompts",
+          "status": "fail",
+          "evidence": "Gateway not reachable. No data.",
+          "detection": "auto",
+          "fix_hint": "Start gateway or install a trust layer package (pip install air-langchain-trust)",
+          "tier": "runtime"
+        },
+        {
+          "name": "Data governance documentation",
+          "status": "fail",
+          "evidence": "No data governance documentation found",
+          "detection": "hybrid",
+          "fix_hint": "Create DATA_GOVERNANCE.md: data sources, consent, quality measures, retention",
+          "tier": "static"
+        },
+        {
+          "name": "Data vault (controlled storage)",
+          "status": "fail",
+          "evidence": "No vault configured.",
+          "detection": "auto",
+          "fix_hint": "Set VAULT_ENDPOINT, VAULT_ACCESS_KEY, VAULT_SECRET_KEY in .env or install a trust layer",
+          "tier": "runtime"
+        },
+        {
+          "name": "Input validation / schema enforcement",
+          "status": "pass",
+          "evidence": "Input validation found in 389/1023 Python files (Pydantic, dataclass, or similar)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "PII handling in code",
+          "status": "warn",
+          "evidence": "PII-aware variable names or references in 7 file(s), but no detection/redaction library",
+          "detection": "auto",
+          "fix_hint": "Add actual PII detection (e.g., presidio, scrubadub) instead of just naming patterns",
+          "tier": "static"
+        }
+      ],
+      "model_status": "warn",
+      "model_evidence": "[Partial \u2014 rule-based found evidence] Input validation found in 389/1023 Python files (Pydantic, d. Model noted: No input validation or PII handling patterns detected in _lib/crewai-tools/src/crewai_tools/tools/merge_agent_handler_tool/merge_agent_handler_tool.py. Article 10 requires technical controls to ensure data governance.",
+      "model_fix_hint": "Address data governance requirements to comply with Article 10.",
+      "final_status": "warn"
+    },
+    "11": {
+      "article": 11,
+      "name": "Technical Documentation",
+      "rule_status": "pass",
+      "rule_passes": 3,
+      "rule_warns": 1,
+      "rule_fails": 1,
+      "rule_checks": [
+        {
+          "name": "System description (README)",
+          "status": "pass",
+          "evidence": "README.md found",
+          "detection": "hybrid",
+          "fix_hint": "Create README.md documenting system purpose, architecture, intended use",
+          "tier": "static"
+        },
+        {
+          "name": "Runtime system inventory (AI-BOM data)",
+          "status": "fail",
+          "evidence": "No traffic data. Route AI calls through gateway or install a trust layer.",
+          "detection": "auto",
+          "fix_hint": "pip install air-langchain-trust  # or start gateway: docker compose up",
+          "tier": "runtime"
+        },
+        {
+          "name": "Model card / system card",
+          "status": "warn",
+          "evidence": "No model card found. Run: air-blackbox discover --generate-card",
+          "detection": "hybrid",
+          "fix_hint": "Create MODEL_CARD.md: intended use, limitations, performance, ethics",
+          "tier": "static"
+        },
+        {
+          "name": "Code documentation (docstrings)",
+          "status": "pass",
+          "evidence": "2273/3108 public functions/classes have docstrings (73%)",
+          "detection": "auto",
+          "fix_hint": "Add docstrings to public functions and classes explaining purpose and parameters",
+          "tier": "static"
+        },
+        {
+          "name": "Type annotations",
+          "status": "pass",
+          "evidence": "1842/1946 public functions have type hints (95%)",
+          "detection": "auto",
+          "fix_hint": "Add type hints to function signatures for better documentation and tooling",
+          "tier": "static"
+        }
+      ],
+      "model_status": "pass",
+      "model_evidence": "[Corrected by rule-based] Scanner found 3 passing checks: README.md found; 2273/3108 public functions/classes have docstrings (73%); 1842/1946 public functions have type hints (95%). Model original: No docstrings or type annotations found in _lib/crewai-tools/src/crewai_tools/tools/merge_agent_handler_tool/merge_agent_handler_tool.py. Article 11 requires technical documentation to ensure transparency.",
+      "model_fix_hint": "",
+      "final_status": "pass"
+    },
+    "12": {
+      "article": 12,
+      "name": "Record-Keeping",
+      "rule_status": "pass",
+      "rule_passes": 2,
+      "rule_warns": 1,
+      "rule_fails": 3,
+      "rule_checks": [
+        {
+          "name": "Automatic event logging",
+          "status": "fail",
+          "evidence": "Gateway not reachable. Install a trust layer for inline logging.",
+          "detection": "auto",
+          "fix_hint": "pip install air-langchain-trust  # or start gateway: docker compose up",
+          "tier": "runtime"
+        },
+        {
+          "name": "Tamper-evident audit chain",
+          "status": "fail",
+          "evidence": "No TRUST_SIGNING_KEY set. Logs recorded but not tamper-evident.",
+          "detection": "auto",
+          "fix_hint": "Set TRUST_SIGNING_KEY in .env or install a trust layer package",
+          "tier": "runtime"
+        },
+        {
+          "name": "Log detail and traceability",
+          "status": "fail",
+          "evidence": "No logged records.",
+          "detection": "auto",
+          "fix_hint": "Route traffic through gateway or install a trust layer.",
+          "tier": "runtime"
+        },
+        {
+          "name": "Application logging",
+          "status": "warn",
+          "evidence": "Logging found in 105/1023 files (10%)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Tracing / observability",
+          "status": "pass",
+          "evidence": "Tracing patterns found in 131 file(s) (includes 10 with production-grade tracing)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Agent action audit trail",
+          "status": "pass",
+          "evidence": "Action-level audit logging found in 65 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        }
+      ],
+      "model_status": "pass",
+      "model_evidence": "[Corrected by rule-based] Scanner found 2 passing checks: Tracing patterns found in 131 file(s) (includes 10 with prod; Action-level audit logging found in 65 file(s). Model original: No logging, tracing, or audit trail detected in _lib/crewai-tools/src/crewai_tools/tools/merge_agent_handler_tool/merge_agent_handler_tool.py. Article 12 requires record-keeping to ensure traceability.",
+      "model_fix_hint": "",
+      "final_status": "pass"
+    },
+    "14": {
+      "article": 14,
+      "name": "Human Oversight",
+      "rule_status": "pass",
+      "rule_passes": 6,
+      "rule_warns": 2,
+      "rule_fails": 1,
+      "rule_checks": [
+        {
+          "name": "Human-in-the-loop mechanism",
+          "status": "warn",
+          "evidence": "No traffic data to analyze for oversight patterns.",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "runtime"
+        },
+        {
+          "name": "Kill switch / stop mechanism",
+          "status": "fail",
+          "evidence": "Gateway not running. No kill switch.",
+          "detection": "auto",
+          "fix_hint": "pip install air-langchain-trust  # or start gateway: docker compose up",
+          "tier": "runtime"
+        },
+        {
+          "name": "Operator understanding documentation",
+          "status": "warn",
+          "evidence": "No operator documentation found.",
+          "detection": "manual",
+          "fix_hint": "Create OPERATOR_GUIDE.md: capabilities, limitations, when to intervene",
+          "tier": "static"
+        },
+        {
+          "name": "Human-in-the-loop patterns",
+          "status": "pass",
+          "evidence": "Human oversight patterns found in 40 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Usage limits / budget controls",
+          "status": "pass",
+          "evidence": "Active rate limiting or budget controls found in 9 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Agent-to-user identity binding",
+          "status": "pass",
+          "evidence": "Delegation/identity binding found in 51 file(s) (agent identity, delegation tokens)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Token scope / permission validation",
+          "status": "pass",
+          "evidence": "Scope or permission validation found in 7 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Token expiry / execution bounding",
+          "status": "pass",
+          "evidence": "Token expiry or execution timeout found in 22 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Agent action boundaries",
+          "status": "pass",
+          "evidence": "Action boundary controls found in 8 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        }
+      ],
+      "model_status": "pass",
+      "model_evidence": "[Corrected by rule-based] Scanner found 6 passing checks: Human oversight patterns found in 40 file(s); Active rate limiting or budget controls found in 9 file(s); Delegation/identity binding found in 51 file(s) (agent ident. Model original: No human oversight or usage limits detected in _lib/crewai-tools/src/crewai_tools/tools/merge_agent_handler_tool/merge_agent_handler_tool.py. Article 14 requires mechanisms for human oversight.",
+      "model_fix_hint": "",
+      "final_status": "pass"
+    },
+    "15": {
+      "article": 15,
+      "name": "Accuracy & Security",
+      "rule_status": "pass",
+      "rule_passes": 3,
+      "rule_warns": 4,
+      "rule_fails": 1,
+      "rule_checks": [
+        {
+          "name": "Prompt injection protection",
+          "status": "fail",
+          "evidence": "No runtime injection protection. Install a trust layer for inline scanning.",
+          "detection": "auto",
+          "fix_hint": "pip install air-langchain-trust  # or start gateway: docker compose up",
+          "tier": "runtime"
+        },
+        {
+          "name": "Error resilience",
+          "status": "warn",
+          "evidence": "No traffic data to measure resilience.",
+          "detection": "auto",
+          "fix_hint": "Route traffic through gateway or install a trust layer.",
+          "tier": "runtime"
+        },
+        {
+          "name": "API access control",
+          "status": "warn",
+          "evidence": "No API keys detected.",
+          "detection": "hybrid",
+          "fix_hint": "Set API keys in .env",
+          "tier": "static"
+        },
+        {
+          "name": "Adversarial robustness testing",
+          "status": "warn",
+          "evidence": "No red team / adversarial testing evidence.",
+          "detection": "manual",
+          "fix_hint": "Conduct adversarial testing. Export: air-blackbox export --tag=redteam",
+          "tier": "static"
+        },
+        {
+          "name": "Retry / backoff logic",
+          "status": "pass",
+          "evidence": "Retry/backoff patterns found in 61 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Prompt injection defense",
+          "status": "pass",
+          "evidence": "Injection defense patterns found in 21 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        },
+        {
+          "name": "Unsafe input handling",
+          "status": "warn",
+          "evidence": "Possible raw user input in prompts in 17 file(s): lib/crewai/tests/test_task.py, lib/crewai/tests/tools/test_base_tool.py, lib/crewai/tests/tools/test_tool_usage_limit.py",
+          "detection": "auto",
+          "fix_hint": "Validate and sanitize user input before injecting into LLM prompts",
+          "tier": "static"
+        },
+        {
+          "name": "LLM output validation",
+          "status": "pass",
+          "evidence": "Output parsing/validation found in 123 file(s)",
+          "detection": "auto",
+          "fix_hint": "",
+          "tier": "static"
+        }
+      ],
+      "model_status": "pass",
+      "model_evidence": "[Corrected by rule-based] Scanner found 3 passing checks: Retry/backoff patterns found in 61 file(s); Injection defense patterns found in 21 file(s); Output parsing/validation found in 123 file(s). Model original: No retry logic, injection defense, or output validation detected in _lib/crewai-tools/src/crewai_tools/tools/merge_agent_handler_tool/merge_agent_handler_tool.py. Article 15 requires technical controls to ensure accuracy, robustness & cybersecurity.",
+      "model_fix_hint": "",
+      "final_status": "pass"
+    }
+  },
+  "validation": {
+    "expected_matches": 6,
+    "total_articles": 6,
+    "accuracy": "6/6 (100%)",
+    "mismatches": []
+  }
+}
