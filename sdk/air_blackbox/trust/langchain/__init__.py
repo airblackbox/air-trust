@@ -19,15 +19,16 @@ Or the simplest way:
 """
 
 import json
-import time
-import uuid
 import os
 import re
+import time
+import uuid
 from datetime import datetime
 
 try:
     from langchain_core.callbacks import BaseCallbackHandler
     from langchain_core.outputs import LLMResult
+
     HAS_LANGCHAIN = True
 except ImportError:
     HAS_LANGCHAIN = False
@@ -36,21 +37,21 @@ except ImportError:
 
 # Simple PII patterns
 _PII_PATTERNS = [
-    (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 'email'),
-    (r'\b\d{3}-\d{2}-\d{4}\b', 'ssn'),
-    (r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b', 'phone'),
-    (r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', 'credit_card'),
+    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "email"),
+    (r"\b\d{3}-\d{2}-\d{4}\b", "ssn"),
+    (r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b", "phone"),
+    (r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", "credit_card"),
 ]
 
 # Simple injection patterns
 _INJECTION_PATTERNS = [
-    r'ignore (?:all )?previous instructions',
-    r'ignore (?:all )?above instructions',
-    r'disregard (?:all )?previous',
-    r'you are now',
-    r'system prompt:',
-    r'new instructions:',
-    r'override:',
+    r"ignore (?:all )?previous instructions",
+    r"ignore (?:all )?above instructions",
+    r"disregard (?:all )?previous",
+    r"you are now",
+    r"system prompt:",
+    r"new instructions:",
+    r"override:",
 ]
 
 
@@ -69,12 +70,16 @@ class AirLangChainHandler(BaseCallbackHandler):
 
     name = "air_blackbox"
 
-    def __init__(self, gateway_url="http://localhost:8080", runs_dir=None,
-                 detect_pii=True, detect_injection=True, log_to_gateway=True):
+    def __init__(
+        self,
+        gateway_url="http://localhost:8080",
+        runs_dir=None,
+        detect_pii=True,
+        detect_injection=True,
+        log_to_gateway=True,
+    ):
         if not HAS_LANGCHAIN:
-            raise ImportError(
-                "LangChain not installed. Run: pip install air-blackbox[langchain]"
-            )
+            raise ImportError("LangChain not installed. Run: pip install air-blackbox[langchain]")
         super().__init__()
         self.gateway_url = gateway_url
         self.runs_dir = runs_dir or os.environ.get("RUNS_DIR", "./runs")
@@ -94,8 +99,9 @@ class AirLangChainHandler(BaseCallbackHandler):
             "run_id": str(uuid.uuid4()),
             "trace_id": kwargs.get("run_id", uuid.uuid4()).hex[:16] if kwargs.get("run_id") else uuid.uuid4().hex[:16],
             "timestamp": datetime.utcnow().isoformat() + "Z",
-            "model": serialized.get("kwargs", {}).get("model_name", 
-                     serialized.get("kwargs", {}).get("model", "unknown")),
+            "model": serialized.get("kwargs", {}).get(
+                "model_name", serialized.get("kwargs", {}).get("model", "unknown")
+            ),
             "provider": self._guess_provider(serialized),
             "type": "llm_call",
         }
@@ -198,26 +204,31 @@ class AirLangChainHandler(BaseCallbackHandler):
         for pattern, pii_type in _PII_PATTERNS:
             matches = re.findall(pattern, text)
             if matches:
-                self._pii_alerts.append({
-                    "type": pii_type,
-                    "count": len(matches),
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                self._pii_alerts.append(
+                    {
+                        "type": pii_type,
+                        "count": len(matches),
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
 
     def _scan_injection(self, text: str):
         text_lower = text.lower()
         for pattern in _INJECTION_PATTERNS:
             if re.search(pattern, text_lower):
-                self._injection_alerts.append({
-                    "pattern": pattern,
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                self._injection_alerts.append(
+                    {
+                        "pattern": pattern,
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
 
     def _write_record(self, record: dict):
         """Write .air.json record with HMAC chain hash."""
         try:
-            if not hasattr(self, '_chain'):
+            if not hasattr(self, "_chain"):
                 from air_blackbox.trust.chain import AuditChain
+
                 self._chain = AuditChain(runs_dir=self.runs_dir)
             self._chain.write(record)
         except Exception:

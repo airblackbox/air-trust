@@ -22,14 +22,13 @@ What NEVER gets sent:
     - Any personally identifiable information
 """
 
-import os
-import sys
-import uuid
 import json
+import os
 import platform
+import sys
 import threading
+import uuid
 from pathlib import Path
-
 
 # Telemetry endpoint — configurable via env for testing/sandbox
 TELEMETRY_URL = os.environ.get(
@@ -67,12 +66,16 @@ def _get_anonymous_id() -> str:
     anon_id = str(uuid.uuid4())
     try:
         _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        _CONFIG_FILE.write_text(json.dumps({
-            "anonymous_id": anon_id,
-            "created": __import__("datetime").datetime.utcnow().isoformat(),
-            "note": "Anonymous telemetry ID for AIR Blackbox. "
-                    "Set AIR_BLACKBOX_TELEMETRY=off to disable."
-        }, indent=2))
+        _CONFIG_FILE.write_text(
+            json.dumps(
+                {
+                    "anonymous_id": anon_id,
+                    "created": __import__("datetime").datetime.utcnow().isoformat(),
+                    "note": "Anonymous telemetry ID for AIR Blackbox. Set AIR_BLACKBOX_TELEMETRY=off to disable.",
+                },
+                indent=2,
+            )
+        )
     except Exception:
         pass  # If we can't write, use ephemeral ID
 
@@ -115,6 +118,7 @@ def send_event(
     def _send():
         try:
             import httpx
+
             httpx.post(
                 TELEMETRY_URL,
                 json=event,

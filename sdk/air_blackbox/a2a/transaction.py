@@ -29,12 +29,11 @@ import json
 import os
 import re
 import threading
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
-
 
 # ---------------------------------------------------------------------------
 # PII detection patterns (shared with trust layers)
@@ -92,6 +91,7 @@ def _scan_text(text: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # TransactionRecord -- the core data structure
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class TransactionRecord:
@@ -178,10 +178,7 @@ class TransactionRecord:
         """
         valid_types = ("request", "response", "tool_call", "tool_result", "handoff")
         if message_type not in valid_types:
-            raise ValueError(
-                f"Invalid message_type '{message_type}'. "
-                f"Must be one of: {', '.join(valid_types)}"
-            )
+            raise ValueError(f"Invalid message_type '{message_type}'. Must be one of: {', '.join(valid_types)}")
 
         # Hash the content (never store the raw bytes)
         content_hash = hashlib.sha256(content).hexdigest()
@@ -248,6 +245,7 @@ class TransactionRecord:
 # TransactionLedger -- tamper-evident storage for transaction records
 # ---------------------------------------------------------------------------
 
+
 class TransactionLedger:
     """Tamper-evident ledger that stores signed transaction records.
 
@@ -280,6 +278,7 @@ class TransactionLedger:
         if not resolved_key:
             import secrets as _secrets
             import warnings
+
             resolved_key = _secrets.token_hex(32)
             warnings.warn(
                 "TRUST_SIGNING_KEY not set. Using a random ephemeral key. "
@@ -338,12 +337,8 @@ class TransactionLedger:
                     record.sender_signature = ""
 
             # Compute HMAC chain hash
-            record_bytes = json.dumps(
-                record.to_dict(), sort_keys=True, separators=(",", ":")
-            ).encode("utf-8")
-            h = hmac.new(
-                self._key, self._prev_hash + record_bytes, hashlib.sha256
-            )
+            record_bytes = json.dumps(record.to_dict(), sort_keys=True, separators=(",", ":")).encode("utf-8")
+            h = hmac.new(self._key, self._prev_hash + record_bytes, hashlib.sha256)
             chain_hash = h.hexdigest()
             record.chain_hash = chain_hash
 
@@ -413,28 +408,24 @@ class TransactionLedger:
             # chain_hash was "" when the HMAC was computed.
             d = record.to_dict()
             d["chain_hash"] = ""  # match the state during write()
-            record_bytes = json.dumps(
-                d, sort_keys=True, separators=(",", ":")
-            ).encode("utf-8")
+            record_bytes = json.dumps(d, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
-            expected = hmac.new(
-                self._key, prev_hash + record_bytes, hashlib.sha256
-            ).hexdigest()
+            expected = hmac.new(self._key, prev_hash + record_bytes, hashlib.sha256).hexdigest()
 
             valid = stored_hash == expected
-            details.append({
-                "sequence": record.sequence,
-                "transaction_id": record.transaction_id,
-                "valid": valid,
-            })
+            details.append(
+                {
+                    "sequence": record.sequence,
+                    "transaction_id": record.transaction_id,
+                    "valid": valid,
+                }
+            )
 
             if not valid and first_broken is None:
                 first_broken = record.sequence
 
             # Advance chain using the same bytes (match write() behavior)
-            prev_hash = hmac.new(
-                self._key, prev_hash + record_bytes, hashlib.sha256
-            ).digest()
+            prev_hash = hmac.new(self._key, prev_hash + record_bytes, hashlib.sha256).digest()
 
         return {
             "valid": first_broken is None,

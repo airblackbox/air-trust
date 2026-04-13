@@ -5,8 +5,8 @@ Generates, stores, and loads ML-DSA-65 (Dilithium3 / FIPS 204) key pairs.
 Keys are stored locally in ~/.air-blackbox/keys/ and never leave the machine.
 """
 
-import json
 import hashlib
+import json
 import os
 import stat
 from datetime import datetime, timezone
@@ -29,6 +29,7 @@ def _check_dilithium_available() -> bool:
     """Check if dilithium-py is installed."""
     try:
         from dilithium_py.dilithium import Dilithium3  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -83,14 +84,12 @@ class KeyManager:
         """
         if not _check_dilithium_available():
             raise ImportError(
-                "dilithium-py is required for ML-DSA-65 signing.\n"
-                "Install it with: pip install dilithium-py"
+                "dilithium-py is required for ML-DSA-65 signing.\nInstall it with: pip install dilithium-py"
             )
 
         if self.has_keys() and not force:
             raise FileExistsError(
-                f"Keys already exist in {self.key_dir}. "
-                "Use force=True to overwrite, or load existing keys."
+                f"Keys already exist in {self.key_dir}. Use force=True to overwrite, or load existing keys."
             )
 
         from dilithium_py.dilithium import Dilithium3
@@ -118,9 +117,7 @@ class KeyManager:
                 "private": len(private_key),
             },
         }
-        self.metadata_path.write_text(
-            json.dumps(metadata, indent=2), encoding="utf-8"
-        )
+        self.metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
         console.print("[green]Generated ML-DSA-65 key pair[/green]")
         console.print(f"  Key ID:      {key_id}")
@@ -140,8 +137,7 @@ class KeyManager:
         """
         if not self.has_keys():
             raise FileNotFoundError(
-                f"No keys found in {self.key_dir}. "
-                "Run 'air-blackbox sign --keygen' to generate a key pair."
+                f"No keys found in {self.key_dir}. Run 'air-blackbox sign --keygen' to generate a key pair."
             )
 
         public_key = self.public_key_path.read_bytes()
@@ -158,9 +154,7 @@ class KeyManager:
             FileNotFoundError: If public key does not exist.
         """
         if not self.public_key_path.exists():
-            raise FileNotFoundError(
-                f"No public key found at {self.public_key_path}."
-            )
+            raise FileNotFoundError(f"No public key found at {self.public_key_path}.")
         return self.public_key_path.read_bytes()
 
     def get_metadata(self) -> dict:

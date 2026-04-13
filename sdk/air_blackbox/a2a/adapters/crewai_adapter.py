@@ -106,8 +106,7 @@ class A2ACrewAIAdapter:
             task_description = ""
             if hasattr(crew, "tasks") and crew.tasks:
                 task_description = ", ".join(
-                    str(getattr(t, "description", f"Task {i}"))
-                    for i, t in enumerate(crew.tasks)
+                    str(getattr(t, "description", f"Task {i}")) for i, t in enumerate(crew.tasks)
                 )[:200]
 
             result_text = ""
@@ -117,9 +116,7 @@ class A2ACrewAIAdapter:
                 result_text = str(result)[:500]
 
             adapter.gateway.send(
-                content=f"CREW_EXECUTION:{task_description}:{result_text}".encode(
-                    "utf-8"
-                ),
+                content=f"CREW_EXECUTION:{task_description}:{result_text}".encode("utf-8"),
                 receiver_id="crewai-kickoff-completion",
                 receiver_name="CrewAI Execution",
                 receiver_framework="crewai",

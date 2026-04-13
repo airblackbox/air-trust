@@ -39,13 +39,13 @@ jobs:
 
       - name: Install package and test deps
         run: |
-          pip install pytest
+          pip install pytest pytest-cov
           pip install -e ".[langchain,openai]"
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         env:
           TRUST_SIGNING_KEY: ci-test-key
-        run: pytest tests/ --ignore=tests/integration -x -q --tb=short
+        run: pytest tests/ --ignore=tests/integration -x -q --tb=short --cov=air_blackbox --cov-report=term-missing --cov-fail-under=65
 
       - name: Run integration tests (LangChain + OpenAI)
         env:
@@ -96,6 +96,9 @@ jobs:
 
       - name: Ruff lint check
         run: ruff check sdk/air_blackbox/
+
+      - name: Ruff format check
+        run: ruff format sdk/air_blackbox/ --check --diff
 
       - name: Check imports resolve
         run: |

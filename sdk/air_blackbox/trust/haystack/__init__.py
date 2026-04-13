@@ -19,16 +19,17 @@ Or wrap a pipeline with full compliance monitoring:
 """
 
 import json
-import time
-import uuid
 import os
 import re
+import time
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 try:
-    from haystack.tracing import Tracer, Span
     from haystack import Pipeline
+    from haystack.tracing import Span, Tracer
+
     HAS_HAYSTACK = True
 except ImportError:
     HAS_HAYSTACK = False
@@ -38,21 +39,21 @@ except ImportError:
 
 # Simple PII patterns
 _PII_PATTERNS = [
-    (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 'email'),
-    (r'\b\d{3}-\d{2}-\d{4}\b', 'ssn'),
-    (r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b', 'phone'),
-    (r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', 'credit_card'),
+    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "email"),
+    (r"\b\d{3}-\d{2}-\d{4}\b", "ssn"),
+    (r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b", "phone"),
+    (r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", "credit_card"),
 ]
 
 # Simple injection patterns
 _INJECTION_PATTERNS = [
-    r'ignore (?:all )?previous instructions',
-    r'ignore (?:all )?above instructions',
-    r'disregard (?:all )?previous',
-    r'you are now',
-    r'system prompt:',
-    r'new instructions:',
-    r'override:',
+    r"ignore (?:all )?previous instructions",
+    r"ignore (?:all )?above instructions",
+    r"disregard (?:all )?previous",
+    r"you are now",
+    r"system prompt:",
+    r"new instructions:",
+    r"override:",
 ]
 
 
@@ -152,20 +153,24 @@ class AirSpan:
         for pattern, pii_type in _PII_PATTERNS:
             matches = re.findall(pattern, text)
             if matches:
-                self.pii_alerts.append({
-                    "type": pii_type,
-                    "count": len(matches),
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                self.pii_alerts.append(
+                    {
+                        "type": pii_type,
+                        "count": len(matches),
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
 
     def _scan_injection(self, text: str) -> None:
         text_lower = text.lower()
         for pattern in _INJECTION_PATTERNS:
             if re.search(pattern, text_lower):
-                self.injection_alerts.append({
-                    "pattern": pattern,
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                self.injection_alerts.append(
+                    {
+                        "pattern": pattern,
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
 
 
 class AirHaystackTracer(Tracer):
@@ -192,13 +197,9 @@ class AirHaystackTracer(Tracer):
         pipeline.run(data)
     """
 
-    def __init__(self, runs_dir: Optional[str] = None,
-                 detect_pii: bool = True,
-                 detect_injection: bool = True):
+    def __init__(self, runs_dir: Optional[str] = None, detect_pii: bool = True, detect_injection: bool = True):
         if not HAS_HAYSTACK:
-            raise ImportError(
-                "Haystack not installed. Run: pip install air-blackbox[haystack]"
-            )
+            raise ImportError("Haystack not installed. Run: pip install air-blackbox[haystack]")
         self.runs_dir = runs_dir or os.environ.get("RUNS_DIR", "./runs")
         self.detect_pii = detect_pii
         self.detect_injection = detect_injection
@@ -250,8 +251,9 @@ class AirHaystackTracer(Tracer):
     def _write_record(self, record: dict) -> None:
         """Write .air.json record with HMAC chain hash."""
         try:
-            if not hasattr(self, '_chain'):
+            if not hasattr(self, "_chain"):
                 from air_blackbox.trust.chain import AuditChain
+
                 self._chain = AuditChain(runs_dir=self.runs_dir)
             self._chain.write(record)
         except Exception:
@@ -285,9 +287,9 @@ class AirHaystackPipeline:
         result = safe_pipeline.run(data)
     """
 
-    def __init__(self, pipeline, runs_dir: Optional[str] = None,
-                 detect_pii: bool = True,
-                 detect_injection: bool = True):
+    def __init__(
+        self, pipeline, runs_dir: Optional[str] = None, detect_pii: bool = True, detect_injection: bool = True
+    ):
         self._pipeline = pipeline
         self._tracer = AirHaystackTracer(
             runs_dir=runs_dir,
@@ -316,7 +318,7 @@ class AirHaystackPipeline:
                 "pipeline.run_id": run_id,
                 "pipeline.run_number": self._run_count,
                 "pipeline.input_keys": list(data.keys()),
-            }
+            },
         )
 
         # Scan inputs for PII and injection
@@ -365,8 +367,7 @@ class AirHaystackPipeline:
         return getattr(self._pipeline, name)
 
 
-def attach_trust(pipeline, gateway_url="http://localhost:8080",
-                 runs_dir=None, detect_pii=True, detect_injection=True):
+def attach_trust(pipeline, gateway_url="http://localhost:8080", runs_dir=None, detect_pii=True, detect_injection=True):
     """Attach AIR trust layer to a Haystack pipeline.
 
     Wraps the pipeline to add compliance monitoring on every run.

@@ -36,10 +36,10 @@ from typing import Any, Dict, List, Optional
 from .transaction import TransactionLedger
 from .verify import bilateral_verify
 
-
 # ---------------------------------------------------------------------------
 # Transaction Trace
 # ---------------------------------------------------------------------------
+
 
 def build_transaction_trace(
     ledgers: Dict[str, TransactionLedger],
@@ -64,10 +64,7 @@ def build_transaction_trace(
     for agent_id, ledger in ledgers.items():
         for record in ledger.read_all():
             # Dedup key: same content sent between same parties
-            dedup_key = (
-                f"{record.content_hash}|{record.message_type}|"
-                f"{record.sender_id}|{record.receiver_id}"
-            )
+            dedup_key = f"{record.content_hash}|{record.message_type}|{record.sender_id}|{record.receiver_id}"
 
             if dedup_key not in seen_keys:
                 seen_keys.add(dedup_key)
@@ -104,8 +101,7 @@ def trace_to_text(trace: List[Dict[str, Any]]) -> str:
 
         lines.append(f"#{i}  {txn['sender_name']} --> {txn['receiver_name']}")
         lines.append(f"     type: {txn['message_type']}{blocked}{pii}")
-        lines.append(f"     size: {txn['content_size']}B  "
-                      f"hash: {txn['content_hash'][:24]}...")
+        lines.append(f"     size: {txn['content_size']}B  hash: {txn['content_hash'][:24]}...")
         lines.append(f"     chain: {txn['chain_hash'][:24]}...")
         lines.append(f"     time: {txn['timestamp']}")
         if txn.get("redacted_preview"):
@@ -119,6 +115,7 @@ def trace_to_text(trace: List[Dict[str, Any]]) -> str:
 # ---------------------------------------------------------------------------
 # Evidence Bundle
 # ---------------------------------------------------------------------------
+
 
 def export_evidence_bundle(
     ledgers: Dict[str, TransactionLedger],
@@ -156,7 +153,6 @@ def export_evidence_bundle(
     bundle_path = output_dir / f"{bundle_id}.air-a2a-evidence"
 
     with zipfile.ZipFile(bundle_path, "w", zipfile.ZIP_DEFLATED) as zf:
-
         # -- Metadata ---------------------------------------------------------
         agent_ids = list(ledgers.keys())
         metadata = {
@@ -218,9 +214,7 @@ def export_evidence_bundle(
             # Summary of all bilateral checks
             summary = {
                 "pairs_checked": pairs_checked,
-                "all_verified": all(
-                    r["bilateral_verified"] for r in bilateral_reports
-                ),
+                "all_verified": all(r["bilateral_verified"] for r in bilateral_reports),
                 "reports": [
                     {
                         "agent_a": r["agent_a_id"],
@@ -270,13 +264,16 @@ def export_evidence_bundle(
         zf.writestr("verify.py", _STANDALONE_VERIFIER)
 
         # -- README for auditors ----------------------------------------------
-        zf.writestr("README.md", _AUDITOR_README.format(
-            bundle_id=bundle_id,
-            timestamp=timestamp.isoformat(),
-            system_name=system_name,
-            agent_count=len(agent_ids),
-            total_records=total_records,
-        ))
+        zf.writestr(
+            "README.md",
+            _AUDITOR_README.format(
+                bundle_id=bundle_id,
+                timestamp=timestamp.isoformat(),
+                system_name=system_name,
+                agent_count=len(agent_ids),
+                total_records=total_records,
+            ),
+        )
 
     return bundle_path
 

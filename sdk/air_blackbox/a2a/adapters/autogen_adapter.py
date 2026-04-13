@@ -160,9 +160,7 @@ class A2AAutoGenAdapter:
                 adapter._message_count += 1
 
             # Call original
-            result = original_generate_reply(
-                messages=messages, sender=sender, **kwargs
-            )
+            result = original_generate_reply(messages=messages, sender=sender, **kwargs)
 
             # Record outgoing response
             if result is not None:
@@ -197,9 +195,7 @@ class A2AAutoGenAdapter:
 
         adapter = self  # capture reference for closure
 
-        def instrumented_on_messages(
-            messages: List[Any], cancellation_token: Optional[Any] = None
-        ) -> Any:
+        def instrumented_on_messages(messages: List[Any], cancellation_token: Optional[Any] = None) -> Any:
             # Record incoming messages
             for msg in messages:
                 msg_content = ""
@@ -249,9 +245,7 @@ class A2AAutoGenAdapter:
             self.wrap(agent)
         return agents
 
-    def _wrap_function(
-        self, func: Any, func_name: str, agent_name: str
-    ) -> Any:
+    def _wrap_function(self, func: Any, func_name: str, agent_name: str) -> Any:
         """Wrap a single function from the agent's function_map.
 
         Used only for legacy pyautogen v0.2.x agents.

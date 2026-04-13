@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from .transaction import TransactionRecord, TransactionLedger
+from .transaction import TransactionLedger, TransactionRecord
 
 
 @dataclass
@@ -49,6 +49,7 @@ class GatewayResult:
         blocked: True if the message was blocked (injection detected).
         reason: Why the message was blocked (empty if not blocked).
     """
+
     content: bytes
     record: TransactionRecord
     blocked: bool = False
@@ -95,9 +96,7 @@ class A2AGateway:
 
         # Default ledger directory: ~/.air-blackbox/a2a-ledger/{agent_id}/
         if ledger_dir is None:
-            ledger_dir = str(
-                Path.home() / ".air-blackbox" / "a2a-ledger" / agent_id
-            )
+            ledger_dir = str(Path.home() / ".air-blackbox" / "a2a-ledger" / agent_id)
 
         self.ledger = TransactionLedger(
             ledger_dir=ledger_dir,

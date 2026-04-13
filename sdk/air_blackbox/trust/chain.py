@@ -24,7 +24,7 @@ import threading
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ class AuditChain:
         if not resolved_key:
             import secrets as _secrets
             import warnings
+
             resolved_key = _secrets.token_hex(32)
             warnings.warn(
                 "TRUST_SIGNING_KEY not set. Using a random ephemeral key. "
@@ -85,9 +86,7 @@ class AuditChain:
 
                 # Compute chain hash per spec: HMAC(key, prev_hash || JSON(record))
                 record_bytes = json.dumps(record, sort_keys=True).encode("utf-8")
-                h = hmac.new(
-                    self._key, self._prev_hash + record_bytes, hashlib.sha256
-                )
+                h = hmac.new(self._key, self._prev_hash + record_bytes, hashlib.sha256)
                 chain_hash = h.hexdigest()
                 record["chain_hash"] = chain_hash
 
@@ -122,6 +121,7 @@ class AuditChain:
 
 # Compliance helpers: audit logging, risk classification, event tracking
 
+
 def audit_log(action: str, details: Optional[Dict[str, Any]] = None) -> None:
     """Log an audit trail entry for compliance record-keeping (Art 12)."""
     logger.info("audit_trail action=%s details=%s", action, details or {})
@@ -141,6 +141,7 @@ class RiskClassification:
         category: Risk category
         requires_human_approval: Whether human oversight is needed
     """
+
     level: str
     category: str
     requires_human_approval: bool = False

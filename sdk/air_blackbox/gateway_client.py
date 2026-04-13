@@ -3,9 +3,9 @@ Gateway client — talks to the running AIR Blackbox Gateway.
 Pulls live data from gateway API and .air.json records.
 """
 
+import glob
 import json
 import os
-import glob
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -15,6 +15,7 @@ import httpx
 @dataclass
 class GatewayStatus:
     """What we know about the running gateway."""
+
     reachable: bool = False
     url: str = "http://localhost:8080"
     audit_chain_intact: bool = False
@@ -118,13 +119,17 @@ class GatewayClient:
                 errors += 1
             if rec_status == "timeout":
                 timeouts += 1
-            recent_runs.append({
-                "run_id": record.get("run_id", "unknown"),
-                "model": model, "provider": provider,
-                "tokens": tokens.get("total", 0),
-                "timestamp": ts, "status": rec_status,
-                "tool_calls": record.get("tool_calls", []),
-            })
+            recent_runs.append(
+                {
+                    "run_id": record.get("run_id", "unknown"),
+                    "model": model,
+                    "provider": provider,
+                    "tokens": tokens.get("total", 0),
+                    "timestamp": ts,
+                    "status": rec_status,
+                    "tool_calls": record.get("tool_calls", []),
+                }
+            )
         recent_runs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
         recent_runs = recent_runs[:10]
         status.total_runs = len(air_files)
@@ -231,15 +236,17 @@ class GatewayClient:
 
         # Build recent_runs from trust layer records
         for record in records:
-            status.recent_runs.append({
-                "run_id": record.get("run_id", "unknown"),
-                "model": record.get("model", "unknown"),
-                "provider": record.get("provider", "unknown"),
-                "tokens": record.get("tokens", {}).get("total", 0),
-                "timestamp": record.get("timestamp"),
-                "status": record.get("status", "success"),
-                "tool_calls": record.get("tool_calls", []),
-            })
+            status.recent_runs.append(
+                {
+                    "run_id": record.get("run_id", "unknown"),
+                    "model": record.get("model", "unknown"),
+                    "provider": record.get("provider", "unknown"),
+                    "tokens": record.get("tokens", {}).get("total", 0),
+                    "timestamp": record.get("timestamp"),
+                    "status": record.get("status", "success"),
+                    "tool_calls": record.get("tool_calls", []),
+                }
+            )
         status.recent_runs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
         status.recent_runs = status.recent_runs[:10]
 

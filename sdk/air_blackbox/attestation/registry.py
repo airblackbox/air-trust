@@ -59,9 +59,7 @@ class LocalRegistry:
         """
         issues = record.validate()
         if issues:
-            raise ValueError(
-                f"Invalid attestation record: {'; '.join(issues)}"
-            )
+            raise ValueError(f"Invalid attestation record: {'; '.join(issues)}")
 
         self._ensure_dir()
         path = self._path_for(record.attestation_id)
@@ -127,10 +125,7 @@ class LocalRegistry:
         Returns:
             List of matching AttestationRecords, newest first.
         """
-        return [
-            r for r in self.list_all()
-            if r.subject.system_hash == system_hash
-        ]
+        return [r for r in self.list_all() if r.subject.system_hash == system_hash]
 
     def count(self) -> int:
         """Count total attestations in the registry."""

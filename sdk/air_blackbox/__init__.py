@@ -84,24 +84,31 @@ class AirTrust:
 
             if framework == "langchain":
                 from air_blackbox.trust.langchain import attach_trust
+
                 return attach_trust(agent, self.gateway_url)
             elif framework == "crewai":
                 from air_blackbox.trust.crewai import attach_trust
+
                 return attach_trust(agent, self.gateway_url)
             elif framework == "haystack":
                 from air_blackbox.trust.haystack import attach_trust
+
                 return attach_trust(agent, self.gateway_url)
             elif framework == "openai":
                 from air_blackbox.trust.openai_agents import attach_trust
+
                 return attach_trust(agent, self.gateway_url)
             elif framework == "autogen":
                 from air_blackbox.trust.autogen import attach_trust
+
                 return attach_trust(agent, self.gateway_url)
             elif framework == "adk":
                 from air_blackbox.trust.adk import attach_trust
+
                 return attach_trust(agent, self.gateway_url)
             elif framework == "claude_agent":
                 from air_blackbox.trust.claude_agent import attach_trust
+
                 return attach_trust(agent, self.gateway_url)
             else:
                 print("[AIR] Framework not auto-detected. Using generic wrapper.")

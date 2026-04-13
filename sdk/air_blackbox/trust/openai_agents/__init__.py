@@ -20,7 +20,7 @@ import os
 import time
 import uuid
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,7 @@ class AirOpenAIWrapper:
         try:
             if self._chain is None:
                 from air_blackbox.trust.chain import AuditChain
+
                 self._chain = AuditChain(runs_dir=self.runs_dir)
             self._chain.write(record)
         except Exception:
@@ -92,25 +93,37 @@ class _CompletionsProxy:
             duration_ms = int((time.time() - start) * 1000)
             usage = {}
             if hasattr(response, "usage") and response.usage:
-                usage = {"prompt": response.usage.prompt_tokens,
-                         "completion": response.usage.completion_tokens,
-                         "total": response.usage.total_tokens}
+                usage = {
+                    "prompt": response.usage.prompt_tokens,
+                    "completion": response.usage.completion_tokens,
+                    "total": response.usage.total_tokens,
+                }
             record = {
-                "version": "1.0.0", "run_id": run_id,
+                "version": "1.0.0",
+                "run_id": run_id,
                 "timestamp": datetime.utcnow().isoformat() + "Z",
-                "model": model, "provider": "openai", "type": "llm_call",
-                "tokens": usage, "duration_ms": duration_ms, "status": "success",
+                "model": model,
+                "provider": "openai",
+                "type": "llm_call",
+                "tokens": usage,
+                "duration_ms": duration_ms,
+                "status": "success",
             }
             self._wrapper._write_record(record)
             return response
         except Exception as e:
             duration_ms = int((time.time() - start) * 1000)
             record = {
-                "version": "1.0.0", "run_id": run_id,
+                "version": "1.0.0",
+                "run_id": run_id,
                 "timestamp": datetime.utcnow().isoformat() + "Z",
-                "model": model, "provider": "openai", "type": "llm_call",
-                "tokens": {}, "duration_ms": duration_ms,
-                "status": "error", "error": str(e)[:500],
+                "model": model,
+                "provider": "openai",
+                "type": "llm_call",
+                "tokens": {},
+                "duration_ms": duration_ms,
+                "status": "error",
+                "error": str(e)[:500],
             }
             self._wrapper._write_record(record)
             raise
@@ -137,6 +150,7 @@ def air_openai_client(gateway_url="http://localhost:8080", **kwargs):
 
 
 # Compliance helpers: delegation, oversight, output validation
+
 
 def validate_output(response: Any, content_filter: bool = True) -> bool:
     """Validate LLM output before acting on it (Art 15).

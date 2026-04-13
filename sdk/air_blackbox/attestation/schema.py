@@ -13,10 +13,9 @@ Designed to be compatible with future blockchain anchoring and federated registr
 import hashlib
 import json
 import secrets
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List
-
 
 # Attestation ID prefix for namespacing
 ATTESTATION_PREFIX = "air-att"
@@ -45,6 +44,7 @@ class SubjectInfo:
 
     Only hashes are stored -- no source code or file paths are published.
     """
+
     system_hash: str  # SHA-256 of scanned codebase (file content hashes)
     system_name: str = ""  # Optional human-readable name (provider-supplied)
     system_version: str = ""  # Optional version string
@@ -57,6 +57,7 @@ class ScanInfo:
 
     Contains pass/fail counts but not specific findings or code references.
     """
+
     scanner_version: str  # e.g. "air-blackbox 1.10.0"
     frameworks: List[str]  # e.g. ["eu_ai_act", "iso_42001", "nist_rmf", "colorado_sb205"]
     checks_passed: int = 0
@@ -73,6 +74,7 @@ class EvidenceInfo:
     The attestation references (but does not contain) the detailed evidence.
     An auditor can match a bundle to its attestation by comparing these hashes.
     """
+
     bundle_hash: str = ""  # SHA-256 of the .air-evidence ZIP file
     audit_chain_hash: str = ""  # SHA-256 of the HMAC audit chain
 
@@ -84,6 +86,7 @@ class CryptoInfo:
     The signature covers the canonical JSON encoding of the attestation
     (excluding the crypto.signature field itself).
     """
+
     algorithm: str = "ML-DSA-65"
     public_key_fingerprint: str = ""  # SHA-256 of the signer's public key
     signature: str = ""  # Hex-encoded ML-DSA-65 signature
@@ -92,6 +95,7 @@ class CryptoInfo:
 @dataclass
 class VerificationInfo:
     """URLs for online verification (populated when published to registry)."""
+
     verify_url: str = ""  # e.g. https://airblackbox.ai/verify/air-att-...
     badge_url: str = ""  # e.g. https://airblackbox.ai/badge/air-att-....svg
 
@@ -110,12 +114,11 @@ class AttestationRecord:
     - Anchorable: the record hash can be published to a blockchain
     - Extensible: new fields can be added without breaking existing records
     """
+
     attestation_id: str = field(default_factory=generate_attestation_id)
     schema_version: str = SCHEMA_VERSION
     schema_url: str = SCHEMA_URL
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     subject: SubjectInfo = field(default_factory=lambda: SubjectInfo(system_hash=""))
     scan: ScanInfo = field(default_factory=lambda: ScanInfo(scanner_version="", frameworks=[]))
@@ -149,9 +152,7 @@ class AttestationRecord:
         This hash covers the full record INCLUDING the signature, so it
         uniquely identifies this specific signed attestation.
         """
-        full_bytes = json.dumps(
-            self.to_dict(), sort_keys=True, separators=(",", ":")
-        ).encode("utf-8")
+        full_bytes = json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":")).encode("utf-8")
         return hashlib.sha256(full_bytes).hexdigest()
 
     @classmethod

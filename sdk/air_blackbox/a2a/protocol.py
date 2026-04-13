@@ -7,7 +7,7 @@ and secure handshake mechanisms for cross-agent communication.
 import hashlib
 import hmac
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
@@ -16,9 +16,10 @@ from uuid import uuid4
 @dataclass
 class AgentComplianceCard:
     """Represents an agent's compliance status and capabilities.
-    
+
     Used in A2A verification to establish trust between communicating agents.
     """
+
     agent_id: str
     agent_name: str
     framework: str
@@ -53,10 +54,11 @@ class AgentComplianceCard:
 @dataclass
 class A2AVerificationResult:
     """Result of A2A compliance verification between two agents.
-    
+
     Contains verification status, compliance score, issues found,
     and recommendations for remediation.
     """
+
     verified: bool
     score: float
     issues: List[str] = field(default_factory=list)
@@ -83,14 +85,14 @@ class A2AVerificationResult:
 
 class A2AComplianceGate:
     """Gate that verifies compliance between communicating agents.
-    
+
     Implements verification logic, handshake creation, and audit trail
     recording for agent-to-agent communication.
     """
 
     def __init__(self, local_agent: AgentComplianceCard):
         """Initialize gate with local agent's compliance card.
-        
+
         Args:
             local_agent: This agent's AgentComplianceCard with compliance status.
         """
@@ -108,21 +110,19 @@ class A2AComplianceGate:
             "compatible_trust_layer": True,
         }
 
-    def verify_peer(
-        self, peer_card: AgentComplianceCard
-    ) -> A2AVerificationResult:
+    def verify_peer(self, peer_card: AgentComplianceCard) -> A2AVerificationResult:
         """Verify that peer agent meets compliance requirements.
-        
+
         Checks:
         a. Both agents have audit chains enabled
         b. Both agents have injection protection
         c. Neither agent has critical (fail) compliance findings
         d. Signing key fingerprints are present
         e. Trust layer versions are compatible
-        
+
         Args:
             peer_card: The peer agent's AgentComplianceCard.
-            
+
         Returns:
             A2AVerificationResult with detailed verification outcome.
         """
@@ -132,78 +132,48 @@ class A2AComplianceGate:
 
         # Check 1: Audit chains enabled
         if not self.local_agent.audit_chain_enabled:
-            issues.append(
-                "Local agent audit chain is not enabled"
-            )
-            recommendations.append(
-                "Enable audit chain on local agent before A2A communication"
-            )
+            issues.append("Local agent audit chain is not enabled")
+            recommendations.append("Enable audit chain on local agent before A2A communication")
             score -= 0.25
 
         if not peer_card.audit_chain_enabled:
             issues.append("Peer agent audit chain is not enabled")
-            recommendations.append(
-                "Peer must enable audit chain for compliant communication"
-            )
+            recommendations.append("Peer must enable audit chain for compliant communication")
             score -= 0.25
 
         # Check 2: Injection protection enabled
         if not self.local_agent.injection_protection:
-            issues.append(
-                "Local agent injection protection is not enabled"
-            )
-            recommendations.append(
-                "Enable injection protection on local agent"
-            )
+            issues.append("Local agent injection protection is not enabled")
+            recommendations.append("Enable injection protection on local agent")
             score -= 0.2
 
         if not peer_card.injection_protection:
             issues.append("Peer agent injection protection is not enabled")
-            recommendations.append(
-                "Peer must enable injection protection"
-            )
+            recommendations.append("Peer must enable injection protection")
             score -= 0.2
 
         # Check 3: No critical compliance failures
-        local_failures = [
-            f"Article {k}" for k, v in self.local_agent.compliance_checks.items()
-            if v == "fail"
-        ]
+        local_failures = [f"Article {k}" for k, v in self.local_agent.compliance_checks.items() if v == "fail"]
         if local_failures:
-            issues.append(
-                f"Local agent has critical failures: {', '.join(local_failures)}"
-            )
-            recommendations.append(
-                "Fix critical compliance failures on local agent before communication"
-            )
+            issues.append(f"Local agent has critical failures: {', '.join(local_failures)}")
+            recommendations.append("Fix critical compliance failures on local agent before communication")
             score -= 0.15
 
-        peer_failures = [
-            f"Article {k}" for k, v in peer_card.compliance_checks.items()
-            if v == "fail"
-        ]
+        peer_failures = [f"Article {k}" for k, v in peer_card.compliance_checks.items() if v == "fail"]
         if peer_failures:
-            issues.append(
-                f"Peer agent has critical failures: {', '.join(peer_failures)}"
-            )
-            recommendations.append(
-                "Peer must fix critical compliance failures"
-            )
+            issues.append(f"Peer agent has critical failures: {', '.join(peer_failures)}")
+            recommendations.append("Peer must fix critical compliance failures")
             score -= 0.15
 
         # Check 4: Signing key fingerprints present
         if not self.local_agent.signing_key_fingerprint:
             issues.append("Local agent has no signing key fingerprint")
-            recommendations.append(
-                "Generate and configure signing key on local agent"
-            )
+            recommendations.append("Generate and configure signing key on local agent")
             score -= 0.1
 
         if not peer_card.signing_key_fingerprint:
             issues.append("Peer agent has no signing key fingerprint")
-            recommendations.append(
-                "Peer must configure signing key"
-            )
+            recommendations.append("Peer must configure signing key")
             score -= 0.1
 
         # Check 5: Trust layer version compatibility
@@ -216,9 +186,7 @@ class A2AComplianceGate:
                 f"local={self.local_agent.trust_layer_version}, "
                 f"peer={peer_card.trust_layer_version}"
             )
-            recommendations.append(
-                "Upgrade peer or local agent to matching major version"
-            )
+            recommendations.append("Upgrade peer or local agent to matching major version")
             score -= 0.05
 
         # Clamp score to 0-1 range
@@ -226,11 +194,11 @@ class A2AComplianceGate:
 
         # Determine overall verification
         verified = (
-            len(issues) == 0 and
-            self.local_agent.audit_chain_enabled and
-            peer_card.audit_chain_enabled and
-            self.local_agent.injection_protection and
-            peer_card.injection_protection
+            len(issues) == 0
+            and self.local_agent.audit_chain_enabled
+            and peer_card.audit_chain_enabled
+            and self.local_agent.injection_protection
+            and peer_card.injection_protection
         )
 
         # Create handshake record if verified
@@ -247,26 +215,26 @@ class A2AComplianceGate:
         )
 
         # Log verification
-        self.verification_log.append({
-            "timestamp": datetime.utcnow().isoformat(),
-            "peer_id": peer_card.agent_id,
-            "verified": verified,
-            "score": score,
-        })
+        self.verification_log.append(
+            {
+                "timestamp": datetime.utcnow().isoformat(),
+                "peer_id": peer_card.agent_id,
+                "verified": verified,
+                "score": score,
+            }
+        )
 
         return result
 
-    def create_handshake(
-        self, peer_card: AgentComplianceCard
-    ) -> Dict[str, Any]:
+    def create_handshake(self, peer_card: AgentComplianceCard) -> Dict[str, Any]:
         """Create a signed handshake record for the audit chain.
-        
+
         Produces a record that logs two agents established a compliant
         communication channel, signed for audit trail authenticity.
-        
+
         Args:
             peer_card: The peer agent's AgentComplianceCard.
-            
+
         Returns:
             Dictionary containing signed handshake record.
         """
@@ -293,9 +261,7 @@ class A2AComplianceGate:
 
         # Use fingerprint as HMAC key for signing
         key = self.local_agent.signing_key_fingerprint.encode("utf-8")
-        signature = hmac.new(
-            key, message_bytes, hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(key, message_bytes, hashlib.sha256).hexdigest()
 
         return {
             "data": handshake_data,
@@ -318,11 +284,11 @@ def generate_compliance_card(
     capabilities: Optional[List[str]] = None,
 ) -> AgentComplianceCard:
     """Generate an AgentComplianceCard from scan results.
-    
+
     Produces a compliance card by extracting trust layer version,
     audit chain status, and injection protection from scan results.
     Auto-detects framework if not provided.
-    
+
     Args:
         scan_results: Dictionary from run_all_checks containing compliance data.
         agent_id: Unique agent identifier; generated if not provided.
@@ -330,7 +296,7 @@ def generate_compliance_card(
         framework: AI framework (langchain, crewai, etc.); auto-detected if omitted.
         trust_layer_version: AIR trust layer version; defaults to "1.0.0".
         capabilities: List of agent capabilities; defaults to empty list.
-        
+
     Returns:
         AgentComplianceCard with populated compliance status.
     """
@@ -394,16 +360,16 @@ def verify_a2a_communication(
     agent_2: AgentComplianceCard,
 ) -> A2AVerificationResult:
     """Verify that two agents can communicate compliantly.
-    
+
     Convenience function that takes two AgentComplianceCards,
     returns whether they can communicate compliantly, and
     logs the verification to audit chains if both agents
     support it.
-    
+
     Args:
         agent_1: First agent's compliance card.
         agent_2: Second agent's compliance card.
-        
+
     Returns:
         A2AVerificationResult with verification outcome.
     """
@@ -415,10 +381,7 @@ def verify_a2a_communication(
 
     # If verified and both have signing keys, create audit records
     if result.verified:
-        if (
-            agent_1.signing_key_fingerprint and
-            agent_2.signing_key_fingerprint
-        ):
+        if agent_1.signing_key_fingerprint and agent_2.signing_key_fingerprint:
             # Log verification to audit chain
             audit_record = {
                 "event_type": "a2a_verification_success",
@@ -434,9 +397,7 @@ def verify_a2a_communication(
             record_json = json.dumps(audit_record, sort_keys=True)
             record_bytes = record_json.encode("utf-8")
             key = agent_1.signing_key_fingerprint.encode("utf-8")
-            signature = hmac.new(
-                key, record_bytes, hashlib.sha256
-            ).hexdigest()
+            signature = hmac.new(key, record_bytes, hashlib.sha256).hexdigest()
 
             audit_record["signature"] = signature
             audit_record["signature_algorithm"] = "HMAC-SHA256"

@@ -41,6 +41,8 @@ class PatternDef:
     category: str
     min_sensitivity: Literal["low", "medium", "high"]
     description: str = ""
+
+
 @dataclass
 class InjectionResult:
     """Result of scanning content for injection patterns."""
@@ -315,9 +317,7 @@ class InjectionDetector:
         # Filter built-in patterns by sensitivity level
         sensitivity_level = SENSITIVITY_ORDER.get(sensitivity, 2)
         self._active_patterns = [
-            p
-            for p in INJECTION_PATTERNS
-            if SENSITIVITY_ORDER.get(p.min_sensitivity, 2) <= sensitivity_level
+            p for p in INJECTION_PATTERNS if SENSITIVITY_ORDER.get(p.min_sensitivity, 2) <= sensitivity_level
         ]
 
         # Add any custom patterns
@@ -333,8 +333,12 @@ class InjectionDetector:
         """
         if not content or not content.strip():
             return InjectionResult(
-                detected=False, score=0.0, patterns=[],
-                categories=[], blocked=False, details=[],
+                detected=False,
+                score=0.0,
+                patterns=[],
+                categories=[],
+                blocked=False,
+                details=[],
             )
 
         matched_patterns: list[str] = []
@@ -348,21 +352,21 @@ class InjectionDetector:
                 matched_patterns.append(pattern.name)
                 matched_categories.add(pattern.category)
                 total_weight += pattern.weight
-                details.append({
-                    "pattern": pattern.name,
-                    "category": pattern.category,
-                    "weight": pattern.weight,
-                    "match_count": len(matches),
-                    "first_match": matches[0].group()[:100],
-                    "description": pattern.description,
-                })
+                details.append(
+                    {
+                        "pattern": pattern.name,
+                        "category": pattern.category,
+                        "weight": pattern.weight,
+                        "match_count": len(matches),
+                        "first_match": matches[0].group()[:100],
+                        "description": pattern.description,
+                    }
+                )
 
         # Normalize score to 0-1 range (cap at 1.0)
         score = min(total_weight, 1.0)
         detected = len(matched_patterns) > 0
-        blocked = (
-            self.block_threshold > 0 and score >= self.block_threshold
-        )
+        blocked = self.block_threshold > 0 and score >= self.block_threshold
 
         return InjectionResult(
             detected=detected,

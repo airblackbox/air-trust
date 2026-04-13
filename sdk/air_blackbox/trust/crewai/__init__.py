@@ -21,15 +21,16 @@ Or wrap a crew with full compliance monitoring:
 """
 
 import json
-import time
-import uuid
 import os
 import re
+import time
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 try:
-    from crewai import Crew, Agent, Task
+    from crewai import Agent, Crew, Task
+
     HAS_CREWAI = True
 except ImportError:
     HAS_CREWAI = False
@@ -39,21 +40,21 @@ except ImportError:
 
 # Simple PII patterns
 _PII_PATTERNS = [
-    (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 'email'),
-    (r'\b\d{3}-\d{2}-\d{4}\b', 'ssn'),
-    (r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b', 'phone'),
-    (r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', 'credit_card'),
+    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "email"),
+    (r"\b\d{3}-\d{2}-\d{4}\b", "ssn"),
+    (r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b", "phone"),
+    (r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", "credit_card"),
 ]
 
 # Simple injection patterns
 _INJECTION_PATTERNS = [
-    r'ignore (?:all )?previous instructions',
-    r'ignore (?:all )?above instructions',
-    r'disregard (?:all )?previous',
-    r'you are now',
-    r'system prompt:',
-    r'new instructions:',
-    r'override:',
+    r"ignore (?:all )?previous instructions",
+    r"ignore (?:all )?above instructions",
+    r"disregard (?:all )?previous",
+    r"you are now",
+    r"system prompt:",
+    r"new instructions:",
+    r"override:",
 ]
 
 
@@ -80,13 +81,9 @@ class AirCrewAITrust:
         print(f"Logged {trust.event_count} compliance events")
     """
 
-    def __init__(self, runs_dir: Optional[str] = None,
-                 detect_pii: bool = True,
-                 detect_injection: bool = True):
+    def __init__(self, runs_dir: Optional[str] = None, detect_pii: bool = True, detect_injection: bool = True):
         if not HAS_CREWAI:
-            raise ImportError(
-                "CrewAI not installed. Run: pip install air-blackbox[crewai]"
-            )
+            raise ImportError("CrewAI not installed. Run: pip install air-blackbox[crewai]")
         self.runs_dir = runs_dir or os.environ.get("RUNS_DIR", "./runs")
         self.detect_pii = detect_pii
         self.detect_injection = detect_injection
@@ -111,8 +108,8 @@ class AirCrewAITrust:
             The same crew, now instrumented with AIR trust layer
         """
         # Preserve existing callbacks
-        existing_step_cb = getattr(crew, 'step_callback', None)
-        existing_task_cb = getattr(crew, 'task_callback', None)
+        existing_step_cb = getattr(crew, "step_callback", None)
+        existing_task_cb = getattr(crew, "task_callback", None)
 
         # Create wrapped step callback
         def air_step_callback(step_output):
@@ -130,7 +127,7 @@ class AirCrewAITrust:
         crew.task_callback = air_task_callback
 
         # Also hook per-agent step callbacks
-        if hasattr(crew, 'agents'):
+        if hasattr(crew, "agents"):
             for agent in crew.agents:
                 self._instrument_agent(agent)
 
@@ -139,10 +136,10 @@ class AirCrewAITrust:
 
     def _instrument_agent(self, agent) -> None:
         """Add trust monitoring to an individual agent."""
-        existing_cb = getattr(agent, 'step_callback', None)
+        existing_cb = getattr(agent, "step_callback", None)
 
         def air_agent_step(step_output):
-            agent_name = getattr(agent, 'role', 'unknown_agent')
+            agent_name = getattr(agent, "role", "unknown_agent")
             self._on_agent_step(agent_name, step_output)
             if existing_cb:
                 existing_cb(step_output)
@@ -164,16 +161,16 @@ class AirCrewAITrust:
         }
 
         # Extract useful info from step output
-        if hasattr(step_output, 'text'):
+        if hasattr(step_output, "text"):
             record["output_preview"] = str(step_output.text)[:500]
-        elif hasattr(step_output, 'output'):
+        elif hasattr(step_output, "output"):
             record["output_preview"] = str(step_output.output)[:500]
 
         # Check for tool usage
-        if hasattr(step_output, 'tool'):
+        if hasattr(step_output, "tool"):
             record["type"] = "tool_call"
             record["tool_name"] = str(step_output.tool)
-            if hasattr(step_output, 'tool_input'):
+            if hasattr(step_output, "tool_input"):
                 record["tool_input_preview"] = str(step_output.tool_input)[:300]
 
         # Scan for PII and injection
@@ -203,15 +200,15 @@ class AirCrewAITrust:
             "status": "success",
         }
 
-        if hasattr(step_output, 'text'):
+        if hasattr(step_output, "text"):
             record["output_preview"] = str(step_output.text)[:500]
-        elif hasattr(step_output, 'output'):
+        elif hasattr(step_output, "output"):
             record["output_preview"] = str(step_output.output)[:500]
 
         # Check for delegation
-        if hasattr(step_output, 'tool') and 'delegate' in str(getattr(step_output, 'tool', '')).lower():
+        if hasattr(step_output, "tool") and "delegate" in str(getattr(step_output, "tool", "")).lower():
             record["type"] = "delegation"
-            record["delegated_to"] = str(getattr(step_output, 'tool_input', ''))[:200]
+            record["delegated_to"] = str(getattr(step_output, "tool_input", ""))[:200]
 
         # Scan for PII and injection
         if step_text and len(step_text) > 5:
@@ -242,13 +239,13 @@ class AirCrewAITrust:
         }
 
         # Extract task details
-        if hasattr(task_output, 'description'):
+        if hasattr(task_output, "description"):
             record["task_description"] = str(task_output.description)[:300]
-        if hasattr(task_output, 'raw'):
+        if hasattr(task_output, "raw"):
             record["output_preview"] = str(task_output.raw)[:500]
-        elif hasattr(task_output, 'output'):
+        elif hasattr(task_output, "output"):
             record["output_preview"] = str(task_output.output)[:500]
-        if hasattr(task_output, 'agent'):
+        if hasattr(task_output, "agent"):
             record["agent"] = str(task_output.agent)[:100]
 
         # Scan output for PII
@@ -269,11 +266,13 @@ class AirCrewAITrust:
         for pattern, pii_type in _PII_PATTERNS:
             matches = re.findall(pattern, text)
             if matches:
-                alerts.append({
-                    "type": pii_type,
-                    "count": len(matches),
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                alerts.append(
+                    {
+                        "type": pii_type,
+                        "count": len(matches),
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
         return alerts
 
     def _scan_injection(self, text: str) -> List[Dict[str, Any]]:
@@ -282,10 +281,12 @@ class AirCrewAITrust:
         text_lower = text.lower()
         for pattern in _INJECTION_PATTERNS:
             if re.search(pattern, text_lower):
-                alerts.append({
-                    "pattern": pattern,
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                alerts.append(
+                    {
+                        "pattern": pattern,
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
         return alerts
 
     # ── Record writing ──
@@ -293,8 +294,9 @@ class AirCrewAITrust:
     def _write_record(self, record: dict) -> None:
         """Write .air.json record with HMAC chain hash."""
         try:
-            if not hasattr(self, '_chain'):
+            if not hasattr(self, "_chain"):
                 from air_blackbox.trust.chain import AuditChain
+
                 self._chain = AuditChain(runs_dir=self.runs_dir)
             self._chain.write(record)
         except Exception:
@@ -337,9 +339,7 @@ class AirCrewAICrew:
         result = safe_crew.kickoff()
     """
 
-    def __init__(self, crew, runs_dir: Optional[str] = None,
-                 detect_pii: bool = True,
-                 detect_injection: bool = True):
+    def __init__(self, crew, runs_dir: Optional[str] = None, detect_pii: bool = True, detect_injection: bool = True):
         self._trust = AirCrewAITrust(
             runs_dir=runs_dir,
             detect_pii=detect_pii,
@@ -408,7 +408,7 @@ class AirCrewAICrew:
             }
 
             # Extract result preview
-            if hasattr(result, 'raw'):
+            if hasattr(result, "raw"):
                 complete_record["output_preview"] = str(result.raw)[:500]
 
             self._trust._write_record(complete_record)
@@ -442,8 +442,7 @@ class AirCrewAICrew:
         return getattr(self._crew, name)
 
 
-def attach_trust(crew, gateway_url="http://localhost:8080",
-                 runs_dir=None, detect_pii=True, detect_injection=True):
+def attach_trust(crew, gateway_url="http://localhost:8080", runs_dir=None, detect_pii=True, detect_injection=True):
     """Attach AIR trust layer to a CrewAI Crew.
 
     Wraps the crew to add compliance monitoring on every kickoff.
@@ -467,9 +466,14 @@ def attach_trust(crew, gateway_url="http://localhost:8080",
     return wrapped
 
 
-def air_crewai_crew(agents: list, tasks: list, runs_dir: Optional[str] = None,
-                    detect_pii: bool = True, detect_injection: bool = True,
-                    **crew_kwargs) -> AirCrewAICrew:
+def air_crewai_crew(
+    agents: list,
+    tasks: list,
+    runs_dir: Optional[str] = None,
+    detect_pii: bool = True,
+    detect_injection: bool = True,
+    **crew_kwargs,
+) -> AirCrewAICrew:
     """Create a CrewAI Crew pre-configured with AIR trust layer.
 
     Usage:
@@ -483,9 +487,7 @@ def air_crewai_crew(agents: list, tasks: list, runs_dir: Optional[str] = None,
         # Every step and task is automatically logged as .air.json
     """
     if not HAS_CREWAI:
-        raise ImportError(
-            "CrewAI not installed. Run: pip install air-blackbox[crewai]"
-        )
+        raise ImportError("CrewAI not installed. Run: pip install air-blackbox[crewai]")
 
     base_crew = Crew(agents=agents, tasks=tasks, **crew_kwargs)
     wrapped = AirCrewAICrew(

@@ -10,26 +10,19 @@ Badge types:
   - AIR Attested: Multi-Framework (blue): Passed across 2+ frameworks
 """
 
-
 from .schema import AttestationRecord
 
-
 # Badge colors
-COLOR_GREEN = "#4c1"       # All checks passed
-COLOR_YELLOW = "#dfb317"   # Some warnings
-COLOR_RED = "#e05d44"      # Failures present
-COLOR_BLUE = "#007ec6"     # Multi-framework
-COLOR_GRAY = "#555"        # Label background
+COLOR_GREEN = "#4c1"  # All checks passed
+COLOR_YELLOW = "#dfb317"  # Some warnings
+COLOR_RED = "#e05d44"  # Failures present
+COLOR_BLUE = "#007ec6"  # Multi-framework
+COLOR_GRAY = "#555"  # Label background
 
 
 def _escape_xml(text: str) -> str:
     """Escape special characters for SVG/XML."""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
 def _estimate_text_width(text: str) -> int:

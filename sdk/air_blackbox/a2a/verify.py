@@ -18,7 +18,7 @@ Usage:
 """
 
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Set
 
@@ -28,6 +28,7 @@ from .transaction import TransactionLedger, TransactionRecord
 @dataclass
 class BilateralMatch:
     """A matched transaction found in both ledgers."""
+
     content_hash: str
     sender_id: str
     receiver_id: str
@@ -41,6 +42,7 @@ class BilateralMatch:
 @dataclass
 class UnilateralRecord:
     """A transaction found in only one ledger."""
+
     transaction_id: str
     content_hash: str
     sender_id: str
@@ -57,6 +59,7 @@ class BilateralReport:
     Contains matched transactions, unilateral records (potential
     discrepancies), chain integrity results, and an overall verdict.
     """
+
     # Identities
     agent_a_id: str
     agent_b_id: str
@@ -157,13 +160,9 @@ def bilateral_verify(
     issues = []
 
     if not chain_a["valid"]:
-        issues.append(
-            f"Agent A chain is broken at record #{chain_a['first_broken_at']}"
-        )
+        issues.append(f"Agent A chain is broken at record #{chain_a['first_broken_at']}")
     if not chain_b["valid"]:
-        issues.append(
-            f"Agent B chain is broken at record #{chain_b['first_broken_at']}"
-        )
+        issues.append(f"Agent B chain is broken at record #{chain_b['first_broken_at']}")
 
     # Build lookup maps by content_hash + message_type + sender + receiver
     def _make_key(r: TransactionRecord) -> str:
@@ -188,50 +187,52 @@ def bilateral_verify(
     for key, rec_a in map_a.items():
         if key in map_b:
             rec_b = map_b[key]
-            matched.append(BilateralMatch(
-                content_hash=rec_a.content_hash,
-                sender_id=rec_a.sender_id,
-                receiver_id=rec_a.receiver_id,
-                message_type=rec_a.message_type,
-                sequence_a=rec_a.sequence,
-                sequence_b=rec_b.sequence,
-                timestamp_a=rec_a.timestamp,
-                timestamp_b=rec_b.timestamp,
-            ))
+            matched.append(
+                BilateralMatch(
+                    content_hash=rec_a.content_hash,
+                    sender_id=rec_a.sender_id,
+                    receiver_id=rec_a.receiver_id,
+                    message_type=rec_a.message_type,
+                    sequence_a=rec_a.sequence,
+                    sequence_b=rec_b.sequence,
+                    timestamp_a=rec_a.timestamp,
+                    timestamp_b=rec_b.timestamp,
+                )
+            )
             seen_b_keys.add(key)
         else:
-            unilateral_a.append(UnilateralRecord(
-                transaction_id=rec_a.transaction_id,
-                content_hash=rec_a.content_hash,
-                sender_id=rec_a.sender_id,
-                receiver_id=rec_a.receiver_id,
-                message_type=rec_a.message_type,
-                sequence=rec_a.sequence,
-                found_in="ledger_a",
-            ))
+            unilateral_a.append(
+                UnilateralRecord(
+                    transaction_id=rec_a.transaction_id,
+                    content_hash=rec_a.content_hash,
+                    sender_id=rec_a.sender_id,
+                    receiver_id=rec_a.receiver_id,
+                    message_type=rec_a.message_type,
+                    sequence=rec_a.sequence,
+                    found_in="ledger_a",
+                )
+            )
 
     for key, rec_b in map_b.items():
         if key not in seen_b_keys:
-            unilateral_b.append(UnilateralRecord(
-                transaction_id=rec_b.transaction_id,
-                content_hash=rec_b.content_hash,
-                sender_id=rec_b.sender_id,
-                receiver_id=rec_b.receiver_id,
-                message_type=rec_b.message_type,
-                sequence=rec_b.sequence,
-                found_in="ledger_b",
-            ))
+            unilateral_b.append(
+                UnilateralRecord(
+                    transaction_id=rec_b.transaction_id,
+                    content_hash=rec_b.content_hash,
+                    sender_id=rec_b.sender_id,
+                    receiver_id=rec_b.receiver_id,
+                    message_type=rec_b.message_type,
+                    sequence=rec_b.sequence,
+                    found_in="ledger_b",
+                )
+            )
 
     # Determine verdict
     # Bilateral is verified if:
     # - Both chains are intact
     # - At least one matched transaction exists
     # - No critical discrepancies
-    bilateral_ok = (
-        chain_a["valid"]
-        and chain_b["valid"]
-        and len(matched) > 0
-    )
+    bilateral_ok = chain_a["valid"] and chain_b["valid"] and len(matched) > 0
 
     if not matched:
         issues.append("No matching transactions found between the two ledgers")

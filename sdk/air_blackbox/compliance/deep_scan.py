@@ -14,6 +14,7 @@ Usage:
 
 Falls back gracefully to regex-only if Ollama is not available.
 """
+
 import json
 import subprocess
 from dataclasses import dataclass
@@ -23,6 +24,7 @@ from typing import Optional
 @dataclass
 class DeepFinding:
     """A finding from the LLM deep analysis."""
+
     article: int
     name: str
     status: str  # pass, warn, fail
@@ -87,10 +89,13 @@ For each of Articles 9, 10, 11, 12, 14, and 15: report status, cite SPECIFIC evi
 """
 
 
-def deep_scan(code: str, model: str = "air-compliance",
-              sample_context: str = "code sample",
-              total_files: int = 0,
-              rule_context: str = "") -> dict:
+def deep_scan(
+    code: str,
+    model: str = "air-compliance",
+    sample_context: str = "code sample",
+    total_files: int = 0,
+    rule_context: str = "",
+) -> dict:
     """Run deep LLM analysis on code.
 
     Args:
@@ -151,7 +156,9 @@ def deep_scan(code: str, model: str = "air-compliance",
     try:
         result = subprocess.run(
             ["ollama", "run", model, prompt],
-            capture_output=True, text=True, timeout=180,
+            capture_output=True,
+            text=True,
+            timeout=180,
         )
         if result.returncode != 0:
             return {
@@ -168,6 +175,7 @@ def deep_scan(code: str, model: str = "air-compliance",
 
         # Always print raw output in verbose mode for debugging
         import os
+
         if os.environ.get("AIR_VERBOSE"):
             print(f"\n  [DEBUG] Model raw output ({len(raw_output)} chars):")
             print(f"  {raw_output[:1000]}")
@@ -178,6 +186,7 @@ def deep_scan(code: str, model: str = "air-compliance",
 
         # Debug: log raw output length and first 500 chars for troubleshooting
         import logging
+
         logger = logging.getLogger("air_blackbox.deep_scan")
         logger.debug(f"Model raw output ({len(raw_output)} chars): {raw_output[:500]}")
         logger.debug(f"Parsed {len(findings)} findings from model output")
@@ -274,11 +283,13 @@ def deep_scan_project(file_contents: dict, model: str = "air-compliance") -> dic
         for f in result.get("findings", []):
             f["file"] = filepath
         all_findings.extend(result.get("findings", []))
-        file_results.append({
-            "file": filepath,
-            "findings_count": len(result.get("findings", [])),
-            "error": result.get("error"),
-        })
+        file_results.append(
+            {
+                "file": filepath,
+                "findings_count": len(result.get("findings", [])),
+                "error": result.get("error"),
+            }
+        )
 
     return {
         "available": True,
@@ -295,7 +306,9 @@ def _ollama_available() -> bool:
     try:
         result = subprocess.run(
             ["ollama", "--version"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -307,7 +320,9 @@ def _model_available(model: str) -> bool:
     try:
         result = subprocess.run(
             ["ollama", "list"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         return model in result.stdout
     except Exception:
@@ -348,7 +363,8 @@ def _auto_pull_model(model: str) -> bool:
             if registry_name != model:
                 subprocess.run(
                     ["ollama", "cp", registry_name, model],
-                    capture_output=True, timeout=30,
+                    capture_output=True,
+                    timeout=30,
                 )
             print(f"\n  Model '{model}' ready.\n", file=sys.stderr)
             return True
@@ -370,12 +386,16 @@ def _sanitize_model_output(raw: str) -> str:
     that leaked from training data. This strips them before parsing.
     """
     import re
+
     # Remove hallucinated trust layer references (e.g. "Jason AI Trust Layer",
     # "Install the Jason AI Trust Layer", etc.)
-    raw = re.sub(r'(?i)\b(?:the\s+)?jason\s+ai\s+trust\s+layer\b', 'a trust layer', raw)
+    raw = re.sub(r"(?i)\b(?:the\s+)?jason\s+ai\s+trust\s+layer\b", "a trust layer", raw)
     # Remove "Install the <Name> Trust Layer for full compliance" pattern
-    raw = re.sub(r'(?i)install\s+(?:the\s+)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+trust\s+layer\s+for\s+full\s+compliance',
-                 'Install a trust layer package for full compliance', raw)
+    raw = re.sub(
+        r"(?i)install\s+(?:the\s+)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+trust\s+layer\s+for\s+full\s+compliance",
+        "Install a trust layer package for full compliance",
+        raw,
+    )
     # Remove hallucinated file references (files that don't exist)
     # The LLM sometimes invents evidence like "Found in utils.py" for files
     # that don't exist. We mark these for post-parse verification rather than
@@ -390,6 +410,7 @@ def _parse_llm_output(raw: str) -> list:
     We try multiple strategies to extract valid findings.
     """
     import re
+
     raw = raw.strip()
 
     # Strategy 1: direct JSON parse
@@ -405,7 +426,7 @@ def _parse_llm_output(raw: str) -> list:
     end = raw.rfind("]")
     if start >= 0 and end > start:
         try:
-            data = json.loads(raw[start:end + 1])
+            data = json.loads(raw[start : end + 1])
             if isinstance(data, list):
                 return [_validate_finding(f) for f in data if _validate_finding(f)]
         except json.JSONDecodeError:
@@ -429,21 +450,12 @@ def _parse_llm_output(raw: str) -> list:
     # Handles two formats:
     #   Format A: **Article 9 — Risk Management**: FAIL (status on same line)
     #   Format B: ### Article 9 — Risk Management \n **Status**: FAIL (status on next line)
-    article_with_status = re.compile(
-        r'\*{0,2}Article\s+(\d+)[^*:]*\*{0,2}\s*:\s*(PASS|FAIL|WARN)',
-        re.IGNORECASE
-    )
-    article_header_only = re.compile(
-        r'(?:#{1,4}\s+)?\*{0,2}Article\s+(\d+)\s*[—–-]\s*([^*:\n]+)',
-        re.IGNORECASE
-    )
-    status_line = re.compile(
-        r'\*{0,2}Status\*{0,2}\s*:\s*(PASS|FAIL|WARN)',
-        re.IGNORECASE
-    )
+    article_with_status = re.compile(r"\*{0,2}Article\s+(\d+)[^*:]*\*{0,2}\s*:\s*(PASS|FAIL|WARN)", re.IGNORECASE)
+    article_header_only = re.compile(r"(?:#{1,4}\s+)?\*{0,2}Article\s+(\d+)\s*[—–-]\s*([^*:\n]+)", re.IGNORECASE)
+    status_line = re.compile(r"\*{0,2}Status\*{0,2}\s*:\s*(PASS|FAIL|WARN)", re.IGNORECASE)
     # Also match "Analysis:" or "Evidence:" lines
-    evidence_pattern = re.compile(r'\*{0,2}(?:Analysis|Evidence)\*{0,2}\s*:\s*(.*)', re.IGNORECASE)
-    recommend_pattern = re.compile(r'\*{0,2}(?:Recommendation|Fix|Remediation)\*{0,2}\s*:\s*(.*)', re.IGNORECASE)
+    evidence_pattern = re.compile(r"\*{0,2}(?:Analysis|Evidence)\*{0,2}\s*:\s*(.*)", re.IGNORECASE)
+    recommend_pattern = re.compile(r"\*{0,2}(?:Recommendation|Fix|Remediation)\*{0,2}\s*:\s*(.*)", re.IGNORECASE)
 
     current_article = None
     current_status = None
@@ -462,29 +474,37 @@ def _parse_llm_output(raw: str) -> list:
         if art_status_match:
             # Save previous finding
             if current_article is not None:
-                findings.append(_validate_finding({
-                    "article": current_article,
-                    "name": current_name or f"Article {current_article} analysis",
-                    "status": current_status,
-                    "evidence": " ".join(current_evidence).strip(),
-                    "fix_hint": " ".join(current_fix).strip(),
-                }))
+                findings.append(
+                    _validate_finding(
+                        {
+                            "article": current_article,
+                            "name": current_name or f"Article {current_article} analysis",
+                            "status": current_status,
+                            "evidence": " ".join(current_evidence).strip(),
+                            "fix_hint": " ".join(current_fix).strip(),
+                        }
+                    )
+                )
             current_article = int(art_status_match.group(1))
             current_status = art_status_match.group(2).lower()
-            name_match = re.search(r'Article\s+\d+\s*[—–-]\s*([^*:]+)', line)
+            name_match = re.search(r"Article\s+\d+\s*[—–-]\s*([^*:]+)", line)
             current_name = name_match.group(1).strip() if name_match else f"Article {current_article} analysis"
             current_evidence = []
             current_fix = []
         elif art_header_match and not art_status_match:
             # Save previous finding
             if current_article is not None:
-                findings.append(_validate_finding({
-                    "article": current_article,
-                    "name": current_name or f"Article {current_article} analysis",
-                    "status": current_status,
-                    "evidence": " ".join(current_evidence).strip(),
-                    "fix_hint": " ".join(current_fix).strip(),
-                }))
+                findings.append(
+                    _validate_finding(
+                        {
+                            "article": current_article,
+                            "name": current_name or f"Article {current_article} analysis",
+                            "status": current_status,
+                            "evidence": " ".join(current_evidence).strip(),
+                            "fix_hint": " ".join(current_fix).strip(),
+                        }
+                    )
+                )
             current_article = int(art_header_match.group(1))
             current_name = art_header_match.group(2).strip()
             current_status = "warn"  # Default until we find a Status line
@@ -502,7 +522,12 @@ def _parse_llm_output(raw: str) -> list:
                 current_fix.append(rec_match.group(1).strip())
             else:
                 cleaned = line.strip().lstrip("*-# ")
-                if cleaned and not cleaned.startswith("Status") and not cleaned.startswith("###") and not cleaned.startswith("Summary"):
+                if (
+                    cleaned
+                    and not cleaned.startswith("Status")
+                    and not cleaned.startswith("###")
+                    and not cleaned.startswith("Summary")
+                ):
                     # Check if this looks like a recommendation
                     if any(kw in cleaned.lower() for kw in ["recommend", "address", "add ", "implement", "install"]):
                         current_fix.append(cleaned)
@@ -511,13 +536,17 @@ def _parse_llm_output(raw: str) -> list:
 
     # Don't forget the last finding
     if current_article is not None:
-        findings.append(_validate_finding({
-            "article": current_article,
-            "name": current_name or f"Article {current_article} analysis",
-            "status": current_status,
-            "evidence": " ".join(current_evidence).strip(),
-            "fix_hint": " ".join(current_fix).strip(),
-        }))
+        findings.append(
+            _validate_finding(
+                {
+                    "article": current_article,
+                    "name": current_name or f"Article {current_article} analysis",
+                    "status": current_status,
+                    "evidence": " ".join(current_evidence).strip(),
+                    "fix_hint": " ".join(current_fix).strip(),
+                }
+            )
+        )
 
     return [f for f in findings if f is not None]
 
@@ -541,10 +570,12 @@ def _validate_finding(f, scan_path: str = None) -> Optional[dict]:
     # Hallucination guard: verify file references in evidence actually exist
     if scan_path and evidence:
         import re as _re
+
         # Match patterns like "in utils.py", "Found in src/agent.py", etc.
         file_refs = _re.findall(r'(?:in|from|file)\s+[`"\']?(\S+\.py)[`"\']?', evidence, _re.IGNORECASE)
         for ref in file_refs:
             import os as _os
+
             candidate = _os.path.join(scan_path, ref)
             if not _os.path.exists(candidate):
                 # LLM hallucinated a file reference -- downgrade to warn

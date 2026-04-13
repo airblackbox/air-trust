@@ -11,10 +11,9 @@ One scan, four reports. The crosswalk enables organizations to understand
 their compliance posture across multiple frameworks simultaneously.
 """
 
-from typing import Dict, List, Optional
 import json
 from datetime import datetime
-
+from typing import Dict, List, Optional
 
 STANDARDS_CROSSWALK = {
     "risk_management": {
@@ -110,7 +109,7 @@ STANDARDS_CROSSWALK = {
         ],
         "gdpr": "Article 6 (Lawful basis) + Article 7 (Conditions for consent)",
         "description": "Lawful basis tracking, consent gates, data subject rights management, withdrawal mechanisms. "
-                       "GDPR Article 6/7 applies when AI processes personal data; EU AI Act Article 10 governs data governance.",
+        "GDPR Article 6/7 applies when AI processes personal data; EU AI Act Article 10 governs data governance.",
     },
     "bias_fairness": {
         # Bias/fairness spans multiple EU AI Act articles:
@@ -274,9 +273,7 @@ def render_crosswalk_markdown(report: Dict) -> str:
     ]:
         summary = report[std_key]
         lines.append(
-            f"| {std_name} | {summary['passed']} | "
-            f"{summary['warned']} | {summary['failed']} | "
-            f"{summary['total']} |\n"
+            f"| {std_name} | {summary['passed']} | {summary['warned']} | {summary['failed']} | {summary['total']} |\n"
         )
 
     lines.append("\n## Detailed Compliance Mapping\n\n")
@@ -290,10 +287,7 @@ def render_crosswalk_markdown(report: Dict) -> str:
         nist_funcs = "; ".join(entry["nist_ai_rmf"])
         colorado_refs = "; ".join(entry.get("colorado_sb205", []))
 
-        lines.append(
-            f"| {category} | {status_icon} | {eu_ai} | {iso_clauses} | "
-            f"{nist_funcs} | {colorado_refs} |\n"
-        )
+        lines.append(f"| {category} | {status_icon} | {eu_ai} | {iso_clauses} | {nist_funcs} | {colorado_refs} |\n")
 
     lines.append("\n## Category Descriptions\n\n")
     for category, entry in sorted(report["by_category"].items()):
@@ -490,16 +484,13 @@ def generate_compliance_narrative(report: Dict) -> str:
     lines.append(f"Colorado SB 205:  {scores['colorado_sb205']:5.1f}%\n\n")
 
     failed_categories = [
-        (cat, entry) for cat, entry in report["by_category"].items()
-        if entry["worst_status"] == "fail"
+        (cat, entry) for cat, entry in report["by_category"].items() if entry["worst_status"] == "fail"
     ]
     warned_categories = [
-        (cat, entry) for cat, entry in report["by_category"].items()
-        if entry["worst_status"] == "warn"
+        (cat, entry) for cat, entry in report["by_category"].items() if entry["worst_status"] == "warn"
     ]
     passed_categories = [
-        (cat, entry) for cat, entry in report["by_category"].items()
-        if entry["worst_status"] == "pass"
+        (cat, entry) for cat, entry in report["by_category"].items() if entry["worst_status"] == "pass"
     ]
 
     lines.append(f"PASSED CATEGORIES ({len(passed_categories)})\n")
@@ -515,10 +506,7 @@ def generate_compliance_narrative(report: Dict) -> str:
     lines.append("-" * 50 + "\n")
     if warned_categories:
         for cat, entry in warned_categories:
-            lines.append(
-                f"  ! {cat.replace('_', ' ').title()} "
-                f"({entry['warn_count']} warnings)\n"
-            )
+            lines.append(f"  ! {cat.replace('_', ' ').title()} ({entry['warn_count']} warnings)\n")
     else:
         lines.append("  (none)\n")
     lines.append("\n")
@@ -527,10 +515,7 @@ def generate_compliance_narrative(report: Dict) -> str:
     lines.append("-" * 50 + "\n")
     if failed_categories:
         for cat, entry in failed_categories:
-            lines.append(
-                f"  X {cat.replace('_', ' ').title()} "
-                f"({entry['fail_count']} failures)\n"
-            )
+            lines.append(f"  X {cat.replace('_', ' ').title()} ({entry['fail_count']} failures)\n")
     else:
         lines.append("  (none)\n")
     lines.append("\n")

@@ -6,15 +6,15 @@ digital signatures (FIPS 204 ML-DSA-65 / Dilithium3). Signatures prove
 that evidence has not been tampered with since generation.
 """
 
-import json
 import hashlib
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Union
 
 from rich.console import Console
 
-from .keys import KeyManager, ALGORITHM
+from .keys import ALGORITHM, KeyManager
 
 console = Console()
 
@@ -105,8 +105,7 @@ class EvidenceSigner:
         envelope["file_size_bytes"] = len(data)
         return envelope
 
-    def verify_bytes(self, data: bytes, signature_hex: str,
-                     public_key: Optional[bytes] = None) -> bool:
+    def verify_bytes(self, data: bytes, signature_hex: str, public_key: Optional[bytes] = None) -> bool:
         """Verify a signature over raw bytes.
 
         Args:
@@ -129,8 +128,7 @@ class EvidenceSigner:
         except Exception:
             return False
 
-    def verify_json(self, data: dict, signature_hex: str,
-                    public_key: Optional[bytes] = None) -> bool:
+    def verify_json(self, data: dict, signature_hex: str, public_key: Optional[bytes] = None) -> bool:
         """Verify a signature over a JSON dict.
 
         The dict is re-serialized with sorted keys to match the signing
@@ -147,8 +145,7 @@ class EvidenceSigner:
         canonical = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
         return self.verify_bytes(canonical, signature_hex, public_key)
 
-    def verify_file(self, file_path: Union[str, Path], signature_hex: str,
-                    public_key: Optional[bytes] = None) -> bool:
+    def verify_file(self, file_path: Union[str, Path], signature_hex: str, public_key: Optional[bytes] = None) -> bool:
         """Verify a signature over a file.
 
         Args:
@@ -169,8 +166,7 @@ class EvidenceSigner:
         data = path.read_bytes()
         return self.verify_bytes(data, signature_hex, public_key)
 
-    def verify_envelope(self, data: bytes, envelope: dict,
-                        public_key: Optional[bytes] = None) -> dict:
+    def verify_envelope(self, data: bytes, envelope: dict, public_key: Optional[bytes] = None) -> dict:
         """Verify a signature envelope and return a detailed result.
 
         Checks:

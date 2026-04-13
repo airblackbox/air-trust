@@ -21,19 +21,21 @@ Or wrap a single agent:
 """
 
 import json
-import time
-import uuid
 import os
 import re
+import time
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 try:
-    from autogen import ConversableAgent, AssistantAgent, UserProxyAgent
+    from autogen import AssistantAgent, ConversableAgent, UserProxyAgent
+
     HAS_AUTOGEN = True
 except ImportError:
     try:
-        from autogen_agentchat import ConversableAgent, AssistantAgent, UserProxyAgent
+        from autogen_agentchat import AssistantAgent, ConversableAgent, UserProxyAgent
+
         HAS_AUTOGEN = True
     except ImportError:
         HAS_AUTOGEN = False
@@ -43,21 +45,21 @@ except ImportError:
 
 # Simple PII patterns
 _PII_PATTERNS = [
-    (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 'email'),
-    (r'\b\d{3}-\d{2}-\d{4}\b', 'ssn'),
-    (r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b', 'phone'),
-    (r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', 'credit_card'),
+    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "email"),
+    (r"\b\d{3}-\d{2}-\d{4}\b", "ssn"),
+    (r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b", "phone"),
+    (r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", "credit_card"),
 ]
 
 # Simple injection patterns
 _INJECTION_PATTERNS = [
-    r'ignore (?:all )?previous instructions',
-    r'ignore (?:all )?above instructions',
-    r'disregard (?:all )?previous',
-    r'you are now',
-    r'system prompt:',
-    r'new instructions:',
-    r'override:',
+    r"ignore (?:all )?previous instructions",
+    r"ignore (?:all )?above instructions",
+    r"disregard (?:all )?previous",
+    r"you are now",
+    r"system prompt:",
+    r"new instructions:",
+    r"override:",
 ]
 
 
@@ -84,13 +86,9 @@ class AirAutoGenTrust:
         print(f"Logged {trust.event_count} compliance events")
     """
 
-    def __init__(self, runs_dir: Optional[str] = None,
-                 detect_pii: bool = True,
-                 detect_injection: bool = True):
+    def __init__(self, runs_dir: Optional[str] = None, detect_pii: bool = True, detect_injection: bool = True):
         if not HAS_AUTOGEN:
-            raise ImportError(
-                "AutoGen not installed. Run: pip install air-blackbox[autogen]"
-            )
+            raise ImportError("AutoGen not installed. Run: pip install air-blackbox[autogen]")
         self.runs_dir = runs_dir or os.environ.get("RUNS_DIR", "./runs")
         self.detect_pii = detect_pii
         self.detect_injection = detect_injection
@@ -124,10 +122,10 @@ class AirAutoGenTrust:
         Returns:
             The same agent, now instrumented
         """
-        agent_name = getattr(agent, 'name', 'unknown_agent')
+        agent_name = getattr(agent, "name", "unknown_agent")
 
         # Hook into process_last_received_message or reply hooks
-        if hasattr(agent, 'register_hook'):
+        if hasattr(agent, "register_hook"):
             # AutoGen 0.3+ hook registration
             agent.register_hook(
                 hookable_method="process_last_received_message",
@@ -135,7 +133,7 @@ class AirAutoGenTrust:
             )
 
         # Hook into reply functions — wrap generate_reply
-        original_generate_reply = getattr(agent, 'generate_reply', None)
+        original_generate_reply = getattr(agent, "generate_reply", None)
         if original_generate_reply:
             trust = self
 
@@ -147,8 +145,8 @@ class AirAutoGenTrust:
                     last_msg = messages[-1] if isinstance(messages, list) else messages
                     trust._log_message(
                         agent_name=agent_name,
-                        sender=getattr(sender, 'name', 'unknown'),
-                        content=str(last_msg.get('content', '') if isinstance(last_msg, dict) else last_msg),
+                        sender=getattr(sender, "name", "unknown"),
+                        content=str(last_msg.get("content", "") if isinstance(last_msg, dict) else last_msg),
                         direction="received",
                     )
 
@@ -162,7 +160,7 @@ class AirAutoGenTrust:
                     trust._log_message(
                         agent_name=agent_name,
                         sender=agent_name,
-                        content=str(result.get('content', '') if isinstance(result, dict) else result)[:500],
+                        content=str(result.get("content", "") if isinstance(result, dict) else result)[:500],
                         direction="sent",
                         duration_ms=duration_ms,
                     )
@@ -172,11 +170,9 @@ class AirAutoGenTrust:
             agent.generate_reply = instrumented_generate_reply
 
         # Hook into function/tool execution
-        if hasattr(agent, '_function_map'):
+        if hasattr(agent, "_function_map"):
             for func_name, func in list(agent._function_map.items()):
-                agent._function_map[func_name] = self._wrap_function(
-                    func, func_name, agent_name
-                )
+                agent._function_map[func_name] = self._wrap_function(func, func_name, agent_name)
 
         self._agents_wrapped.append(agent_name)
         print(f"[AIR] AutoGen trust layer attached to '{agent_name}'. Events → {self.runs_dir}")
@@ -235,8 +231,7 @@ class AirAutoGenTrust:
 
         return wrapped
 
-    def _log_message(self, agent_name: str, sender: str, content: str,
-                     direction: str, duration_ms: int = 0) -> None:
+    def _log_message(self, agent_name: str, sender: str, content: str, direction: str, duration_ms: int = 0) -> None:
         """Log a message event."""
         self._message_count += 1
 
@@ -277,11 +272,13 @@ class AirAutoGenTrust:
         for pattern, pii_type in _PII_PATTERNS:
             matches = re.findall(pattern, text)
             if matches:
-                alerts.append({
-                    "type": pii_type,
-                    "count": len(matches),
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                alerts.append(
+                    {
+                        "type": pii_type,
+                        "count": len(matches),
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
         return alerts
 
     def _scan_injection(self, text: str) -> List[Dict[str, Any]]:
@@ -289,10 +286,12 @@ class AirAutoGenTrust:
         text_lower = text.lower()
         for pattern in _INJECTION_PATTERNS:
             if re.search(pattern, text_lower):
-                alerts.append({
-                    "pattern": pattern,
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                alerts.append(
+                    {
+                        "pattern": pattern,
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
         return alerts
 
     # ── Record writing ──
@@ -300,8 +299,9 @@ class AirAutoGenTrust:
     def _write_record(self, record: dict) -> None:
         """Write .air.json record with HMAC chain hash."""
         try:
-            if not hasattr(self, '_chain'):
+            if not hasattr(self, "_chain"):
                 from air_blackbox.trust.chain import AuditChain
+
                 self._chain = AuditChain(runs_dir=self.runs_dir)
             self._chain.write(record)
         except Exception:
@@ -322,8 +322,7 @@ class AirAutoGenTrust:
         return self._message_count
 
 
-def attach_trust(agent, gateway_url="http://localhost:8080",
-                 runs_dir=None, detect_pii=True, detect_injection=True):
+def attach_trust(agent, gateway_url="http://localhost:8080", runs_dir=None, detect_pii=True, detect_injection=True):
     """Attach AIR trust layer to an AutoGen agent.
 
     Args:
@@ -344,9 +343,7 @@ def attach_trust(agent, gateway_url="http://localhost:8080",
     return trust.wrap(agent)
 
 
-def air_autogen_agent(agent, runs_dir: Optional[str] = None,
-                      detect_pii: bool = True,
-                      detect_injection: bool = True):
+def air_autogen_agent(agent, runs_dir: Optional[str] = None, detect_pii: bool = True, detect_injection: bool = True):
     """Wrap an AutoGen agent with AIR trust layer.
 
     Usage:
@@ -356,6 +353,4 @@ def air_autogen_agent(agent, runs_dir: Optional[str] = None,
         user_proxy.initiate_chat(assistant, message="Hello")
         # Every message is automatically logged as .air.json
     """
-    return attach_trust(agent, runs_dir=runs_dir,
-                       detect_pii=detect_pii,
-                       detect_injection=detect_injection)
+    return attach_trust(agent, runs_dir=runs_dir, detect_pii=detect_pii, detect_injection=detect_injection)

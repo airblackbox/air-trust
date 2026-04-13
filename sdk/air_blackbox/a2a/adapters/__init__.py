@@ -9,6 +9,22 @@ Supported frameworks:
   - OpenAI Agents SDK (via client wrapper)
   - CrewAI (via step/task callbacks)
   - AutoGen (via generate_reply wrapping)
+
+Usage:
+    from air_blackbox.a2a.adapters import A2ALangChainHandler
+    from air_blackbox.a2a.adapters import A2AOpenAIWrapper
+    from air_blackbox.a2a.adapters import A2ACrewAIAdapter
+    from air_blackbox.a2a.adapters import A2AAutoGenAdapter
 """
 
-__all__ = []
+from air_blackbox.a2a.adapters.autogen_adapter import A2AAutoGenAdapter
+from air_blackbox.a2a.adapters.crewai_adapter import A2ACrewAIAdapter
+from air_blackbox.a2a.adapters.langchain_adapter import A2ALangChainHandler
+from air_blackbox.a2a.adapters.openai_adapter import A2AOpenAIWrapper
+
+__all__ = [
+    "A2ALangChainHandler",
+    "A2AOpenAIWrapper",
+    "A2ACrewAIAdapter",
+    "A2AAutoGenAdapter",
+]

@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 
 from rich.console import Console
 
-from .keys import KeyManager, ALGORITHM
+from .keys import ALGORITHM, KeyManager
 from .signer import EvidenceSigner
 
 console = Console()
@@ -98,9 +98,7 @@ class EvidenceBundleBuilder:
                 counter = 0
         counter += 1
         self._counter_file.parent.mkdir(parents=True, exist_ok=True)
-        self._counter_file.write_text(
-            json.dumps({"counter": counter}), encoding="utf-8"
-        )
+        self._counter_file.write_text(json.dumps({"counter": counter}), encoding="utf-8")
         return counter
 
     def build(
@@ -292,8 +290,9 @@ class EvidenceBundleBuilder:
         }
 
 
-def _generate_readme(bundle_name: str, generated_at: datetime,
-                     scanner_meta: Dict, frameworks: Optional[List[str]]) -> str:
+def _generate_readme(
+    bundle_name: str, generated_at: datetime, scanner_meta: Dict, frameworks: Optional[List[str]]
+) -> str:
     """Generate README.md for auditors."""
     fw_list = ", ".join(frameworks) if frameworks else "EU AI Act"
     return f"""# {bundle_name}
@@ -337,10 +336,10 @@ The script will:
 
 ## Generated
 
-- Tool: AIR Blackbox v{scanner_meta.get('version', 'unknown')}
-- Date: {generated_at.strftime('%Y-%m-%d %H:%M:%S UTC')}
+- Tool: AIR Blackbox v{scanner_meta.get("version", "unknown")}
+- Date: {generated_at.strftime("%Y-%m-%d %H:%M:%S UTC")}
 - Algorithm: ML-DSA-65 (FIPS 204, quantum-safe)
-- Python: {scanner_meta.get('python_version', 'unknown')}
+- Python: {scanner_meta.get("python_version", "unknown")}
 
 ## More info
 

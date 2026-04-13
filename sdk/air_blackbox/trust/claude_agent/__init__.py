@@ -38,51 +38,74 @@ from datetime import datetime
 # ── PII patterns ──
 
 _PII_PATTERNS = [
-    (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 'email'),
-    (r'\b\d{3}-\d{2}-\d{4}\b', 'ssn'),
-    (r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b', 'phone'),
-    (r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', 'credit_card'),
-    (r'\b[A-Z]{2}\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2}\b', 'iban'),
+    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "email"),
+    (r"\b\d{3}-\d{2}-\d{4}\b", "ssn"),
+    (r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b", "phone"),
+    (r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", "credit_card"),
+    (r"\b[A-Z]{2}\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2}\b", "iban"),
 ]
 
 # ── Injection patterns (15 weighted patterns from AIR trust) ──
 
 _INJECTION_PATTERNS = [
-    (r'ignore (?:all )?previous instructions', 0.9),
-    (r'you are now (?:a |an )?(?:new |different )', 0.9),
-    (r'ignore (?:all )?above instructions', 0.85),
-    (r'disregard (?:all )?(?:previous|prior|above)', 0.85),
-    (r'system prompt:', 0.85),
-    (r'new instructions:', 0.8),
-    (r'override:', 0.8),
-    (r'forget (?:everything|all|your) (?:previous|prior)', 0.75),
-    (r'pretend you (?:are|have)', 0.7),
-    (r'act as (?:if|though) you', 0.7),
-    (r'do not follow', 0.65),
-    (r'bypass (?:safety|security|filter)', 0.6),
-    (r'jailbreak', 0.6),
-    (r'<\|system\|>', 0.5),
-    (r'\\x[0-9a-f]{2}', 0.4),
+    (r"ignore (?:all )?previous instructions", 0.9),
+    (r"you are now (?:a |an )?(?:new |different )", 0.9),
+    (r"ignore (?:all )?above instructions", 0.85),
+    (r"disregard (?:all )?(?:previous|prior|above)", 0.85),
+    (r"system prompt:", 0.85),
+    (r"new instructions:", 0.8),
+    (r"override:", 0.8),
+    (r"forget (?:everything|all|your) (?:previous|prior)", 0.75),
+    (r"pretend you (?:are|have)", 0.7),
+    (r"act as (?:if|though) you", 0.7),
+    (r"do not follow", 0.65),
+    (r"bypass (?:safety|security|filter)", 0.6),
+    (r"jailbreak", 0.6),
+    (r"<\|system\|>", 0.5),
+    (r"\\x[0-9a-f]{2}", 0.4),
 ]
 
 # ── Risk classification (matches ConsentGate) ──
 
 _RISK_MAP = {
-    'CRITICAL': [
-        'Bash', 'bash', 'shell', 'exec', 'execute', 'spawn',
-        'rm', 'delete', 'kill', 'terminate',
+    "CRITICAL": [
+        "Bash",
+        "bash",
+        "shell",
+        "exec",
+        "execute",
+        "spawn",
+        "rm",
+        "delete",
+        "kill",
+        "terminate",
     ],
-    'HIGH': [
-        'Write', 'Edit', 'NotebookEdit',
-        'sql', 'database', 'send_email', 'deploy', 'git_push',
+    "HIGH": [
+        "Write",
+        "Edit",
+        "NotebookEdit",
+        "sql",
+        "database",
+        "send_email",
+        "deploy",
+        "git_push",
     ],
-    'MEDIUM': [
-        'WebFetch', 'WebSearch', 'Agent',
-        'http_request', 'api_call', 'fetch',
+    "MEDIUM": [
+        "WebFetch",
+        "WebSearch",
+        "Agent",
+        "http_request",
+        "api_call",
+        "fetch",
     ],
-    'LOW': [
-        'Read', 'Glob', 'Grep',
-        'file_read', 'search', 'query', 'list',
+    "LOW": [
+        "Read",
+        "Glob",
+        "Grep",
+        "file_read",
+        "search",
+        "query",
+        "list",
     ],
 }
 
@@ -94,7 +117,7 @@ def _classify_risk(tool_name: str) -> str:
         for kw in keywords:
             if kw.lower() in name_lower:
                 return level
-    return 'MEDIUM'  # Default to medium for unknown tools
+    return "MEDIUM"  # Default to medium for unknown tools
 
 
 def _scan_pii(text: str) -> list[dict]:
@@ -103,11 +126,13 @@ def _scan_pii(text: str) -> list[dict]:
     for pattern, pii_type in _PII_PATTERNS:
         matches = re.findall(pattern, text)
         if matches:
-            alerts.append({
-                'type': pii_type,
-                'count': len(matches),
-                'timestamp': datetime.utcnow().isoformat() + 'Z',
-            })
+            alerts.append(
+                {
+                    "type": pii_type,
+                    "count": len(matches),
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                }
+            )
     return alerts
 
 
@@ -118,21 +143,24 @@ def _scan_injection(text: str) -> tuple[list[dict], float]:
     text_lower = text.lower()
     for pattern, weight in _INJECTION_PATTERNS:
         if re.search(pattern, text_lower):
-            alerts.append({
-                'pattern': pattern,
-                'weight': weight,
-                'timestamp': datetime.utcnow().isoformat() + 'Z',
-            })
+            alerts.append(
+                {
+                    "pattern": pattern,
+                    "weight": weight,
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                }
+            )
             max_score = max(max_score, weight)
     return alerts, max_score
 
 
 def _get_chain(runs_dir: str):
     """Get or create the shared AuditChain for this runs_dir."""
-    if not hasattr(_get_chain, '_chains'):
+    if not hasattr(_get_chain, "_chains"):
         _get_chain._chains = {}
     if runs_dir not in _get_chain._chains:
         from air_blackbox.trust.chain import AuditChain
+
         _get_chain._chains[runs_dir] = AuditChain(runs_dir=runs_dir)
     return _get_chain._chains[runs_dir]
 
@@ -148,7 +176,7 @@ def _write_record(record: dict, runs_dir: str):
             os.makedirs(runs_dir, exist_ok=True)
             fname = f"{record['run_id']}.air.json"
             fpath = os.path.join(runs_dir, fname)
-            with open(fpath, 'w') as f:
+            with open(fpath, "w") as f:
                 json.dump(record, f, indent=2)
         except Exception:
             pass  # Non-blocking: recording failure never breaks the agent
@@ -157,19 +185,30 @@ def _write_record(record: dict, runs_dir: str):
 def _extract_text_from_input(tool_input: dict) -> str:
     """Pull scannable text from tool input arguments."""
     parts = []
-    for key in ('command', 'content', 'prompt', 'query', 'text',
-                'new_string', 'old_string', 'file_path', 'url',
-                'pattern', 'input'):
-        val = tool_input.get(key, '')
+    for key in (
+        "command",
+        "content",
+        "prompt",
+        "query",
+        "text",
+        "new_string",
+        "old_string",
+        "file_path",
+        "url",
+        "pattern",
+        "input",
+    ):
+        val = tool_input.get(key, "")
         if isinstance(val, str) and val:
             parts.append(val)
-    return ' '.join(parts)
+    return " ".join(parts)
 
 
 # ── Hook callbacks ──
 
+
 def _make_pre_tool_hook(
-    runs_dir: str = './runs',
+    runs_dir: str = "./runs",
     detect_pii: bool = True,
     detect_injection: bool = True,
     injection_block_threshold: float = 0.8,
@@ -177,9 +216,9 @@ def _make_pre_tool_hook(
     """Create a PreToolUse hook that scans inputs and logs audit records."""
 
     async def pre_tool_hook(input_data, tool_use_id, context):
-        tool_name = input_data.get('tool_name', 'unknown')
-        tool_input = input_data.get('tool_input', {})
-        session_id = input_data.get('session_id', '')
+        tool_name = input_data.get("tool_name", "unknown")
+        tool_input = input_data.get("tool_input", {})
+        session_id = input_data.get("session_id", "")
 
         # Classify risk
         risk_level = _classify_risk(tool_name)
@@ -198,19 +237,19 @@ def _make_pre_tool_hook(
 
         # Write pre-tool audit record
         record = {
-            'version': '1.0.0',
-            'run_id': str(uuid.uuid4()),
-            'trace_id': (tool_use_id or uuid.uuid4().hex)[:16],
-            'session_id': session_id,
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'type': 'pre_tool_call',
-            'tool_name': tool_name,
-            'risk_level': risk_level,
-            'pii_alerts': pii_alerts,
-            'injection_alerts': injection_alerts,
-            'injection_score': injection_score,
-            'status': 'scanned',
-            'framework': 'claude_agent_sdk',
+            "version": "1.0.0",
+            "run_id": str(uuid.uuid4()),
+            "trace_id": (tool_use_id or uuid.uuid4().hex)[:16],
+            "session_id": session_id,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "type": "pre_tool_call",
+            "tool_name": tool_name,
+            "risk_level": risk_level,
+            "pii_alerts": pii_alerts,
+            "injection_alerts": injection_alerts,
+            "injection_score": injection_score,
+            "status": "scanned",
+            "framework": "claude_agent_sdk",
         }
         _write_record(record, runs_dir)
 
@@ -218,21 +257,21 @@ def _make_pre_tool_hook(
         if injection_alerts and injection_score >= injection_block_threshold:
             block_record = {
                 **record,
-                'run_id': str(uuid.uuid4()),
-                'type': 'injection_blocked',
-                'status': 'blocked',
+                "run_id": str(uuid.uuid4()),
+                "type": "injection_blocked",
+                "status": "blocked",
             }
             _write_record(block_record, runs_dir)
             return {
-                'systemMessage': (
-                    f'[AIR] Prompt injection detected (confidence: {injection_score:.0%}). '
-                    f'Tool call to {tool_name} blocked for safety.'
+                "systemMessage": (
+                    f"[AIR] Prompt injection detected (confidence: {injection_score:.0%}). "
+                    f"Tool call to {tool_name} blocked for safety."
                 ),
-                'hookSpecificOutput': {
-                    'hookEventName': input_data['hook_event_name'],
-                    'permissionDecision': 'deny',
-                    'permissionDecisionReason': (
-                        f'AIR Blackbox: injection detected ({injection_score:.0%} confidence)'
+                "hookSpecificOutput": {
+                    "hookEventName": input_data["hook_event_name"],
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": (
+                        f"AIR Blackbox: injection detected ({injection_score:.0%} confidence)"
                     ),
                 },
             }
@@ -240,10 +279,10 @@ def _make_pre_tool_hook(
         # Log PII warning but don't block
         if pii_alerts:
             return {
-                'systemMessage': (
-                    f'[AIR] PII detected in {tool_name} input: '
-                    f'{", ".join(a["type"] for a in pii_alerts)}. '
-                    f'Consider redacting before sending.'
+                "systemMessage": (
+                    f"[AIR] PII detected in {tool_name} input: "
+                    f"{', '.join(a['type'] for a in pii_alerts)}. "
+                    f"Consider redacting before sending."
                 ),
             }
 
@@ -252,24 +291,24 @@ def _make_pre_tool_hook(
     return pre_tool_hook
 
 
-def _make_post_tool_hook(runs_dir: str = './runs'):
+def _make_post_tool_hook(runs_dir: str = "./runs"):
     """Create a PostToolUse hook that logs every tool result."""
 
     async def post_tool_hook(input_data, tool_use_id, context):
-        tool_name = input_data.get('tool_name', 'unknown')
-        session_id = input_data.get('session_id', '')
+        tool_name = input_data.get("tool_name", "unknown")
+        session_id = input_data.get("session_id", "")
 
         record = {
-            'version': '1.0.0',
-            'run_id': str(uuid.uuid4()),
-            'trace_id': (tool_use_id or uuid.uuid4().hex)[:16],
-            'session_id': session_id,
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'type': 'tool_call',
-            'tool_name': tool_name,
-            'risk_level': _classify_risk(tool_name),
-            'status': 'success',
-            'framework': 'claude_agent_sdk',
+            "version": "1.0.0",
+            "run_id": str(uuid.uuid4()),
+            "trace_id": (tool_use_id or uuid.uuid4().hex)[:16],
+            "session_id": session_id,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "type": "tool_call",
+            "tool_name": tool_name,
+            "risk_level": _classify_risk(tool_name),
+            "status": "success",
+            "framework": "claude_agent_sdk",
         }
         _write_record(record, runs_dir)
         return {}
@@ -277,24 +316,24 @@ def _make_post_tool_hook(runs_dir: str = './runs'):
     return post_tool_hook
 
 
-def _make_post_tool_failure_hook(runs_dir: str = './runs'):
+def _make_post_tool_failure_hook(runs_dir: str = "./runs"):
     """Create a PostToolUseFailure hook that logs tool errors."""
 
     async def post_tool_failure_hook(input_data, tool_use_id, context):
-        tool_name = input_data.get('tool_name', 'unknown')
-        session_id = input_data.get('session_id', '')
+        tool_name = input_data.get("tool_name", "unknown")
+        session_id = input_data.get("session_id", "")
 
         record = {
-            'version': '1.0.0',
-            'run_id': str(uuid.uuid4()),
-            'trace_id': (tool_use_id or uuid.uuid4().hex)[:16],
-            'session_id': session_id,
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'type': 'tool_error',
-            'tool_name': tool_name,
-            'risk_level': _classify_risk(tool_name),
-            'status': 'error',
-            'framework': 'claude_agent_sdk',
+            "version": "1.0.0",
+            "run_id": str(uuid.uuid4()),
+            "trace_id": (tool_use_id or uuid.uuid4().hex)[:16],
+            "session_id": session_id,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "type": "tool_error",
+            "tool_name": tool_name,
+            "risk_level": _classify_risk(tool_name),
+            "status": "error",
+            "framework": "claude_agent_sdk",
         }
         _write_record(record, runs_dir)
         return {}
@@ -302,20 +341,20 @@ def _make_post_tool_failure_hook(runs_dir: str = './runs'):
     return post_tool_failure_hook
 
 
-def _make_stop_hook(runs_dir: str = './runs'):
+def _make_stop_hook(runs_dir: str = "./runs"):
     """Create a Stop hook that writes session summary record."""
 
     async def stop_hook(input_data, tool_use_id, context):
-        session_id = input_data.get('session_id', '')
+        session_id = input_data.get("session_id", "")
 
         record = {
-            'version': '1.0.0',
-            'run_id': str(uuid.uuid4()),
-            'session_id': session_id,
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'type': 'session_end',
-            'status': 'completed',
-            'framework': 'claude_agent_sdk',
+            "version": "1.0.0",
+            "run_id": str(uuid.uuid4()),
+            "session_id": session_id,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "type": "session_end",
+            "status": "completed",
+            "framework": "claude_agent_sdk",
         }
         _write_record(record, runs_dir)
         return {}
@@ -325,8 +364,9 @@ def _make_stop_hook(runs_dir: str = './runs'):
 
 # ── Public API ──
 
+
 def air_claude_hooks(
-    runs_dir: str = './runs',
+    runs_dir: str = "./runs",
     detect_pii: bool = True,
     detect_injection: bool = True,
     injection_block_threshold: float = 0.8,
@@ -361,10 +401,7 @@ def air_claude_hooks(
     except ImportError:
         # If SDK not installed, return plain dicts — still usable
         # when the caller constructs HookMatcher themselves
-        raise ImportError(
-            "claude-agent-sdk not installed. "
-            "Run: pip install claude-agent-sdk"
-        )
+        raise ImportError("claude-agent-sdk not installed. Run: pip install claude-agent-sdk")
 
     pre_hook = _make_pre_tool_hook(
         runs_dir=runs_dir,
@@ -377,23 +414,23 @@ def air_claude_hooks(
     stop_hook = _make_stop_hook(runs_dir=runs_dir)
 
     return {
-        'PreToolUse': [
+        "PreToolUse": [
             HookMatcher(hooks=[pre_hook]),  # Runs on ALL tools
         ],
-        'PostToolUse': [
+        "PostToolUse": [
             HookMatcher(hooks=[post_hook]),
         ],
-        'PostToolUseFailure': [
+        "PostToolUseFailure": [
             HookMatcher(hooks=[fail_hook]),
         ],
-        'Stop': [
+        "Stop": [
             HookMatcher(hooks=[stop_hook]),
         ],
     }
 
 
 def air_permission_handler(
-    runs_dir: str = './runs',
+    runs_dir: str = "./runs",
     block_critical: bool = False,
     require_approval_high: bool = False,
 ):
@@ -423,43 +460,40 @@ def air_permission_handler(
     try:
         from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
     except ImportError:
-        raise ImportError(
-            "claude-agent-sdk not installed. "
-            "Run: pip install claude-agent-sdk"
-        )
+        raise ImportError("claude-agent-sdk not installed. Run: pip install claude-agent-sdk")
 
     async def handler(tool_name, input_data, context):
         risk = _classify_risk(tool_name)
 
         # Write permission decision record
         record = {
-            'version': '1.0.0',
-            'run_id': str(uuid.uuid4()),
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'type': 'permission_decision',
-            'tool_name': tool_name,
-            'risk_level': risk,
-            'framework': 'claude_agent_sdk',
+            "version": "1.0.0",
+            "run_id": str(uuid.uuid4()),
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "type": "permission_decision",
+            "tool_name": tool_name,
+            "risk_level": risk,
+            "framework": "claude_agent_sdk",
         }
 
-        if risk == 'CRITICAL' and block_critical:
-            record['status'] = 'denied'
+        if risk == "CRITICAL" and block_critical:
+            record["status"] = "denied"
             _write_record(record, runs_dir)
             return PermissionResultDeny(
-                message=f'AIR Blackbox: {tool_name} blocked (CRITICAL risk)',
+                message=f"AIR Blackbox: {tool_name} blocked (CRITICAL risk)",
                 interrupt=False,
             )
 
-        if risk == 'HIGH' and require_approval_high:
-            record['status'] = 'approval_required'
+        if risk == "HIGH" and require_approval_high:
+            record["status"] = "approval_required"
             _write_record(record, runs_dir)
             # Return deny with a message — the user will see why
             return PermissionResultDeny(
-                message=f'AIR Blackbox: {tool_name} requires approval (HIGH risk)',
+                message=f"AIR Blackbox: {tool_name} requires approval (HIGH risk)",
                 interrupt=False,
             )
 
-        record['status'] = 'allowed'
+        record["status"] = "allowed"
         _write_record(record, runs_dir)
         return PermissionResultAllow(updated_input=input_data)
 
@@ -467,7 +501,7 @@ def air_permission_handler(
 
 
 def air_claude_options(
-    runs_dir: str = './runs',
+    runs_dir: str = "./runs",
     detect_pii: bool = True,
     detect_injection: bool = True,
     injection_block_threshold: float = 0.8,
@@ -506,10 +540,7 @@ def air_claude_options(
     try:
         from claude_agent_sdk import ClaudeAgentOptions
     except ImportError:
-        raise ImportError(
-            "claude-agent-sdk not installed. "
-            "Run: pip install claude-agent-sdk"
-        )
+        raise ImportError("claude-agent-sdk not installed. Run: pip install claude-agent-sdk")
 
     hooks = air_claude_hooks(
         runs_dir=runs_dir,
@@ -547,7 +578,7 @@ def attach_trust(agent_options, gateway_url="http://localhost:8080"):
     hooks = air_claude_hooks()
 
     # If it's a ClaudeAgentOptions instance, merge hooks
-    if hasattr(agent_options, 'hooks'):
+    if hasattr(agent_options, "hooks"):
         if agent_options.hooks is None:
             agent_options.hooks = hooks
         else:

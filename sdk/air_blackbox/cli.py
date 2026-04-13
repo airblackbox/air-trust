@@ -17,11 +17,13 @@ AIR Blackbox CLI — AI governance control plane.
     air-blackbox init        # Initialize project templates
 """
 
-import click
 from datetime import datetime
+
+import click
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
+
 from air_blackbox import __version__ as _ab_version
 
 console = Console()
@@ -36,13 +38,14 @@ AIR_BANNER = r"""[bold #00d4aa]
 [/bold #00d4aa]"""
 
 
-
 def print_banner():
     console.print(AIR_BANNER)
     console.print("  [dim]EU AI Act Compliance · AI-BOM · Audit Chain · Incident Replay[/dim]")
     console.print()
     console.print("  " + "─" * 76, style="#1e2530")
-    console.print("  [bold #f85149]⚠  Enforcement deadline: August 2, 2026  —  €35M or 7% global turnover[/bold #f85149]")
+    console.print(
+        "  [bold #f85149]⚠  Enforcement deadline: August 2, 2026  —  €35M or 7% global turnover[/bold #f85149]"
+    )
     console.print("  " + "─" * 76, style="#1e2530")
     console.print("  [dim]pip install air-blackbox  ·  github.com/airblackbox/gateway  ·  airblackbox.ai[/dim]")
     console.print()
@@ -70,14 +73,15 @@ def setup():
 
     Requirements: Ollama must be installed first (https://ollama.com)
     """
-    import subprocess
     import shutil
+    import subprocess
 
-    console.print(Panel.fit(
-        "[bold cyan]AIR Blackbox Setup[/bold cyan]\n"
-        "Setting up the AI compliance scanner...",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel.fit(
+            "[bold cyan]AIR Blackbox Setup[/bold cyan]\nSetting up the AI compliance scanner...",
+            border_style="cyan",
+        )
+    )
 
     # Step 1: Check Ollama
     console.print("\n[bold]Step 1/3:[/bold] Checking Ollama installation...")
@@ -109,7 +113,8 @@ def setup():
             # Create local alias
             subprocess.run(
                 ["ollama", "cp", "airblackbox/air-compliance", "air-compliance"],
-                capture_output=True, timeout=30,
+                capture_output=True,
+                timeout=30,
             )
             console.print("  [green]✓[/green] Model pulled and ready")
         else:
@@ -132,14 +137,16 @@ def setup():
         # Best-effort verification; do not fail setup if this check errors
         console.print("  [yellow]⚠[/yellow] Could not verify model in Ollama (verification step failed).")
 
-    console.print(Panel.fit(
-        "[bold green]Setup complete![/bold green]\n\n"
-        "Run your first scan:\n"
-        "  [cyan]air-blackbox comply --scan .[/cyan]\n\n"
-        "Or try the demo:\n"
-        "  [cyan]air-blackbox demo[/cyan]",
-        border_style="green",
-    ))
+    console.print(
+        Panel.fit(
+            "[bold green]Setup complete![/bold green]\n\n"
+            "Run your first scan:\n"
+            "  [cyan]air-blackbox comply --scan .[/cyan]\n\n"
+            "Or try the demo:\n"
+            "  [cyan]air-blackbox demo[/cyan]",
+            border_style="green",
+        )
+    )
 
 
 @main.command()
@@ -148,15 +155,20 @@ def setup():
 @click.option("--runs-dir", default=None, help="Path to .air.json records directory")
 @click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
 @click.option("--verbose", "-v", is_flag=True, help="Show detection type and fix hints")
-@click.option("--deep", is_flag=True, default=False, hidden=True, help="(deprecated, now default) Run LLM deep analysis")
+@click.option(
+    "--deep", is_flag=True, default=False, hidden=True, help="(deprecated, now default) Run LLM deep analysis"
+)
 @click.option("--no-llm", is_flag=True, help="Skip LLM analysis, regex-only scan")
 @click.option("--model", default="air-compliance", help="Ollama model for deep scan")
 @click.option("--no-save", is_flag=True, help="Don't save results to compliance history")
-@click.option("--frameworks", default=None, help="Compliance frameworks to report (eu,iso42001,nist,colorado). Default: all")
+@click.option(
+    "--frameworks", default=None, help="Compliance frameworks to report (eu,iso42001,nist,colorado). Default: all"
+)
 def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, frameworks):
     """Check EU AI Act compliance from live gateway traffic."""
-    from air_blackbox.gateway_client import GatewayClient
     from air_blackbox.compliance.engine import run_all_checks
+    from air_blackbox.gateway_client import GatewayClient
+
     console.print("\n[bold blue]AIR Blackbox[/] — EU AI Act Compliance Check\n")
     with console.status("[bold green]Connecting to gateway..."):
         client = GatewayClient(gateway_url=gateway, runs_dir=runs_dir, scan_path=scan)
@@ -167,7 +179,9 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
         console.print(f"  [red]●[/] Gateway not reachable at [bold]{gateway}[/]")
     if status.total_runs > 0:
         src = "gateway" if status.reachable else "trust layer records"
-        console.print(f"  [green]●[/] [bold]{status.total_runs:,}[/] logged events from {src} ({', '.join(status.models_observed[:3])})")
+        console.print(
+            f"  [green]●[/] [bold]{status.total_runs:,}[/] logged events from {src} ({', '.join(status.models_observed[:3])})"
+        )
     else:
         console.print("  [yellow]●[/] No traffic data found")
     console.print(f"  [dim]Scanning: {scan}[/]\n")
@@ -176,8 +190,10 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
     # Hybrid mode: auto-run LLM analysis unless --no-llm
     deep_findings = []
     if not no_llm:
-        from air_blackbox.compliance.deep_scan import deep_scan, _ollama_available, _model_available
         import os
+
+        from air_blackbox.compliance.deep_scan import _model_available, _ollama_available, deep_scan
+
         if _ollama_available() and _model_available(model):
             console.print("[bold]Running hybrid analysis (regex + AI model)...[/]\n")
             # Collect all Python files (supports single-file and directory scanning)
@@ -185,9 +201,20 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
             if os.path.isfile(scan) and scan.endswith(".py"):
                 py_files = [os.path.abspath(scan)]
             else:
-                skip_dirs = {"node_modules", ".git", "__pycache__", ".venv", "venv",
-                             "dist", "build", ".eggs", "site-packages", ".tox",
-                             ".mypy_cache", ".pytest_cache"}
+                skip_dirs = {
+                    "node_modules",
+                    ".git",
+                    "__pycache__",
+                    ".venv",
+                    "venv",
+                    "dist",
+                    "build",
+                    ".eggs",
+                    "site-packages",
+                    ".tox",
+                    ".mypy_cache",
+                    ".pytest_cache",
+                }
                 for root, dirs, files in os.walk(scan):
                     dirs[:] = [d for d in dirs if d not in skip_dirs and not d.endswith(".egg-info")]
                     for f in files:
@@ -198,15 +225,52 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
             # === Smart sampling: pick compliance-relevant files ===
             # Priority keywords — files most likely to contain compliance patterns
             priority_keywords = [
-                "agent", "pipeline", "tool", "llm", "model", "chat",
-                "safety", "guard", "policy", "policies", "hitl", "human",
-                "trace", "tracing", "logging", "log", "audit", "monitor",
-                "auth", "token", "scope", "permission", "identity",
-                "validate", "validation", "schema", "pii", "redact",
-                "retry", "fallback", "error", "exception", "handler",
-                "inject", "sanitize", "filter", "boundary", "limit",
-                "config", "settings", "core", "main", "app", "run",
+                "agent",
+                "pipeline",
+                "tool",
+                "llm",
+                "model",
+                "chat",
+                "safety",
+                "guard",
+                "policy",
+                "policies",
+                "hitl",
+                "human",
+                "trace",
+                "tracing",
+                "logging",
+                "log",
+                "audit",
+                "monitor",
+                "auth",
+                "token",
+                "scope",
+                "permission",
+                "identity",
+                "validate",
+                "validation",
+                "schema",
+                "pii",
+                "redact",
+                "retry",
+                "fallback",
+                "error",
+                "exception",
+                "handler",
+                "inject",
+                "sanitize",
+                "filter",
+                "boundary",
+                "limit",
+                "config",
+                "settings",
+                "core",
+                "main",
+                "app",
+                "run",
             ]
+
             # Score and rank files by relevance
             def _score_file(fp):
                 rel = os.path.relpath(fp, scan).lower()
@@ -270,7 +334,9 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
             sample_desc = f"targeted sample of {files_included} compliance-relevant source files"
 
             if verbose:
-                console.print(f"  [dim]AI model sampling: {files_included} files from {total_files} total ({total_chars:,} chars)[/]")
+                console.print(
+                    f"  [dim]AI model sampling: {files_included} files from {total_files} total ({total_chars:,} chars)[/]"
+                )
                 # Show top 5 sampled files
                 shown = 0
                 for fp, score in scored:
@@ -289,9 +355,14 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
 
             # Build rule-based context summary for the model
             rule_context_lines = []
-            article_map = {9: "Risk Management", 10: "Data Governance",
-                          11: "Technical Documentation", 12: "Record-Keeping",
-                          14: "Human Oversight", 15: "Accuracy & Security"}
+            article_map = {
+                9: "Risk Management",
+                10: "Data Governance",
+                11: "Technical Documentation",
+                12: "Record-Keeping",
+                14: "Human Oversight",
+                15: "Accuracy & Security",
+            }
             for article in articles:
                 art_num = article.get("number", 0)
                 if art_num not in article_map:
@@ -328,10 +399,13 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
             else:
                 if verbose:
                     os.environ["AIR_VERBOSE"] = "1"
-                result = deep_scan(merged_code, model=model,
-                                  sample_context=sample_desc,
-                                  total_files=total_files,
-                                  rule_context=rule_context)
+                result = deep_scan(
+                    merged_code,
+                    model=model,
+                    sample_context=sample_desc,
+                    total_files=total_files,
+                    rule_context=rule_context,
+                )
                 if verbose:
                     os.environ.pop("AIR_VERBOSE", None)
             if result.get("available") and not result.get("error"):
@@ -347,9 +421,7 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
                     rule_pass_counts[art_num] = len(passes)
                     if passes:
                         # Collect the best evidence summaries
-                        rule_evidence_map[art_num] = "; ".join(
-                            c.get("evidence", "")[:60] for c in passes[:3]
-                        )
+                        rule_evidence_map[art_num] = "; ".join(c.get("evidence", "")[:60] for c in passes[:3])
 
                 overrides = 0
                 for finding in deep_findings:
@@ -378,10 +450,16 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
                         )
                         overrides += 1
 
-                console.print(f"  [green]●[/] AI model analyzed [bold]{files_included}[/] files ({total_chars:,} chars) from {total_files} total")
-                console.print(f"  [green]●[/] AI model found [bold]{len(deep_findings)}[/] finding(s) using [bold]{model}[/]")
+                console.print(
+                    f"  [green]●[/] AI model analyzed [bold]{files_included}[/] files ({total_chars:,} chars) from {total_files} total"
+                )
+                console.print(
+                    f"  [green]●[/] AI model found [bold]{len(deep_findings)}[/] finding(s) using [bold]{model}[/]"
+                )
                 if overrides > 0:
-                    console.print(f"  [green]●[/] Smart reconciliation: [bold]{overrides}[/] model verdict(s) corrected by rule-based evidence")
+                    console.print(
+                        f"  [green]●[/] Smart reconciliation: [bold]{overrides}[/] model verdict(s) corrected by rule-based evidence"
+                    )
                 console.print("  [green]●[/] Hybrid mode: rule-based + AI analysis merged\n")
             elif result.get("error"):
                 console.print(f"  [yellow]●[/] AI model: {result['error']}")
@@ -395,8 +473,10 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
     if not no_save:
         try:
             from air_blackbox.compliance.history import save_scan
-            scan_id = save_scan(articles, scan_path=scan, version="1.6.3",
-                                deep_findings=deep_findings if deep_findings else None)
+
+            scan_id = save_scan(
+                articles, scan_path=scan, version="1.6.3", deep_findings=deep_findings if deep_findings else None
+            )
             if verbose:
                 console.print(f"  [dim]Saved to compliance history (scan #{scan_id})[/]\n")
         except Exception:
@@ -406,27 +486,37 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
 
     if fmt == "json":
         import json
+
         output_data = articles
         if deep_findings:
             output_data = list(articles)  # shallow copy
-            output_data.append({
-                "number": 0,
-                "title": "LLM Deep Analysis",
-                "checks": [{
-                    "name": f.get("name", ""),
-                    "status": f.get("status", "warn"),
-                    "evidence": f.get("evidence", ""),
-                    "fix_hint": f.get("fix_hint", ""),
-                    "tier": "static",
-                    "detection": "auto",
-                    "source": "llm",
-                } for f in deep_findings],
-            })
+            output_data.append(
+                {
+                    "number": 0,
+                    "title": "LLM Deep Analysis",
+                    "checks": [
+                        {
+                            "name": f.get("name", ""),
+                            "status": f.get("status", "warn"),
+                            "evidence": f.get("evidence", ""),
+                            "fix_hint": f.get("fix_hint", ""),
+                            "tier": "static",
+                            "detection": "auto",
+                            "source": "llm",
+                        }
+                        for f in deep_findings
+                    ],
+                }
+            )
         click.echo(json.dumps(output_data, indent=2))
         return
     for article in articles:
-        table = Table(title=f"Article {article['number']} — {article['title']}",
-            show_header=True, header_style="bold white on dark_blue", title_style="bold")
+        table = Table(
+            title=f"Article {article['number']} — {article['title']}",
+            show_header=True,
+            header_style="bold white on dark_blue",
+            title_style="bold",
+        )
         table.add_column("Check", style="bold", width=28)
         table.add_column("Tier", width=8, justify="center")
         table.add_column("Status", width=10, justify="center")
@@ -434,10 +524,16 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
             table.add_column("Type", width=8, justify="center")
         table.add_column("Evidence", width=42 if not verbose else 36)
         for check in article["checks"]:
-            si = {"pass": "[bold green]✅ PASS[/]", "warn": "[bold yellow]⚠️  WARN[/]", "fail": "[bold red]❌ FAIL[/]"}.get(check["status"])
+            si = {
+                "pass": "[bold green]✅ PASS[/]",
+                "warn": "[bold yellow]⚠️  WARN[/]",
+                "fail": "[bold red]❌ FAIL[/]",
+            }.get(check["status"])
             tier = check.get("tier", "static")
             tier_label = "[green]STATIC[/]" if tier == "static" else "[blue]RUNTIME[/]"
-            db = {"auto": "[green]AUTO[/]", "hybrid": "[yellow]HYBRID[/]", "manual": "[red]MANUAL[/]"}.get(check.get("detection", ""), "")
+            db = {"auto": "[green]AUTO[/]", "hybrid": "[yellow]HYBRID[/]", "manual": "[red]MANUAL[/]"}.get(
+                check.get("detection", ""), ""
+            )
             ev = check["evidence"]
             if verbose and check.get("fix_hint"):
                 ev += f"\n[dim italic]Fix: {check['fix_hint']}[/]"
@@ -456,20 +552,30 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
         novel_findings = [f for f in deep_findings if f.get("article", 0) not in rule_articles]
         supplementary = [f for f in deep_findings if f.get("article", 0) in rule_articles]
         if novel_findings or supplementary:
-            deep_table = Table(title="AI Model Insights (supplementary)",
-                show_header=True, header_style="bold white on dark_blue", title_style="dim")
+            deep_table = Table(
+                title="AI Model Insights (supplementary)",
+                show_header=True,
+                header_style="bold white on dark_blue",
+                title_style="dim",
+            )
             deep_table.add_column("Article", width=10, justify="center")
             deep_table.add_column("AI Assessment", style="bold", width=30)
             deep_table.add_column("Status", width=10, justify="center")
             deep_table.add_column("Evidence", width=40)
             for f in deep_findings:
-                si = {"pass": "[bold green]✅ PASS[/]", "warn": "[bold yellow]⚠️  WARN[/]", "fail": "[bold red]❌ FAIL[/]"}.get(f.get("status", "warn"))
+                si = {
+                    "pass": "[bold green]✅ PASS[/]",
+                    "warn": "[bold yellow]⚠️  WARN[/]",
+                    "fail": "[bold red]❌ FAIL[/]",
+                }.get(f.get("status", "warn"))
                 ev = f.get("evidence", "")
                 if f.get("fix_hint"):
                     ev += f"\n[dim italic]Fix: {f['fix_hint']}[/]"
                 deep_table.add_row(f"Art {f.get('article', '?')}", f.get("name", ""), si, ev)
             console.print(deep_table)
-            console.print("[dim]  Note: AI model assessed a code sample (max 48KB). Rule-based checks above are more accurate.[/]")
+            console.print(
+                "[dim]  Note: AI model assessed a code sample (max 48KB). Rule-based checks above are more accurate.[/]"
+            )
             console.print()
 
     total = sum(len(a["checks"]) for a in articles)
@@ -505,10 +611,12 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
     # --- Multi-framework crosswalk report ---
     if frameworks:
         from air_blackbox.compliance.standards_map import (
-            SUPPORTED_FRAMEWORKS, generate_crosswalk_report,
+            SUPPORTED_FRAMEWORKS,
             calculate_compliance_scores,
             generate_compliance_narrative,
+            generate_crosswalk_report,
         )
+
         # Parse comma-separated framework IDs
         fw_list = [f.strip().lower() for f in frameworks.split(",")]
         invalid = [f for f in fw_list if f not in SUPPORTED_FRAMEWORKS]
@@ -520,42 +628,50 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
             # Convert articles to flat check list for crosswalk
             flat_checks = []
             article_to_category = {
-                9: "risk_management", 10: "data_governance",
-                11: "technical_documentation", 12: "record_keeping",
-                14: "human_oversight", 15: "robustness",
+                9: "risk_management",
+                10: "data_governance",
+                11: "technical_documentation",
+                12: "record_keeping",
+                14: "human_oversight",
+                15: "robustness",
             }
             for article in articles:
                 cat = article_to_category.get(article.get("number"))
                 if not cat:
                     continue
                 for check in article.get("checks", []):
-                    flat_checks.append({
-                        "category": cat,
-                        "check_id": check.get("name", ""),
-                        "status": check.get("status", "unknown"),
-                        "severity": check.get("tier", "static"),
-                        "description": check.get("evidence", ""),
-                        "remediation": check.get("fix_hint", ""),
-                    })
+                    flat_checks.append(
+                        {
+                            "category": cat,
+                            "check_id": check.get("name", ""),
+                            "status": check.get("status", "unknown"),
+                            "severity": check.get("tier", "static"),
+                            "description": check.get("evidence", ""),
+                            "remediation": check.get("fix_hint", ""),
+                        }
+                    )
 
             crosswalk_report = generate_crosswalk_report(flat_checks, frameworks=fw_list)
             scores = calculate_compliance_scores(crosswalk_report)
 
             # Display crosswalk scores
             fw_names = [SUPPORTED_FRAMEWORKS[f]["name"] for f in fw_list]
-            console.print(Panel(
-                "[bold]Multi-Framework Compliance Scores[/]\n\n" +
-                "\n".join(
-                    f"  {SUPPORTED_FRAMEWORKS[f]['name']}: [bold]{scores.get(SUPPORTED_FRAMEWORKS[f]['key'], 0):.1f}%[/]"
-                    for f in fw_list
-                ) +
-                f"\n\n[dim]Frameworks: {', '.join(fw_names)}[/]",
-                title="[bold cyan]Standards Crosswalk[/]",
-                border_style="cyan",
-            ))
+            console.print(
+                Panel(
+                    "[bold]Multi-Framework Compliance Scores[/]\n\n"
+                    + "\n".join(
+                        f"  {SUPPORTED_FRAMEWORKS[f]['name']}: [bold]{scores.get(SUPPORTED_FRAMEWORKS[f]['key'], 0):.1f}%[/]"
+                        for f in fw_list
+                    )
+                    + f"\n\n[dim]Frameworks: {', '.join(fw_names)}[/]",
+                    title="[bold cyan]Standards Crosswalk[/]",
+                    border_style="cyan",
+                )
+            )
 
             if fmt == "json":
                 import json as _json
+
                 click.echo(_json.dumps(crosswalk_report, indent=2))
             elif verbose:
                 console.print()
@@ -564,6 +680,7 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
 
     # --- Trust layer recommendation ---
     from air_blackbox.compliance.engine import TRUST_LAYER_MAP
+
     if detected_frameworks:
         rec_lines = []
         for fw in detected_frameworks:
@@ -581,8 +698,10 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
 
     # --- Telemetry (anonymous, opt-out with AIR_BLACKBOX_TELEMETRY=off) ---
     try:
-        from air_blackbox.telemetry import send_event
         import os as _os
+
+        from air_blackbox.telemetry import send_event
+
         py_count = 0
         if _os.path.isfile(scan) and scan.endswith(".py"):
             py_count = 1
@@ -612,10 +731,11 @@ def comply(gateway, scan, runs_dir, fmt, verbose, deep, no_llm, model, no_save, 
 @click.option("--init-registry", is_flag=True, help="Generate approved-models.yaml from current traffic")
 def discover(gateway, runs_dir, approved, fmt, output, init_registry):
     """Discover AI models, tools, and services in your environment."""
-    from air_blackbox.gateway_client import GatewayClient
+    import json as jsonlib
+
     from air_blackbox.aibom.generator import generate_aibom
     from air_blackbox.aibom.shadow import detect_shadow_ai, generate_approved_registry
-    import json as jsonlib
+    from air_blackbox.gateway_client import GatewayClient
 
     console.print("\n[bold blue]AIR Blackbox[/] — AI Discovery & Inventory\n")
     with console.status("[bold green]Scanning environment..."):
@@ -631,7 +751,9 @@ def discover(gateway, runs_dir, approved, fmt, output, init_registry):
         reg_path = "approved-models.json"
         with open(reg_path, "w") as f:
             jsonlib.dump(registry, f, indent=2)
-        console.print(f"  [green]✓[/] Generated [bold]{reg_path}[/] with {len(registry['models'])} models, {len(registry['providers'])} providers")
+        console.print(
+            f"  [green]✓[/] Generated [bold]{reg_path}[/] with {len(registry['models'])} models, {len(registry['providers'])} providers"
+        )
         console.print("  [dim]Future runs of discover will flag anything not in this list.[/]\n")
         return
 
@@ -661,6 +783,7 @@ def discover(gateway, runs_dir, approved, fmt, output, init_registry):
         t.add_column("Status", justify="center", width=14)
         for m in status.models_observed:
             from air_blackbox.aibom.generator import _guess_provider
+
             t.add_row(m, _guess_provider(m), "[green]✅ Observed[/]")
         console.print(t)
         console.print()
@@ -705,19 +828,22 @@ def discover(gateway, runs_dir, approved, fmt, output, init_registry):
 
     # Summary
     bom = generate_aibom(status)
-    console.print(Panel(
-        f"[bold]{len(bom['components'])}[/] components inventoried: "
-        f"{len(status.models_observed)} models, {len(status.providers_observed)} providers, {len(tools)} tools\n\n"
-        f"[green]air-blackbox discover --format=cyclonedx -o aibom.json[/]  Export full AI-BOM\n"
-        f"[green]air-blackbox discover --init-registry[/]                    Create approved models list\n"
-        f"[green]air-blackbox discover --approved=approved-models.json[/]    Check against approved list",
-        title="[bold blue]AI-BOM Summary[/]",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            f"[bold]{len(bom['components'])}[/] components inventoried: "
+            f"{len(status.models_observed)} models, {len(status.providers_observed)} providers, {len(tools)} tools\n\n"
+            f"[green]air-blackbox discover --format=cyclonedx -o aibom.json[/]  Export full AI-BOM\n"
+            f"[green]air-blackbox discover --init-registry[/]                    Create approved models list\n"
+            f"[green]air-blackbox discover --approved=approved-models.json[/]    Check against approved list",
+            title="[bold blue]AI-BOM Summary[/]",
+            border_style="blue",
+        )
+    )
 
     # --- Telemetry ---
     try:
         from air_blackbox.telemetry import send_event
+
         send_event(command="discover", version=_ab_version)
     except Exception:
         pass
@@ -748,10 +874,16 @@ def replay(gateway, runs_dir, episode, last, verify):
         console.print("[bold]Verifying HMAC audit chain...[/]\n")
         result = engine.verify_chain()
         if result.intact:
-            console.print(f"  [green]✅ CHAIN INTACT[/] — {result.verified_records:,} records verified. No tampering detected.\n")
+            console.print(
+                f"  [green]✅ CHAIN INTACT[/] — {result.verified_records:,} records verified. No tampering detected.\n"
+            )
         else:
-            console.print(f"  [red]❌ CHAIN BROKEN[/] at record {result.first_break_at} (run: {result.first_break_run_id})")
-            console.print(f"  [red]  {result.verified_records} of {result.total_records} records verified before break.[/]\n")
+            console.print(
+                f"  [red]❌ CHAIN BROKEN[/] at record {result.first_break_at} (run: {result.first_break_run_id})"
+            )
+            console.print(
+                f"  [red]  {result.verified_records} of {result.total_records} records verified before break.[/]\n"
+            )
         return
 
     # Detail view for single episode
@@ -766,7 +898,9 @@ def replay(gateway, runs_dir, episode, last, verify):
         console.print(f"  Timestamp: {rec.timestamp}")
         console.print(f"  Duration:  {rec.duration_ms}ms")
         console.print(f"  Tokens:    {rec.tokens}")
-        console.print(f"  Status:    {'[green]success[/]' if rec.status == 'success' else '[red]' + rec.status + '[/]'}")
+        console.print(
+            f"  Status:    {'[green]success[/]' if rec.status == 'success' else '[red]' + rec.status + '[/]'}"
+        )
         if rec.tool_calls:
             console.print(f"  Tools:     {', '.join(rec.tool_calls)}")
         if rec.pii_alerts:
@@ -802,8 +936,9 @@ def replay(gateway, runs_dir, episode, last, verify):
     t.add_column("Timestamp", width=22)
     for rec in records:
         st = "[green]✅[/]" if rec.status == "success" else "[red]❌[/]"
-        t.add_row(rec.run_id[:20], rec.model, str(rec.tokens.get("total", 0)),
-                  f"{rec.duration_ms}ms", st, rec.timestamp[:22])
+        t.add_row(
+            rec.run_id[:20], rec.model, str(rec.tokens.get("total", 0)), f"{rec.duration_ms}ms", st, rec.timestamp[:22]
+        )
     console.print(t)
     console.print()
     console.print("[dim]Detail view: air-blackbox replay --episode=<run_id>[/]")
@@ -812,18 +947,19 @@ def replay(gateway, runs_dir, episode, last, verify):
     # --- Telemetry ---
     try:
         from air_blackbox.telemetry import send_event
+
         send_event(command="replay", version=_ab_version)
     except Exception:
         pass
 
 
 @main.command()
-@click.option("--gateway",  default="http://localhost:8080", help="Gateway URL")
+@click.option("--gateway", default="http://localhost:8080", help="Gateway URL")
 @click.option("--runs-dir", default=None, help="Path to .air.json records")
-@click.option("--scan",     default=".", help="Path to scan for code-level checks")
-@click.option("--range",    "time_range", default="30d", help="Time range")
-@click.option("--format",   "fmt", type=click.Choice(["json", "pdf"]), default="json")
-@click.option("--output",   "-o", default=None, help="Output file path")
+@click.option("--scan", default=".", help="Path to scan for code-level checks")
+@click.option("--range", "time_range", default="30d", help="Time range")
+@click.option("--format", "fmt", type=click.Choice(["json", "pdf"]), default="json")
+@click.option("--output", "-o", default=None, help="Output file path")
 def export(gateway, runs_dir, scan, time_range, fmt, output):
     """Generate signed evidence bundles for auditors and insurers.
 
@@ -839,8 +975,9 @@ def export(gateway, runs_dir, scan, time_range, fmt, output):
         air-blackbox export --scan ~/myproject --format pdf
         air-blackbox export --scan . --format pdf --output report.pdf
     """
-    from air_blackbox.export.bundle import generate_evidence_bundle
     import json as jsonlib
+
+    from air_blackbox.export.bundle import generate_evidence_bundle
 
     console.print("\n[bold cyan]AIR Blackbox[/] — Evidence Export\n")
 
@@ -848,21 +985,24 @@ def export(gateway, runs_dir, scan, time_range, fmt, output):
         bundle = generate_evidence_bundle(gateway_url=gateway, runs_dir=runs_dir, scan_path=scan)
 
     summary = bundle.get("compliance", {}).get("summary", {})
-    trail   = bundle.get("audit_trail", {})
-    chain   = trail.get("chain_verification", {})
+    trail = bundle.get("audit_trail", {})
+    chain = trail.get("chain_verification", {})
 
-    passing  = summary.get("passing",  0)
+    passing = summary.get("passing", 0)
     warnings = summary.get("warnings", 0)
-    failing  = summary.get("failing",  0)
+    failing = summary.get("failing", 0)
 
     console.print(f"  [bold]Compliance:[/]   {passing} passing · {warnings} warnings · {failing} failing")
     console.print(f"  [bold]AI-BOM:[/]        {len(bundle.get('aibom', {}).get('components', []))} components")
     console.print(f"  [bold]Audit trail:[/]   {trail.get('total_records', 0)} records")
-    console.print(f"  [bold]Chain:[/]         {'[green]INTACT[/]' if chain.get('intact') else '[yellow]No signing key set[/]'}")
+    console.print(
+        f"  [bold]Chain:[/]         {'[green]INTACT[/]' if chain.get('intact') else '[yellow]No signing key set[/]'}"
+    )
     console.print()
 
     if fmt == "pdf":
-        from air_blackbox.export.pdf_report import generate_pdf, REPORTLAB_OK
+        from air_blackbox.export.pdf_report import REPORTLAB_OK, generate_pdf
+
         if not REPORTLAB_OK:
             console.print("[red]reportlab not installed.[/] Run: [bold]pip install reportlab[/]")
             raise SystemExit(1)
@@ -871,31 +1011,36 @@ def export(gateway, runs_dir, scan, time_range, fmt, output):
         with console.status("[bold green]Rendering PDF report..."):
             generate_pdf(bundle, out_path)
 
-        console.print(Panel(
-            f"PDF report written to [bold]{out_path}[/]\n\n"
-            f"Contains: compliance scorecard · per-article findings · audit trail · priority fix list\n"
-            f"Ready to hand to your auditor, compliance team, or share with stakeholders.",
-            title="[bold green]PDF Export Complete[/]",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"PDF report written to [bold]{out_path}[/]\n\n"
+                f"Contains: compliance scorecard · per-article findings · audit trail · priority fix list\n"
+                f"Ready to hand to your auditor, compliance team, or share with stakeholders.",
+                title="[bold green]PDF Export Complete[/]",
+                border_style="green",
+            )
+        )
     else:
         # Default: JSON evidence bundle
         out_path = output or f"air-blackbox-evidence-{datetime.utcnow().strftime('%Y%m%d')}.json"
         with open(out_path, "w") as f:
             jsonlib.dump(bundle, f, indent=2)
 
-        console.print(Panel(
-            f"Evidence bundle written to [bold]{out_path}[/]\n\n"
-            f"Contains: compliance scan + AI-BOM (CycloneDX) + audit trail + HMAC attestation\n"
-            f"Hand this file to your auditor or insurer as a single verifiable document.\n\n"
-            f"[dim]Tip: use [bold]--format pdf[/bold] to generate a human-readable PDF report[/dim]",
-            title="[bold green]Export Complete[/]",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"Evidence bundle written to [bold]{out_path}[/]\n\n"
+                f"Contains: compliance scan + AI-BOM (CycloneDX) + audit trail + HMAC attestation\n"
+                f"Hand this file to your auditor or insurer as a single verifiable document.\n\n"
+                f"[dim]Tip: use [bold]--format pdf[/bold] to generate a human-readable PDF report[/dim]",
+                title="[bold green]Export Complete[/]",
+                border_style="green",
+            )
+        )
 
     # --- Telemetry ---
     try:
         from air_blackbox.telemetry import send_event
+
         send_event(command="export", version=_ab_version)
     except Exception:
         pass
@@ -905,17 +1050,20 @@ def export(gateway, runs_dir, scan, time_range, fmt, output):
 # bundle -- self-verifying .air-evidence ZIP
 # ---------------------------------------------------------------------------
 
+
 @main.command()
-@click.option("--scan", default=".", type=click.Path(exists=True),
-              help="Path to scan for code-level checks (default: current dir)")
-@click.option("--key-dir", default=None, type=click.Path(),
-              help="Custom key storage directory")
-@click.option("--output", "-o", default=".", type=click.Path(),
-              help="Output directory for the bundle (default: current dir)")
-@click.option("--frameworks", default=None,
-              help="Compliance frameworks (eu,iso42001,nist,colorado). Default: all")
-@click.option("--audit-chain", default=None, type=click.Path(exists=True),
-              help="Path to .jsonl audit chain file")
+@click.option(
+    "--scan",
+    default=".",
+    type=click.Path(exists=True),
+    help="Path to scan for code-level checks (default: current dir)",
+)
+@click.option("--key-dir", default=None, type=click.Path(), help="Custom key storage directory")
+@click.option(
+    "--output", "-o", default=".", type=click.Path(), help="Output directory for the bundle (default: current dir)"
+)
+@click.option("--frameworks", default=None, help="Compliance frameworks (eu,iso42001,nist,colorado). Default: all")
+@click.option("--audit-chain", default=None, type=click.Path(exists=True), help="Path to .jsonl audit chain file")
 def bundle(scan, key_dir, output, frameworks, audit_chain):
     """Create a self-verifying .air-evidence bundle for auditors.
 
@@ -936,8 +1084,8 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
     from pathlib import Path as _Path
 
     try:
-        from air_blackbox.evidence.keys import KeyManager
         from air_blackbox.evidence.bundle import EvidenceBundleBuilder
+        from air_blackbox.evidence.keys import KeyManager
     except ImportError:
         console.print("[red]Error:[/red] dilithium-py is required for evidence bundles.")
         console.print("Install it with: [bold]pip install dilithium-py[/bold]")
@@ -966,16 +1114,21 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
     try:
         from air_blackbox.compliance.engine import run_all_checks
         from air_blackbox.gateway_client import GatewayClient
+
         client = GatewayClient(gateway_url="http://localhost:8080", runs_dir="./runs")
         try:
             status = client.get_status()
         except Exception:
             # Gateway not running -- create a minimal status for code-only scan
             from air_blackbox.gateway_client import GatewayStatus
+
             status = GatewayStatus(
-                reachable=False, vault_enabled=False,
-                guardrails_enabled=False, trust_signing_key_set=False,
-                model_name="", provider=""
+                reachable=False,
+                vault_enabled=False,
+                guardrails_enabled=False,
+                trust_signing_key_set=False,
+                model_name="",
+                provider="",
             )
         compliance = run_all_checks(status, scan)
         scan_results = {
@@ -983,11 +1136,19 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
             "articles_checked": [9, 10, 11, 12, 14, 15],
             "results": compliance,
             "summary": {
-                "total_checks": sum(len(a.get("checks", [])) for a in compliance) if isinstance(compliance, list) else 0,
-                "passing": sum(1 for a in compliance for c in a.get("checks", []) if c.get("status") == "pass") if isinstance(compliance, list) else 0,
-                "warnings": sum(1 for a in compliance for c in a.get("checks", []) if c.get("status") == "warn") if isinstance(compliance, list) else 0,
-                "failing": sum(1 for a in compliance for c in a.get("checks", []) if c.get("status") == "fail") if isinstance(compliance, list) else 0,
-            }
+                "total_checks": sum(len(a.get("checks", [])) for a in compliance)
+                if isinstance(compliance, list)
+                else 0,
+                "passing": sum(1 for a in compliance for c in a.get("checks", []) if c.get("status") == "pass")
+                if isinstance(compliance, list)
+                else 0,
+                "warnings": sum(1 for a in compliance for c in a.get("checks", []) if c.get("status") == "warn")
+                if isinstance(compliance, list)
+                else 0,
+                "failing": sum(1 for a in compliance for c in a.get("checks", []) if c.get("status") == "fail")
+                if isinstance(compliance, list)
+                else 0,
+            },
         }
     except Exception as e:
         console.print(f"[yellow]Warning:[/yellow] Scan engine error: {e}")
@@ -1002,6 +1163,7 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
     crosswalk = None
     try:
         from air_blackbox.compliance.standards_map import generate_crosswalk_report
+
         check_results = {}
         if isinstance(scan_results.get("results"), list):
             for article in scan_results["results"]:
@@ -1032,6 +1194,7 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
     # Step 3: Hash scanned files (binds evidence to codebase)
     console.print("[blue]Step 3/4:[/blue] Hashing scanned source files...")
     import hashlib as _hashlib
+
     scanned_hashes = {}
     scan_path = _Path(scan)
     py_files = []
@@ -1060,19 +1223,21 @@ def bundle(scan, key_dir, output, frameworks, audit_chain):
     )
 
     console.print()
-    console.print(Panel.fit(
-        f"[bold green]Evidence bundle created[/bold green]\n\n"
-        f"File:       {bundle_path}\n"
-        f"Size:       {bundle_path.stat().st_size:,} bytes\n"
-        f"Signed by:  {km.get_key_id()} (ML-DSA-65)\n"
-        f"Frameworks: {', '.join(fw_list)}\n\n"
-        f"[dim]Auditor verification (no install required):[/dim]\n"
-        f"  unzip {bundle_path.name}\n"
-        f"  cd {bundle_path.stem}\n"
-        f"  python verify.py",
-        title="[bold cyan]Evidence Bundle[/bold cyan]",
-        border_style="green",
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold green]Evidence bundle created[/bold green]\n\n"
+            f"File:       {bundle_path}\n"
+            f"Size:       {bundle_path.stat().st_size:,} bytes\n"
+            f"Signed by:  {km.get_key_id()} (ML-DSA-65)\n"
+            f"Frameworks: {', '.join(fw_list)}\n\n"
+            f"[dim]Auditor verification (no install required):[/dim]\n"
+            f"  unzip {bundle_path.name}\n"
+            f"  cd {bundle_path.stem}\n"
+            f"  python verify.py",
+            title="[bold cyan]Evidence Bundle[/bold cyan]",
+            border_style="green",
+        )
+    )
 
 
 @main.command()
@@ -1090,10 +1255,11 @@ def demo(output):
         air-blackbox discover
         air-blackbox replay
     """
+    import time
+
+    from air_blackbox.compliance.engine import run_all_checks
     from air_blackbox.demo_generator import generate_demo_data
     from air_blackbox.gateway_client import GatewayClient
-    from air_blackbox.compliance.engine import run_all_checks
-    import time
 
     console.print("\n[bold blue]AIR Blackbox[/] — Zero-Config Demo\n")
     console.print("[dim]Generating sample AI agent traffic...[/]\n")
@@ -1102,7 +1268,9 @@ def demo(output):
     # Generate sample data
     result = generate_demo_data(output)
 
-    console.print(f"  [green]✓[/] Created [bold]{result['runs_created']}[/] sample .air.json records in [bold]{result['runs_dir']}[/]")
+    console.print(
+        f"  [green]✓[/] Created [bold]{result['runs_created']}[/] sample .air.json records in [bold]{result['runs_dir']}[/]"
+    )
     console.print(f"  [green]✓[/] Models: {', '.join(result['models'])}")
     console.print(f"  [green]✓[/] Providers: {', '.join(result['providers'])}")
     console.print(f"  [green]✓[/] Total tokens: {result['total_tokens']:,}")
@@ -1133,7 +1301,9 @@ def demo(output):
             icon = {"pass": "✅", "warn": "⚠️ ", "fail": "❌"}.get(check["status"], "?")
             tier = check.get("tier", "static")
             tier_tag = "[green]S[/]" if tier == "static" else "[blue]R[/]"
-            det = {"auto": "[green]AUTO[/]", "hybrid": "[yellow]HYBR[/]", "manual": "[red]MANU[/]"}.get(check.get("detection", ""), "")
+            det = {"auto": "[green]AUTO[/]", "hybrid": "[yellow]HYBR[/]", "manual": "[red]MANU[/]"}.get(
+                check.get("detection", ""), ""
+            )
             console.print(f"  {icon} Art. {article['number']:>2} {tier_tag} {det} {check['name']}")
 
     total = sum(len(a["checks"]) for a in articles)
@@ -1141,23 +1311,26 @@ def demo(output):
 
     console.print(f"\n  [bold]{passing}/{total}[/] checks passing")
     console.print()
-    console.print(Panel(
-        "[bold]What just happened:[/]\n\n"
-        "1. Generated 10 sample AI agent records (like a real agent would create)\n"
-        "2. Created EU AI Act compliance doc templates (Articles 9 + 10)\n"
-        "3. Ran compliance check against the sample data\n\n"
-        "[bold]Try these next:[/]\n\n"
-        "  [green]air-blackbox comply -v[/]     Full compliance with fix hints\n"
-        "  [green]air-blackbox discover[/]      See models and providers detected\n"
-        "  [green]air-blackbox replay[/]        See the audit trail timeline\n"
-        "  [green]docker compose up[/]          Start full gateway for live traffic",
-        title="[bold blue]Demo Complete[/]",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            "[bold]What just happened:[/]\n\n"
+            "1. Generated 10 sample AI agent records (like a real agent would create)\n"
+            "2. Created EU AI Act compliance doc templates (Articles 9 + 10)\n"
+            "3. Ran compliance check against the sample data\n\n"
+            "[bold]Try these next:[/]\n\n"
+            "  [green]air-blackbox comply -v[/]     Full compliance with fix hints\n"
+            "  [green]air-blackbox discover[/]      See models and providers detected\n"
+            "  [green]air-blackbox replay[/]        See the audit trail timeline\n"
+            "  [green]docker compose up[/]          Start full gateway for live traffic",
+            title="[bold blue]Demo Complete[/]",
+            border_style="blue",
+        )
+    )
 
     # --- Telemetry ---
     try:
         from air_blackbox.telemetry import send_event
+
         send_event(command="demo", version=_ab_version)
     except Exception:
         pass
@@ -1174,8 +1347,9 @@ def init(output):
 
     Creates compliance doc templates and a .air-blackbox.yaml config file.
     """
-    from air_blackbox.demo_generator import _RISK_TEMPLATE, _DATA_GOV_TEMPLATE
     import os
+
+    from air_blackbox.demo_generator import _DATA_GOV_TEMPLATE, _RISK_TEMPLATE
 
     console.print("\n[bold blue]AIR Blackbox[/] — Project Init\n")
 
@@ -1194,7 +1368,9 @@ def init(output):
             console.print(f"  [dim]⏭  {fname} already exists[/]")
 
     if files_created:
-        console.print(f"\n  [bold]{len(files_created)}[/] files created. Run [green]air-blackbox comply -v[/] to check status.\n")
+        console.print(
+            f"\n  [bold]{len(files_created)}[/] files created. Run [green]air-blackbox comply -v[/] to check status.\n"
+        )
     else:
         console.print("\n  All files already exist. Run [green]air-blackbox comply -v[/] to check status.\n")
 
@@ -1216,8 +1392,9 @@ def validate(tool, arguments, content, allowlist):
         air-blackbox validate --content="Here is the result..."
         air-blackbox validate --tool=web_search --allowlist=web_search,calculator
     """
-    from air_blackbox.validate import RuntimeValidator, ToolAllowlistRule
     import json as jsonlib
+
+    from air_blackbox.validate import RuntimeValidator, ToolAllowlistRule
 
     console.print("\n[bold blue]AIR Blackbox[/] — Runtime Validation\n")
 
@@ -1279,10 +1456,13 @@ def history(path, compare, export_path, limit):
         air-blackbox history --export report.json
         air-blackbox history --path ./my-project
     """
-    from air_blackbox.compliance.history import (
-        get_history, compare_scans, export_history,
-    )
     import json as jsonlib
+
+    from air_blackbox.compliance.history import (
+        compare_scans,
+        export_history,
+        get_history,
+    )
 
     console.print("\n[bold blue]AIR Blackbox[/] — Compliance History\n")
 
@@ -1326,7 +1506,9 @@ def history(path, compare, export_path, limit):
         if diff["new_checks"]:
             console.print(f"\n  [bold blue]New checks ({len(diff['new_checks'])}):[/]")
             for item in diff["new_checks"]:
-                si = {"pass": "[green]pass[/]", "warn": "[yellow]warn[/]", "fail": "[red]fail[/]"}.get(item["status"], item["status"])
+                si = {"pass": "[green]pass[/]", "warn": "[yellow]warn[/]", "fail": "[red]fail[/]"}.get(
+                    item["status"], item["status"]
+                )
                 console.print(f"    [blue]●[/] Art {item['article']}: {item['name']} ({si})")
         if not diff["improved"] and not diff["regressed"] and not diff["new_checks"]:
             console.print("  [dim]No changes between scans.[/]")
@@ -1339,8 +1521,9 @@ def history(path, compare, export_path, limit):
         console.print("  [yellow]No scan history found.[/] Run `air-blackbox comply` to start tracking.\n")
         return
 
-    table = Table(title="Compliance Scan History", show_header=True,
-                  header_style="bold white on dark_blue", title_style="bold")
+    table = Table(
+        title="Compliance Scan History", show_header=True, header_style="bold white on dark_blue", title_style="bold"
+    )
     table.add_column("#", width=4, justify="right")
     table.add_column("Date", width=20)
     table.add_column("Path", width=20)
@@ -1393,10 +1576,14 @@ def history(path, compare, export_path, limit):
 
 
 @main.command()
-@click.option("--framework", "-f", default=None,
-              help="Show mappings for a specific framework (eu, iso42001, nist, colorado)")
-@click.option("--lookup", default=None,
-              help="Reverse lookup: find checks for a clause (e.g., 'Article 9', 'A.6.2.4', 'GOVERN 1', 'Section 6')")
+@click.option(
+    "--framework", "-f", default=None, help="Show mappings for a specific framework (eu, iso42001, nist, colorado)"
+)
+@click.option(
+    "--lookup",
+    default=None,
+    help="Reverse lookup: find checks for a clause (e.g., 'Article 9', 'A.6.2.4', 'GOVERN 1', 'Section 6')",
+)
 @click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
 def standards(framework, lookup, fmt):
     """Show supported compliance frameworks and standards crosswalk.
@@ -1413,12 +1600,16 @@ def standards(framework, lookup, fmt):
         air-blackbox standards --lookup "Section 6"     # Find checks for Colorado section
         air-blackbox standards --lookup "A.6.2.4"       # Find checks for ISO clause
     """
-    from air_blackbox.compliance.standards_map import (
-        STANDARDS_CROSSWALK, SUPPORTED_FRAMEWORKS,
-        get_checks_for_eu_article, get_checks_for_iso_clause,
-        get_checks_for_nist_function, get_checks_for_colorado_section,
-    )
     import json as jsonlib
+
+    from air_blackbox.compliance.standards_map import (
+        STANDARDS_CROSSWALK,
+        SUPPORTED_FRAMEWORKS,
+        get_checks_for_colorado_section,
+        get_checks_for_eu_article,
+        get_checks_for_iso_clause,
+        get_checks_for_nist_function,
+    )
 
     console.print("\n[bold blue]AIR Blackbox[/] -- Standards Crosswalk\n")
 
@@ -1452,7 +1643,9 @@ def standards(framework, lookup, fmt):
                 mapping = STANDARDS_CROSSWALK[cat]
                 console.print(f"    [green]>[/] [bold]{cat.replace('_', ' ').title()}[/]")
                 console.print(f"      EU: {mapping['eu_ai_act']}  |  ISO: {'; '.join(mapping['iso_42001'][:2])}")
-                console.print(f"      NIST: {'; '.join(mapping['nist_ai_rmf'])}  |  CO: {'; '.join(mapping.get('colorado_sb205', [])[:2])}")
+                console.print(
+                    f"      NIST: {'; '.join(mapping['nist_ai_rmf'])}  |  CO: {'; '.join(mapping.get('colorado_sb205', [])[:2])}"
+                )
                 console.print()
         else:
             console.print(f"    [yellow]No matching checks found for '{lookup}'[/]\n")
@@ -1507,8 +1700,7 @@ def standards(framework, lookup, fmt):
         return
 
     # Frameworks summary table
-    t = Table(title="Supported Compliance Frameworks",
-              show_header=True, header_style="bold white on dark_blue")
+    t = Table(title="Supported Compliance Frameworks", show_header=True, header_style="bold white on dark_blue")
     t.add_column("ID", style="bold", width=10)
     t.add_column("Framework", width=25)
     t.add_column("Categories Covered", justify="center", width=20)
@@ -1522,8 +1714,7 @@ def standards(framework, lookup, fmt):
     console.print()
 
     # Crosswalk overview table
-    t2 = Table(title="Standards Crosswalk",
-               show_header=True, header_style="bold white on dark_blue")
+    t2 = Table(title="Standards Crosswalk", show_header=True, header_style="bold white on dark_blue")
     t2.add_column("Category", style="bold", width=22)
     t2.add_column("EU AI Act", width=12)
     t2.add_column("ISO 42001", width=18)
@@ -1563,10 +1754,10 @@ def test(gateway, verbose):
         air-blackbox test -v           # Verbose output
         air-blackbox test --gateway http://localhost:8080  # Include gateway tests
     """
-    import time
     import json as jsonlib
-    import tempfile
     import os
+    import tempfile
+    import time
 
     console.print("\n[bold blue]AIR Blackbox[/] — Stack Validation Test\n")
 
@@ -1598,6 +1789,7 @@ def test(gateway, verbose):
     # ── Test 2: Validation engine ────────────────────────────────────
     def test_validation_engine():
         from air_blackbox.validate import RuntimeValidator, ToolAllowlistRule
+
         with tempfile.TemporaryDirectory() as tmpdir:
             v = RuntimeValidator(runs_dir=tmpdir)
             v.add_rule(ToolAllowlistRule(["web_search", "calculator"]))
@@ -1614,6 +1806,7 @@ def test(gateway, verbose):
     # ── Test 3: Content policy detection ─────────────────────────────
     def test_content_policy():
         from air_blackbox.validate import RuntimeValidator
+
         with tempfile.TemporaryDirectory() as tmpdir:
             v = RuntimeValidator(runs_dir=tmpdir)
             # Safe content should pass
@@ -1629,6 +1822,7 @@ def test(gateway, verbose):
     # ── Test 4: PII detection ────────────────────────────────────────
     def test_pii_detection():
         from air_blackbox.validate import RuntimeValidator
+
         with tempfile.TemporaryDirectory() as tmpdir:
             v = RuntimeValidator(runs_dir=tmpdir)
             # Content with PII should warn
@@ -1646,12 +1840,10 @@ def test(gateway, verbose):
     # ── Test 5: Hallucination guard ──────────────────────────────────
     def test_hallucination_guard():
         from air_blackbox.validate import RuntimeValidator
+
         with tempfile.TemporaryDirectory() as tmpdir:
             v = RuntimeValidator(runs_dir=tmpdir)
-            r = v.validate(
-                {"content": "Visit https://www.fake.com/api for more info"},
-                action_type="llm_response"
-            )
+            r = v.validate({"content": "Visit https://www.fake.com/api for more info"}, action_type="llm_response")
             hal_results = [x for x in r.results if x.rule_name == "hallucination_guard"]
             assert len(hal_results) > 0, "Hallucination rule should run"
             assert not hal_results[0].passed, "Fake URL should be flagged"
@@ -1662,6 +1854,7 @@ def test(gateway, verbose):
     # ── Test 6: Audit record write/read ──────────────────────────────
     def test_audit_records():
         from air_blackbox.validate import RuntimeValidator
+
         with tempfile.TemporaryDirectory() as tmpdir:
             v = RuntimeValidator(runs_dir=tmpdir)
             v.validate({"tool_name": "test_tool", "arguments": {}})
@@ -1683,11 +1876,16 @@ def test(gateway, verbose):
     def test_compliance_engine():
         from air_blackbox.compliance.engine import run_all_checks
         from air_blackbox.gateway_client import GatewayStatus
+
         status = GatewayStatus(
-            reachable=False, total_runs=5,
-            models_observed=["gpt-4o"], providers_observed=["openai"],
-            total_tokens=1000, date_range_start="2026-01-01", date_range_end="2026-03-13",
-            recent_runs=[{"run_id": "test-1", "model": "gpt-4o", "timestamp": "2026-03-13", "status": "success"}]
+            reachable=False,
+            total_runs=5,
+            models_observed=["gpt-4o"],
+            providers_observed=["openai"],
+            total_tokens=1000,
+            date_range_start="2026-01-01",
+            date_range_end="2026-03-13",
+            recent_runs=[{"run_id": "test-1", "model": "gpt-4o", "timestamp": "2026-03-13", "status": "success"}],
         )
         with tempfile.TemporaryDirectory() as tmpdir:
             articles, _, _ = run_all_checks(status, tmpdir)
@@ -1704,9 +1902,12 @@ def test(gateway, verbose):
     def test_aibom_generation():
         from air_blackbox.aibom.generator import generate_aibom
         from air_blackbox.gateway_client import GatewayStatus
+
         status = GatewayStatus(
-            total_runs=3, models_observed=["gpt-4o", "claude-3-opus"],
-            providers_observed=["openai", "anthropic"], total_tokens=5000,
+            total_runs=3,
+            models_observed=["gpt-4o", "claude-3-opus"],
+            providers_observed=["openai", "anthropic"],
+            total_tokens=5000,
         )
         bom = generate_aibom(status)
         assert bom.get("bomFormat") == "CycloneDX", "Should be CycloneDX format"
@@ -1719,15 +1920,21 @@ def test(gateway, verbose):
     # ── Test 9: Replay engine ────────────────────────────────────────
     def test_replay_engine():
         from air_blackbox.replay.engine import ReplayEngine
+
         with tempfile.TemporaryDirectory() as tmpdir:
             # Write a sample .air.json record
             sample = {
-                "version": "1.0.0", "run_id": "test-replay-1",
+                "version": "1.0.0",
+                "run_id": "test-replay-1",
                 "timestamp": "2026-03-13T10:00:00Z",
-                "model": "gpt-4o", "provider": "openai",
+                "model": "gpt-4o",
+                "provider": "openai",
                 "tokens": {"prompt": 100, "completion": 50, "total": 150},
-                "duration_ms": 234, "status": "success",
-                "tool_calls": ["web_search"], "pii_alerts": [], "injection_alerts": [],
+                "duration_ms": 234,
+                "status": "success",
+                "tool_calls": ["web_search"],
+                "pii_alerts": [],
+                "injection_alerts": [],
             }
             with open(os.path.join(tmpdir, "test-replay-1.air.json"), "w") as f:
                 jsonlib.dump(sample, f)
@@ -1746,10 +1953,13 @@ def test(gateway, verbose):
     def test_scanner_error_handling():
         """Verify scanner detects try/except around LLM calls."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         with tempfile.TemporaryDirectory() as tmpdir:
             # File WITH error handling
             with open(os.path.join(tmpdir, "good.py"), "w") as f:
-                f.write("from openai import OpenAI\nclient = OpenAI()\ntry:\n    client.chat.completions.create(model='gpt-4o')\nexcept Exception:\n    pass\n")
+                f.write(
+                    "from openai import OpenAI\nclient = OpenAI()\ntry:\n    client.chat.completions.create(model='gpt-4o')\nexcept Exception:\n    pass\n"
+                )
             findings = scan_codebase(tmpdir)
             eh = [f for f in findings if f.name == "LLM call error handling"]
             assert len(eh) == 1, "Should find error handling check"
@@ -1761,9 +1971,12 @@ def test(gateway, verbose):
     def test_scanner_no_error_handling():
         """Verify scanner catches missing error handling."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "bad.py"), "w") as f:
-                f.write("from openai import OpenAI\nclient = OpenAI()\nclient.chat.completions.create(model='gpt-4o')\n")
+                f.write(
+                    "from openai import OpenAI\nclient = OpenAI()\nclient.chat.completions.create(model='gpt-4o')\n"
+                )
             findings = scan_codebase(tmpdir)
             eh = [f for f in findings if f.name == "LLM call error handling"]
             assert len(eh) == 1, "Should find error handling check"
@@ -1775,16 +1988,21 @@ def test(gateway, verbose):
     def test_scanner_tracing_patterns():
         """Verify scanner detects modern tracing (instrumentation, event bus, OTel)."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "traced.py"), "w") as f:
-                f.write("from opentelemetry import trace\ntracer = trace.get_tracer(__name__)\nwith tracer.start_span('agent_call'):\n    pass\n")
+                f.write(
+                    "from opentelemetry import trace\ntracer = trace.get_tracer(__name__)\nwith tracer.start_span('agent_call'):\n    pass\n"
+                )
             findings = scan_codebase(tmpdir)
             tr = [f for f in findings if f.name == "Tracing / observability"]
             assert len(tr) == 1 and tr[0].status == "pass", "OTel tracing should pass"
         # Test instrumentation (LlamaIndex pattern)
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "instrumented.py"), "w") as f:
-                f.write("from llama_index.core.instrumentation import dispatcher\ndispatcher.add_event_handler(my_handler)\n")
+                f.write(
+                    "from llama_index.core.instrumentation import dispatcher\ndispatcher.add_event_handler(my_handler)\n"
+                )
             findings = scan_codebase(tmpdir)
             tr = [f for f in findings if f.name == "Tracing / observability"]
             assert len(tr) == 1 and tr[0].status == "pass", "Instrumentation pattern should pass"
@@ -1795,6 +2013,7 @@ def test(gateway, verbose):
     def test_scanner_hitl_patterns():
         """Verify scanner detects HITL patterns from multiple frameworks."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         patterns_to_test = [
             ("haystack_hitl.py", "confirmation_strategy = 'always_ask'\n"),
             ("crewai_hitl.py", "agent = Agent(allow_delegation=True)\n"),
@@ -1806,7 +2025,9 @@ def test(gateway, verbose):
                     f.write(content)
                 findings = scan_codebase(tmpdir)
                 hitl = [f for f in findings if f.name == "Human-in-the-loop patterns"]
-                assert len(hitl) == 1 and hitl[0].status == "pass", f"HITL should pass for {fname}, got {hitl[0].status if hitl else 'none'}"
+                assert len(hitl) == 1 and hitl[0].status == "pass", (
+                    f"HITL should pass for {fname}, got {hitl[0].status if hitl else 'none'}"
+                )
         return True, "Haystack, CrewAI, LangGraph HITL patterns all detected"
 
     _run_test("Scanner: HITL patterns (Haystack, CrewAI, LangGraph)", test_scanner_hitl_patterns)
@@ -1814,6 +2035,7 @@ def test(gateway, verbose):
     def test_scanner_injection_defense():
         """Verify scanner detects guardrail patterns from CrewAI and LlamaIndex."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "guarded.py"), "w") as f:
                 f.write("from crewai import Agent\nagent = Agent(hallucination_guardrail=True)\n")
@@ -1827,9 +2049,12 @@ def test(gateway, verbose):
     def test_scanner_output_validation():
         """Verify scanner detects CrewAI output_pydantic and expected_output."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "tasks.py"), "w") as f:
-                f.write("from crewai import Task\ntask = Task(description='Analyze', output_pydantic=AnalysisResult, expected_output='JSON report')\n")
+                f.write(
+                    "from crewai import Task\ntask = Task(description='Analyze', output_pydantic=AnalysisResult, expected_output='JSON report')\n"
+                )
             findings = scan_codebase(tmpdir)
             ov = [f for f in findings if f.name == "LLM output validation"]
             assert len(ov) == 1 and ov[0].status == "pass", "CrewAI output_pydantic should pass"
@@ -1840,9 +2065,12 @@ def test(gateway, verbose):
     def test_scanner_identity_binding():
         """Verify scanner detects CrewAI Fingerprint and Haystack memory patterns."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "identity.py"), "w") as f:
-                f.write("from crewai.utilities import Fingerprint\nagent_id = Fingerprint()\ncard = AgentCard(name='worker')\n")
+                f.write(
+                    "from crewai.utilities import Fingerprint\nagent_id = Fingerprint()\ncard = AgentCard(name='worker')\n"
+                )
             findings = scan_codebase(tmpdir)
             ib = [f for f in findings if f.name == "Agent-to-user identity binding"]
             assert len(ib) == 1 and ib[0].status == "pass", "CrewAI Fingerprint should pass"
@@ -1853,9 +2081,12 @@ def test(gateway, verbose):
     def test_scanner_audit_trail_events():
         """Verify scanner detects CrewAI event bus patterns."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "events.py"), "w") as f:
-                f.write("from crewai.utilities import agent_events, crew_events\ndef on_event(event): pass\nemit_event('task_completed', data)\n")
+                f.write(
+                    "from crewai.utilities import agent_events, crew_events\ndef on_event(event): pass\nemit_event('task_completed', data)\n"
+                )
             findings = scan_codebase(tmpdir)
             at = [f for f in findings if f.name == "Agent action audit trail"]
             assert len(at) == 1 and at[0].status == "pass", "CrewAI event bus should pass"
@@ -1866,13 +2097,18 @@ def test(gateway, verbose):
     def test_scanner_false_positive_pii():
         """Regression: 'private' alone should NOT trigger PII detection."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "normal.py"), "w") as f:
-                f.write("class MyClass:\n    def __init__(self):\n        self.private = True\n        self._private_method = lambda: None\n")
+                f.write(
+                    "class MyClass:\n    def __init__(self):\n        self.private = True\n        self._private_method = lambda: None\n"
+                )
             findings = scan_codebase(tmpdir)
             pii = [f for f in findings if f.name == "PII handling in code"]
             # Should NOT pass — 'private' alone is not PII handling
-            assert len(pii) == 1 and pii[0].status != "pass", f"Bare 'private' should not trigger PII pass, got {pii[0].status}"
+            assert len(pii) == 1 and pii[0].status != "pass", (
+                f"Bare 'private' should not trigger PII pass, got {pii[0].status}"
+            )
         return True, "False positive: bare 'private' correctly ignored"
 
     _run_test("Scanner: PII false positive regression", test_scanner_false_positive_pii)
@@ -1880,6 +2116,7 @@ def test(gateway, verbose):
     def test_scanner_skip_deprecated():
         """Verify scanner skips deprecated and archived directories."""
         from air_blackbox.compliance.code_scanner import scan_codebase
+
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create deprecated dir with Python files — should be skipped
             dep_dir = os.path.join(tmpdir, "deprecated")
@@ -1901,6 +2138,7 @@ def test(gateway, verbose):
         """Verify every check has a tier and gateway checks are labeled 'runtime'."""
         from air_blackbox.compliance.engine import run_all_checks
         from air_blackbox.gateway_client import GatewayStatus
+
         status = GatewayStatus(reachable=False, total_runs=0)
         with tempfile.TemporaryDirectory() as tmpdir:
             articles, _, _ = run_all_checks(status, tmpdir)
@@ -1921,20 +2159,27 @@ def test(gateway, verbose):
         """Verify known gateway-dependent checks are tier='runtime'."""
         from air_blackbox.compliance.engine import run_all_checks
         from air_blackbox.gateway_client import GatewayStatus
+
         status = GatewayStatus(reachable=False, total_runs=0)
         with tempfile.TemporaryDirectory() as tmpdir:
             articles, _, _ = run_all_checks(status, tmpdir)
             all_checks = {c["name"]: c for a in articles for c in a["checks"]}
             runtime_expected = [
-                "Risk mitigations active", "PII detection in prompts",
-                "Data vault (controlled storage)", "Runtime system inventory (AI-BOM data)",
-                "Automatic event logging", "Tamper-evident audit chain",
-                "Log detail and traceability", "Kill switch / stop mechanism",
+                "Risk mitigations active",
+                "PII detection in prompts",
+                "Data vault (controlled storage)",
+                "Runtime system inventory (AI-BOM data)",
+                "Automatic event logging",
+                "Tamper-evident audit chain",
+                "Log detail and traceability",
+                "Kill switch / stop mechanism",
                 "Prompt injection protection",
             ]
             for name in runtime_expected:
                 assert name in all_checks, f"Check '{name}' not found"
-                assert all_checks[name]["tier"] == "runtime", f"'{name}' should be runtime, got {all_checks[name]['tier']}"
+                assert all_checks[name]["tier"] == "runtime", (
+                    f"'{name}' should be runtime, got {all_checks[name]['tier']}"
+                )
             return True, f"All {len(runtime_expected)} gateway checks correctly labeled runtime"
 
     _run_test("Runtime checks correctly identified", test_runtime_checks_identified)
@@ -1942,6 +2187,7 @@ def test(gateway, verbose):
     def test_version_consistency():
         """Verify version is consistent across pyproject.toml, __init__.py, and cli."""
         import air_blackbox
+
         cli_version = "1.10.0"  # from @click.version_option
         init_version = air_blackbox.__version__
         assert init_version == cli_version, f"__init__ ({init_version}) != cli ({cli_version})"
@@ -1954,6 +2200,7 @@ def test(gateway, verbose):
 
     def test_gateway_health():
         from air_blackbox.gateway_client import GatewayClient
+
         client = GatewayClient(gateway_url=gateway)
         status = client.get_status()
         if status.reachable:
@@ -1965,12 +2212,16 @@ def test(gateway, verbose):
 
     def test_gateway_audit_endpoint():
         import httpx
+
         try:
             r = httpx.get(f"{gateway}/v1/audit", timeout=5.0)
             if r.status_code == 200:
                 data = r.json()
                 chain = data.get("audit_chain", {})
-                return True, f"Audit endpoint OK — chain length: {chain.get('length', 0)}, intact: {chain.get('intact', False)}"
+                return (
+                    True,
+                    f"Audit endpoint OK — chain length: {chain.get('length', 0)}, intact: {chain.get('intact', False)}",
+                )
             return False, f"Audit endpoint returned {r.status_code}"
         except Exception:
             return False, "Audit endpoint not reachable (gateway may not be running)"
@@ -1979,6 +2230,7 @@ def test(gateway, verbose):
 
     def test_gateway_proxy():
         import httpx
+
         try:
             r = httpx.get(f"{gateway}/v1/models", timeout=5.0)
             if r.status_code == 200:
@@ -2001,15 +2253,23 @@ def test(gateway, verbose):
 
     console.print()
     if failed == 0:
-        console.print(Panel(
-            f"[bold green]{passed}/{total}[/] tests passing in {elapsed}ms\n\n"
-            f"Your AIR Blackbox stack is healthy.",
-            title="[bold green]All Tests Passed[/]",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"[bold green]{passed}/{total}[/] tests passing in {elapsed}ms\n\nYour AIR Blackbox stack is healthy.",
+                title="[bold green]All Tests Passed[/]",
+                border_style="green",
+            )
+        )
     else:
         # Separate SDK failures from gateway failures (gateway not running is expected)
-        sdk_failures = [r for r in results if not r["passed"] and "Gateway" not in r["name"] and "audit endpoint" not in r["name"] and "Proxy" not in r["name"]]
+        sdk_failures = [
+            r
+            for r in results
+            if not r["passed"]
+            and "Gateway" not in r["name"]
+            and "audit endpoint" not in r["name"]
+            and "Proxy" not in r["name"]
+        ]
         gw_failures = [r for r in results if not r["passed"] and r not in sdk_failures]
 
         if sdk_failures:
@@ -2018,20 +2278,23 @@ def test(gateway, verbose):
                 lines += f"\n  [red]●[/] {r['name']}: {r['detail']}"
             console.print(Panel(lines, title="[bold red]Tests Failed[/]", border_style="red"))
         else:
-            console.print(Panel(
-                f"[bold green]{passed}/{total}[/] tests passing in {elapsed}ms\n\n"
-                f"SDK tests: [bold green]all passing[/]\n"
-                f"Gateway tests: [bold yellow]{len(gw_failures)} skipped[/] (gateway not running)\n\n"
-                f"[dim]Start gateway with: docker compose up[/]",
-                title="[bold green]SDK Tests Passed[/]",
-                border_style="green",
-            ))
+            console.print(
+                Panel(
+                    f"[bold green]{passed}/{total}[/] tests passing in {elapsed}ms\n\n"
+                    f"SDK tests: [bold green]all passing[/]\n"
+                    f"Gateway tests: [bold yellow]{len(gw_failures)} skipped[/] (gateway not running)\n\n"
+                    f"[dim]Start gateway with: docker compose up[/]",
+                    title="[bold green]SDK Tests Passed[/]",
+                    border_style="green",
+                )
+            )
     console.print()
 
 
 # ---------------------------------------------------------------------------
 # sign -- ML-DSA-65 quantum-safe signing
 # ---------------------------------------------------------------------------
+
 
 @main.command()
 @click.argument("file", required=False, type=click.Path())
@@ -2070,17 +2333,19 @@ def sign(file, keygen, force, key_dir, output):
         try:
             pk, _sk = km.generate(force=force)
             console.print()
-            console.print(Panel.fit(
-                f"[bold green]ML-DSA-65 key pair generated[/bold green]\n\n"
-                f"Algorithm:   FIPS 204 ML-DSA-65 (Dilithium3)\n"
-                f"Key ID:      {km.get_key_id()}\n"
-                f"Public key:  {km.public_key_path}\n"
-                f"Private key: {km.private_key_path}\n\n"
-                f"[dim]Your private key never leaves this machine.\n"
-                f"Next: air-blackbox sign <file> to sign evidence.[/dim]",
-                title="[bold cyan]Key Generation[/bold cyan]",
-                border_style="cyan",
-            ))
+            console.print(
+                Panel.fit(
+                    f"[bold green]ML-DSA-65 key pair generated[/bold green]\n\n"
+                    f"Algorithm:   FIPS 204 ML-DSA-65 (Dilithium3)\n"
+                    f"Key ID:      {km.get_key_id()}\n"
+                    f"Public key:  {km.public_key_path}\n"
+                    f"Private key: {km.private_key_path}\n\n"
+                    f"[dim]Your private key never leaves this machine.\n"
+                    f"Next: air-blackbox sign <file> to sign evidence.[/dim]",
+                    title="[bold cyan]Key Generation[/bold cyan]",
+                    border_style="cyan",
+                )
+            )
         except FileExistsError:
             console.print("[yellow]Keys already exist.[/yellow] Use --force to overwrite.")
             meta = km.get_metadata()
@@ -2120,34 +2385,36 @@ def sign(file, keygen, force, key_dir, output):
     else:
         sig_path = file_path.with_suffix(file_path.suffix + ".sig")
 
-    sig_path.write_text(
-        _json.dumps(envelope, indent=2), encoding="utf-8"
-    )
+    sig_path.write_text(_json.dumps(envelope, indent=2), encoding="utf-8")
 
     console.print()
-    console.print(Panel.fit(
-        f"[bold green]File signed successfully[/bold green]\n\n"
-        f"File:        {file_path}\n"
-        f"Signature:   {sig_path}\n"
-        f"Algorithm:   ML-DSA-65 (quantum-safe)\n"
-        f"Key ID:      {envelope['key_id']}\n"
-        f"SHA-256:     {envelope['data_sha256'][:32]}...\n"
-        f"Sig size:    {envelope['signature_size_bytes']} bytes\n\n"
-        f"[dim]Verify with: air-blackbox verify {file_path} {sig_path}[/dim]",
-        title="[bold cyan]Signed[/bold cyan]",
-        border_style="green",
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold green]File signed successfully[/bold green]\n\n"
+            f"File:        {file_path}\n"
+            f"Signature:   {sig_path}\n"
+            f"Algorithm:   ML-DSA-65 (quantum-safe)\n"
+            f"Key ID:      {envelope['key_id']}\n"
+            f"SHA-256:     {envelope['data_sha256'][:32]}...\n"
+            f"Sig size:    {envelope['signature_size_bytes']} bytes\n\n"
+            f"[dim]Verify with: air-blackbox verify {file_path} {sig_path}[/dim]",
+            title="[bold cyan]Signed[/bold cyan]",
+            border_style="green",
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
 # verify -- verify ML-DSA-65 signed evidence
 # ---------------------------------------------------------------------------
 
+
 @main.command()
 @click.argument("file", type=click.Path(exists=True))
 @click.argument("signature", type=click.Path(exists=True))
-@click.option("--public-key", default=None, type=click.Path(exists=True),
-              help="Path to public key file (default: uses local key)")
+@click.option(
+    "--public-key", default=None, type=click.Path(exists=True), help="Path to public key file (default: uses local key)"
+)
 @click.option("--key-dir", default=None, type=click.Path(), help="Custom key storage directory")
 @click.option("--json", "as_json", is_flag=True, help="Output result as JSON")
 def verify(file, signature, public_key, key_dir, as_json):
@@ -2207,38 +2474,39 @@ def verify(file, signature, public_key, key_dir, as_json):
     else:
         console.print()
         if result["verified"]:
-            console.print(Panel.fit(
-                f"[bold green]VERIFIED[/bold green] -- signature is valid\n\n"
-                f"File:      {file_path}\n"
-                f"Algorithm: {envelope.get('algorithm', 'unknown')}\n"
-                f"Key ID:    {envelope.get('key_id', 'unknown')}\n"
-                f"Signed at: {envelope.get('signed_at', 'unknown')}\n"
-                f"SHA-256:   {result['checks']['data_integrity']['actual'][:32]}...\n\n"
-                f"[green]All checks passed:[/green]\n"
-                f"  Algorithm:      {'PASS' if result['checks']['algorithm']['passed'] else 'FAIL'}\n"
-                f"  Data integrity: {'PASS' if result['checks']['data_integrity']['passed'] else 'FAIL'}\n"
-                f"  Signature:      {'PASS' if result['checks']['signature']['passed'] else 'FAIL'}",
-                title="[bold green]Verification Result[/bold green]",
-                border_style="green",
-            ))
+            console.print(
+                Panel.fit(
+                    f"[bold green]VERIFIED[/bold green] -- signature is valid\n\n"
+                    f"File:      {file_path}\n"
+                    f"Algorithm: {envelope.get('algorithm', 'unknown')}\n"
+                    f"Key ID:    {envelope.get('key_id', 'unknown')}\n"
+                    f"Signed at: {envelope.get('signed_at', 'unknown')}\n"
+                    f"SHA-256:   {result['checks']['data_integrity']['actual'][:32]}...\n\n"
+                    f"[green]All checks passed:[/green]\n"
+                    f"  Algorithm:      {'PASS' if result['checks']['algorithm']['passed'] else 'FAIL'}\n"
+                    f"  Data integrity: {'PASS' if result['checks']['data_integrity']['passed'] else 'FAIL'}\n"
+                    f"  Signature:      {'PASS' if result['checks']['signature']['passed'] else 'FAIL'}",
+                    title="[bold green]Verification Result[/bold green]",
+                    border_style="green",
+                )
+            )
         else:
-            failed_checks = [
-                name for name, check in result["checks"].items()
-                if not check["passed"]
-            ]
-            console.print(Panel.fit(
-                f"[bold red]FAILED[/bold red] -- signature verification failed\n\n"
-                f"File:      {file_path}\n"
-                f"Algorithm: {envelope.get('algorithm', 'unknown')}\n"
-                f"Key ID:    {envelope.get('key_id', 'unknown')}\n\n"
-                f"[red]Failed checks:[/red] {', '.join(failed_checks)}\n\n"
-                f"  Algorithm:      {'PASS' if result['checks']['algorithm']['passed'] else 'FAIL'}\n"
-                f"  Data integrity: {'PASS' if result['checks']['data_integrity']['passed'] else 'FAIL'}\n"
-                f"  Signature:      {'PASS' if result['checks']['signature']['passed'] else 'FAIL'}\n\n"
-                f"[dim]The file may have been modified since signing.[/dim]",
-                title="[bold red]Verification Result[/bold red]",
-                border_style="red",
-            ))
+            failed_checks = [name for name, check in result["checks"].items() if not check["passed"]]
+            console.print(
+                Panel.fit(
+                    f"[bold red]FAILED[/bold red] -- signature verification failed\n\n"
+                    f"File:      {file_path}\n"
+                    f"Algorithm: {envelope.get('algorithm', 'unknown')}\n"
+                    f"Key ID:    {envelope.get('key_id', 'unknown')}\n\n"
+                    f"[red]Failed checks:[/red] {', '.join(failed_checks)}\n\n"
+                    f"  Algorithm:      {'PASS' if result['checks']['algorithm']['passed'] else 'FAIL'}\n"
+                    f"  Data integrity: {'PASS' if result['checks']['data_integrity']['passed'] else 'FAIL'}\n"
+                    f"  Signature:      {'PASS' if result['checks']['signature']['passed'] else 'FAIL'}\n\n"
+                    f"[dim]The file may have been modified since signing.[/dim]",
+                    title="[bold red]Verification Result[/bold red]",
+                    border_style="red",
+                )
+            )
             raise SystemExit(1)
 
     if not result["verified"]:
@@ -2249,21 +2517,24 @@ def verify(file, signature, public_key, key_dir, as_json):
 # attest -- compliance oracle attestations
 # ---------------------------------------------------------------------------
 
+
 @main.command()
 @click.argument("action", type=click.Choice(["create", "list", "show", "badge", "publish"]), default="create")
-@click.option("--scan", default=".", type=click.Path(exists=True),
-              help="Path to scan for code-level checks (default: current dir)")
+@click.option(
+    "--scan",
+    default=".",
+    type=click.Path(exists=True),
+    help="Path to scan for code-level checks (default: current dir)",
+)
 @click.option("--name", default="", help="Human-readable name for the AI system")
 @click.option("--version", "sys_version", default="", help="Version string for the AI system")
-@click.option("--frameworks", default=None,
-              help="Compliance frameworks (eu,iso42001,nist,colorado). Default: all")
-@click.option("--key-dir", default=None, type=click.Path(),
-              help="Custom key storage directory")
-@click.option("--bundle", default=None, type=click.Path(exists=True),
-              help="Link attestation to an existing .air-evidence bundle")
+@click.option("--frameworks", default=None, help="Compliance frameworks (eu,iso42001,nist,colorado). Default: all")
+@click.option("--key-dir", default=None, type=click.Path(), help="Custom key storage directory")
+@click.option(
+    "--bundle", default=None, type=click.Path(exists=True), help="Link attestation to an existing .air-evidence bundle"
+)
 @click.option("--id", "att_id", default=None, help="Attestation ID (for show/badge)")
-@click.option("--output", "-o", default=None, type=click.Path(),
-              help="Save badge SVG to file (for badge action)")
+@click.option("--output", "-o", default=None, type=click.Path(), help="Save badge SVG to file (for badge action)")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.option("--publish", is_flag=True, help="Publish attestation to the public registry at airblackbox.ai")
 def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id, output, as_json, publish):
@@ -2289,14 +2560,14 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
         air-blackbox attest show --id air-att-2026-04-12-a7f3c2e1
         air-blackbox attest badge --id air-att-2026-04-12-a7f3c2e1 -o badge.svg
     """
-    import json as _json
     import hashlib as _hashlib
+    import json as _json
     from pathlib import Path as _Path
 
     try:
-        from air_blackbox.attestation.schema import AttestationRecord, SubjectInfo, ScanInfo, EvidenceInfo, CryptoInfo
-        from air_blackbox.attestation.registry import LocalRegistry
         from air_blackbox.attestation.badge import badge_for_attestation, badge_markdown
+        from air_blackbox.attestation.registry import LocalRegistry
+        from air_blackbox.attestation.schema import AttestationRecord, CryptoInfo, EvidenceInfo, ScanInfo, SubjectInfo
         from air_blackbox.evidence.keys import KeyManager
         from air_blackbox.evidence.signer import EvidenceSigner
     except ImportError as e:
@@ -2365,23 +2636,25 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
 
         s = record.scan
         console.print()
-        console.print(Panel.fit(
-            f"[bold cyan]{record.attestation_id}[/bold cyan]\n\n"
-            f"System:       {record.subject.system_name or '(unnamed)'}\n"
-            f"System hash:  {record.subject.system_hash[:32]}...\n"
-            f"Files:        {record.subject.files_scanned}\n"
-            f"Version:      {record.subject.system_version or '(none)'}\n\n"
-            f"Frameworks:   {', '.join(s.frameworks)}\n"
-            f"Checks:       {s.checks_passed} passed, {s.checks_warned} warned, {s.checks_failed} failed / {s.checks_total} total\n"
-            f"Risk:         {s.risk_classification or '(unclassified)'}\n"
-            f"Scanner:      {s.scanner_version}\n\n"
-            f"Signed:       {'Yes (ML-DSA-65)' if record.crypto.signature else 'No'}\n"
-            f"Key:          {record.crypto.public_key_fingerprint[:16]}...\n"
-            f"Created:      {record.created_at}\n"
-            f"Record hash:  {record.record_hash()[:32]}...",
-            title="[bold cyan]Attestation Details[/bold cyan]",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel.fit(
+                f"[bold cyan]{record.attestation_id}[/bold cyan]\n\n"
+                f"System:       {record.subject.system_name or '(unnamed)'}\n"
+                f"System hash:  {record.subject.system_hash[:32]}...\n"
+                f"Files:        {record.subject.files_scanned}\n"
+                f"Version:      {record.subject.system_version or '(none)'}\n\n"
+                f"Frameworks:   {', '.join(s.frameworks)}\n"
+                f"Checks:       {s.checks_passed} passed, {s.checks_warned} warned, {s.checks_failed} failed / {s.checks_total} total\n"
+                f"Risk:         {s.risk_classification or '(unclassified)'}\n"
+                f"Scanner:      {s.scanner_version}\n\n"
+                f"Signed:       {'Yes (ML-DSA-65)' if record.crypto.signature else 'No'}\n"
+                f"Key:          {record.crypto.public_key_fingerprint[:16]}...\n"
+                f"Created:      {record.created_at}\n"
+                f"Record hash:  {record.record_hash()[:32]}...",
+                title="[bold cyan]Attestation Details[/bold cyan]",
+                border_style="cyan",
+            )
+        )
         return
 
     # --- BADGE ---
@@ -2506,14 +2779,18 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
     try:
         from air_blackbox.compliance.engine import run_all_checks
         from air_blackbox.gateway_client import GatewayClient, GatewayStatus
+
         try:
             client = GatewayClient(gateway_url="http://localhost:8080", runs_dir="./runs")
             status = client.get_status()
         except Exception:
             status = GatewayStatus(
-                reachable=False, vault_enabled=False,
-                guardrails_enabled=False, trust_signing_key_set=False,
-                model_name="", provider=""
+                reachable=False,
+                vault_enabled=False,
+                guardrails_enabled=False,
+                trust_signing_key_set=False,
+                model_name="",
+                provider="",
             )
         compliance = run_all_checks(status, scan)
         if isinstance(compliance, list):
@@ -2640,17 +2917,19 @@ def attest(action, scan, name, sys_version, frameworks, key_dir, bundle, att_id,
         elif publish and not publish_ok:
             publish_line = "\n[yellow]Publish failed (saved locally)[/yellow]"
 
-        console.print(Panel.fit(
-            f"[bold green]Attestation created[/bold green]\n\n"
-            f"ID:          {record.attestation_id}\n"
-            f"System:      {name or system_hash[:16] + '...'}\n"
-            f"Frameworks:  {', '.join(fw_list)}\n"
-            f"Checks:      {checks_passed}/{checks_total} passed\n"
-            f"Signed:      ML-DSA-65 ({km.get_key_id()})\n"
-            f"Record hash: {record.record_hash()[:32]}...{publish_line}\n\n"
-            f"[dim]View:  air-blackbox attest show --id {record.attestation_id}[/dim]\n"
-            f"[dim]Badge: air-blackbox attest badge --id {record.attestation_id}[/dim]\n"
-            f"[dim]List:  air-blackbox attest list[/dim]",
-            title="[bold cyan]Compliance Oracle[/bold cyan]",
-            border_style="green",
-        ))
+        console.print(
+            Panel.fit(
+                f"[bold green]Attestation created[/bold green]\n\n"
+                f"ID:          {record.attestation_id}\n"
+                f"System:      {name or system_hash[:16] + '...'}\n"
+                f"Frameworks:  {', '.join(fw_list)}\n"
+                f"Checks:      {checks_passed}/{checks_total} passed\n"
+                f"Signed:      ML-DSA-65 ({km.get_key_id()})\n"
+                f"Record hash: {record.record_hash()[:32]}...{publish_line}\n\n"
+                f"[dim]View:  air-blackbox attest show --id {record.attestation_id}[/dim]\n"
+                f"[dim]Badge: air-blackbox attest badge --id {record.attestation_id}[/dim]\n"
+                f"[dim]List:  air-blackbox attest list[/dim]",
+                title="[bold cyan]Compliance Oracle[/bold cyan]",
+                border_style="green",
+            )
+        )

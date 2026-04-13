@@ -20,19 +20,21 @@ Or wrap at creation time:
 """
 
 import json
-import time
-import uuid
 import os
 import re
+import time
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 try:
     from google.adk import Agent  # noqa: F401
+
     HAS_ADK = True
 except ImportError:
     try:
         from google.genai.adk import Agent
+
         HAS_ADK = True
     except ImportError:
         HAS_ADK = False
@@ -40,21 +42,21 @@ except ImportError:
 
 # Simple PII patterns
 _PII_PATTERNS = [
-    (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 'email'),
-    (r'\b\d{3}-\d{2}-\d{4}\b', 'ssn'),
-    (r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b', 'phone'),
-    (r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', 'credit_card'),
+    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "email"),
+    (r"\b\d{3}-\d{2}-\d{4}\b", "ssn"),
+    (r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b", "phone"),
+    (r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", "credit_card"),
 ]
 
 # Simple injection patterns
 _INJECTION_PATTERNS = [
-    r'ignore (?:all )?previous instructions',
-    r'ignore (?:all )?above instructions',
-    r'disregard (?:all )?previous',
-    r'you are now',
-    r'system prompt:',
-    r'new instructions:',
-    r'override:',
+    r"ignore (?:all )?previous instructions",
+    r"ignore (?:all )?above instructions",
+    r"disregard (?:all )?previous",
+    r"you are now",
+    r"system prompt:",
+    r"new instructions:",
+    r"override:",
 ]
 
 
@@ -81,9 +83,7 @@ class AirADKTrust:
         print(f"Logged {trust.event_count} compliance events")
     """
 
-    def __init__(self, runs_dir: Optional[str] = None,
-                 detect_pii: bool = True,
-                 detect_injection: bool = True):
+    def __init__(self, runs_dir: Optional[str] = None, detect_pii: bool = True, detect_injection: bool = True):
         self.runs_dir = runs_dir or os.environ.get("RUNS_DIR", "./runs")
         self.detect_pii = detect_pii
         self.detect_injection = detect_injection
@@ -101,13 +101,19 @@ class AirADKTrust:
             AirADKAgentWrapper with compliance monitoring
         """
         wrapper = AirADKAgentWrapper(agent, self)
-        agent_name = getattr(agent, 'name', getattr(agent, '__class__', type(agent)).__name__)
+        agent_name = getattr(agent, "name", getattr(agent, "__class__", type(agent)).__name__)
         print(f"[AIR] Google ADK trust layer attached to '{agent_name}'. Events → {self.runs_dir}")
         return wrapper
 
-    def _log_invocation(self, agent_name: str, input_text: str,
-                        output_text: str, duration_ms: int,
-                        status: str = "success", error: str = "") -> None:
+    def _log_invocation(
+        self,
+        agent_name: str,
+        input_text: str,
+        output_text: str,
+        duration_ms: int,
+        status: str = "success",
+        error: str = "",
+    ) -> None:
         """Log an agent invocation."""
         self._turn_count += 1
 
@@ -146,9 +152,16 @@ class AirADKTrust:
         self._write_record(record)
         self._event_count += 1
 
-    def _log_tool_call(self, agent_name: str, tool_name: str,
-                       args: dict, result: Any, duration_ms: int,
-                       status: str = "success", error: str = "") -> None:
+    def _log_tool_call(
+        self,
+        agent_name: str,
+        tool_name: str,
+        args: dict,
+        result: Any,
+        duration_ms: int,
+        status: str = "success",
+        error: str = "",
+    ) -> None:
         """Log a tool/function call."""
         record = {
             "version": "1.0.0",
@@ -185,11 +198,13 @@ class AirADKTrust:
         for pattern, pii_type in _PII_PATTERNS:
             matches = re.findall(pattern, text)
             if matches:
-                alerts.append({
-                    "type": pii_type,
-                    "count": len(matches),
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                alerts.append(
+                    {
+                        "type": pii_type,
+                        "count": len(matches),
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
         return alerts
 
     def _scan_injection(self, text: str) -> List[Dict[str, Any]]:
@@ -197,10 +212,12 @@ class AirADKTrust:
         text_lower = text.lower()
         for pattern in _INJECTION_PATTERNS:
             if re.search(pattern, text_lower):
-                alerts.append({
-                    "pattern": pattern,
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                })
+                alerts.append(
+                    {
+                        "pattern": pattern,
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                    }
+                )
         return alerts
 
     # ── Record writing ──
@@ -208,8 +225,9 @@ class AirADKTrust:
     def _write_record(self, record: dict) -> None:
         """Write .air.json record with HMAC chain hash."""
         try:
-            if not hasattr(self, '_chain'):
+            if not hasattr(self, "_chain"):
                 from air_blackbox.trust.chain import AuditChain
+
                 self._chain = AuditChain(runs_dir=self.runs_dir)
             self._chain.write(record)
         except Exception:
@@ -245,21 +263,21 @@ class AirADKAgentWrapper:
     def __init__(self, agent, trust: AirADKTrust):
         self._agent = agent
         self._trust = trust
-        self._agent_name = getattr(agent, 'name', type(agent).__name__)
+        self._agent_name = getattr(agent, "name", type(agent).__name__)
 
         # Wrap tools if accessible
         self._wrap_tools()
 
     def _wrap_tools(self) -> None:
         """Wrap agent's tools with audit logging."""
-        tools = getattr(self._agent, 'tools', None)
+        tools = getattr(self._agent, "tools", None)
         if not tools:
             return
 
         for i, tool in enumerate(tools):
-            if hasattr(tool, 'func') and callable(tool.func):
+            if hasattr(tool, "func") and callable(tool.func):
                 original_func = tool.func
-                tool_name = getattr(tool, 'name', f'tool_{i}')
+                tool_name = getattr(tool, "name", f"tool_{i}")
                 trust = self._trust
                 agent_name = self._agent_name
 
@@ -289,6 +307,7 @@ class AirADKAgentWrapper:
                                 error=str(e),
                             )
                             raise
+
                     return wrapped
 
                 tool.func = make_wrapper(original_func, tool_name)
@@ -366,8 +385,7 @@ class AirADKAgentWrapper:
         return getattr(self._agent, name)
 
 
-def attach_trust(agent, gateway_url="http://localhost:8080",
-                 runs_dir=None, detect_pii=True, detect_injection=True):
+def attach_trust(agent, gateway_url="http://localhost:8080", runs_dir=None, detect_pii=True, detect_injection=True):
     """Attach AIR trust layer to a Google ADK agent.
 
     Args:
@@ -388,9 +406,7 @@ def attach_trust(agent, gateway_url="http://localhost:8080",
     return trust.wrap(agent)
 
 
-def air_adk_agent(agent, runs_dir: Optional[str] = None,
-                  detect_pii: bool = True,
-                  detect_injection: bool = True):
+def air_adk_agent(agent, runs_dir: Optional[str] = None, detect_pii: bool = True, detect_injection: bool = True):
     """Wrap a Google ADK agent with AIR trust layer.
 
     Usage:
@@ -400,6 +416,4 @@ def air_adk_agent(agent, runs_dir: Optional[str] = None,
         result = await agent.invoke("What is AI governance?")
         # Every call is automatically logged as .air.json
     """
-    return attach_trust(agent, runs_dir=runs_dir,
-                       detect_pii=detect_pii,
-                       detect_injection=detect_injection)
+    return attach_trust(agent, runs_dir=runs_dir, detect_pii=detect_pii, detect_injection=detect_injection)

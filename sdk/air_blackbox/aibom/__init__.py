@@ -4,8 +4,8 @@ Provides tools for generating and managing AI Bills of Materials
 with compliance documentation and shadow AI detection.
 """
 
-from .generator import AIBOMGenerator, AIBOMEntry
-from .shadow import ShadowAIDetector, ShadowAIFinding, RiskClassification
+from .generator import AIBOMEntry, AIBOMGenerator
+from .shadow import RiskClassification, ShadowAIDetector, ShadowAIFinding
 
 __all__ = [
     "AIBOMGenerator",

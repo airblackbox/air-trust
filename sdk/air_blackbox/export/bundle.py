@@ -5,21 +5,21 @@ Packages compliance scan + AI-BOM + audit chain + stats into
 one signed, verifiable JSON document for auditors and insurers.
 """
 
-import json
 import hashlib
 import hmac
+import json
 import os
 from datetime import datetime
 
-from air_blackbox.gateway_client import GatewayClient
-from air_blackbox.compliance.engine import run_all_checks
 from air_blackbox.aibom.generator import generate_aibom
+from air_blackbox.compliance.engine import run_all_checks
+from air_blackbox.gateway_client import GatewayClient
 from air_blackbox.replay.engine import ReplayEngine
 
 
-def generate_evidence_bundle(gateway_url="http://localhost:8080",
-                             runs_dir=None, scan_path=".",
-                             signing_key=None) -> dict:
+def generate_evidence_bundle(
+    gateway_url="http://localhost:8080", runs_dir=None, scan_path=".", signing_key=None
+) -> dict:
     """Generate a signed evidence bundle.
 
     Combines all AIR Blackbox data into one auditor-ready document.
@@ -28,6 +28,7 @@ def generate_evidence_bundle(gateway_url="http://localhost:8080",
     if not key:
         import secrets as _secrets
         import warnings
+
         key = _secrets.token_hex(32)
         warnings.warn(
             "TRUST_SIGNING_KEY not set. Using a random ephemeral key. "
@@ -75,7 +76,7 @@ def generate_evidence_bundle(gateway_url="http://localhost:8080",
                 "passing": sum(1 for a in compliance for c in a["checks"] if c["status"] == "pass"),
                 "warnings": sum(1 for a in compliance for c in a["checks"] if c["status"] == "warn"),
                 "failing": sum(1 for a in compliance for c in a["checks"] if c["status"] == "fail"),
-            }
+            },
         },
         "aibom": aibom,
         "audit_trail": {
@@ -92,7 +93,7 @@ def generate_evidence_bundle(gateway_url="http://localhost:8080",
                 "intact": chain.intact,
                 "records_verified": chain.verified_records,
                 "total_records": chain.total_records,
-            }
+            },
         },
     }
 
