@@ -115,7 +115,7 @@ AIR Blackbox is not one tool — it's a modular trust infrastructure stack. Each
 - 7 framework trust layers (LangChain, CrewAI, AutoGen, OpenAI, Google ADK, Haystack, Claude)
 - Pre-commit hooks for CI/CD integration
 
-**Current version:** v1.8.0 on PyPI
+**Current version:** v1.9.0 on PyPI
 
 **Repository:** [github.com/airblackbox/gateway](https://github.com/airblackbox/gateway) (sdk/ directory)
 
@@ -270,7 +270,7 @@ High-risk AI systems must have technical documentation (Art. 11) and record-keep
 | Package | Version | Purpose |
 |---|---|---|
 | [air-trust](https://pypi.org/project/air-trust/) | 0.6.1 | Runtime trust layer — HMAC chain + Ed25519 handoffs |
-| [air-blackbox](https://pypi.org/project/air-blackbox/) | 1.8.0 | Compliance scanner + trust layers |
+| [air-blackbox](https://pypi.org/project/air-blackbox/) | 1.9.0 | Compliance scanner + trust layers |
 | [air-compliance](https://pypi.org/project/air-compliance/) | — | CLI scanner |
 | [air-blackbox-sdk](https://pypi.org/project/air-blackbox-sdk/) | — | Python SDK |
 | [air-blackbox-mcp](https://pypi.org/project/air-blackbox-mcp/) | — | MCP server for AI editors |

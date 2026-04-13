@@ -52,8 +52,8 @@ Commit messages should be clear and descriptive. Reference issues when applicabl
 Clone the repository and install in development mode with all dependencies:
 
 ```bash
-git clone https://github.com/jasonjshotwell/air-blackbox.git
-cd air-blackbox
+git clone https://github.com/airblackbox/gateway.git
+cd gateway
 pip install -e ".[all]"
 ```
 
