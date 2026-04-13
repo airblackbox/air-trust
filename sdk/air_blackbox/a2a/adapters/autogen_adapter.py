@@ -1,10 +1,14 @@
 """
 AutoGen A2A Transaction Adapter.
 
-Wraps AutoGen agents' generate_reply method to record every message
-exchange as a signed A2A transaction. Also wraps tool/function calls.
+Wraps AutoGen agents to record every message exchange and tool call
+as signed A2A transactions. Supports both legacy pyautogen (v0.2.x with
+generate_reply) and modern autogen-agentchat (v0.4+ with on_messages).
+
+Version detection is automatic via duck typing.
 
 Usage:
+    # Legacy pyautogen
     from autogen import AssistantAgent, UserProxyAgent
     from air_blackbox.a2a.adapters.autogen_adapter import A2AAutoGenAdapter
 
@@ -17,9 +21,18 @@ Usage:
     adapter.wrap(assistant)
 
     user_proxy.initiate_chat(assistant, message="Hello")
+
+    # Modern autogen-agentchat
+    from autogen_agentchat.agents import AssistantAgent
+    from air_blackbox.a2a.adapters.autogen_adapter import A2AAutoGenAdapter
+
+    adapter = A2AAutoGenAdapter(
+        agent_id="autogen-assistant",
+        agent_name="AutoGen Assistant",
+    )
+    adapter.wrap(assistant)
 """
 
-import time
 from typing import Any, Dict, List, Optional
 
 from ..gateway import A2AGateway
@@ -28,8 +41,12 @@ from ..gateway import A2AGateway
 class A2AAutoGenAdapter:
     """Wraps AutoGen agent message processing for A2A transaction recording.
 
-    Replaces generate_reply and wraps function_map entries to record
-    every message and tool call as a signed transaction.
+    Supports both legacy pyautogen v0.2.x (with generate_reply) and
+    modern autogen-agentchat v0.4+ (with on_messages). Version detection
+    is automatic via hasattr checks.
+
+    For legacy agents: Wraps generate_reply and _function_map entries.
+    For modern agents: Wraps on_messages method.
 
     Args:
         agent_id: Unique identifier for this agent.
@@ -79,17 +96,40 @@ class A2AAutoGenAdapter:
     def wrap(self, agent: Any) -> Any:
         """Wrap an AutoGen agent with A2A transaction recording.
 
-        Replaces the agent's generate_reply method and wraps all
-        entries in _function_map.
+        Automatically detects the AutoGen version and applies appropriate
+        wrapping strategy:
+        - Legacy pyautogen v0.2.x: Wraps generate_reply and _function_map
+        - Modern autogen-agentchat v0.4+: Wraps on_messages
 
         Args:
             agent: An AutoGen agent (AssistantAgent, UserProxyAgent, etc.).
 
         Returns:
             The same agent with instrumented methods.
+
+        Raises:
+            ValueError: If the agent type is not supported.
         """
         agent_name = getattr(agent, "name", self.agent_name)
 
+        # Detect and delegate to appropriate wrapper
+        if hasattr(agent, "generate_reply"):
+            # Legacy pyautogen v0.2.x
+            self._wrap_legacy_autogen(agent, agent_name)
+        elif hasattr(agent, "on_messages"):
+            # Modern autogen-agentchat v0.4+
+            self._wrap_modern_autogen(agent, agent_name)
+        else:
+            raise ValueError(
+                f"Agent {agent_name} does not appear to be a supported AutoGen "
+                "agent. Expected either generate_reply (legacy pyautogen) or "
+                "on_messages (modern autogen-agentchat)."
+            )
+
+        return agent
+
+    def _wrap_legacy_autogen(self, agent: Any, agent_name: str) -> None:
+        """Wrap legacy pyautogen v0.2.x agents with generate_reply."""
         # Wrap generate_reply
         original_generate_reply = agent.generate_reply
 
@@ -120,11 +160,9 @@ class A2AAutoGenAdapter:
                 adapter._message_count += 1
 
             # Call original
-            start = time.time()
             result = original_generate_reply(
                 messages=messages, sender=sender, **kwargs
             )
-            duration_ms = int((time.time() - start) * 1000)
 
             # Record outgoing response
             if result is not None:
@@ -146,13 +184,57 @@ class A2AAutoGenAdapter:
 
         agent.generate_reply = instrumented_generate_reply
 
-        # Wrap function_map entries (tool calls)
+        # Wrap function_map entries (tool calls) if present
         function_map = getattr(agent, "_function_map", {})
-        for func_name, func in list(function_map.items()):
-            wrapped = self._wrap_function(func, func_name, agent_name)
-            function_map[func_name] = wrapped
+        if function_map:
+            for func_name, func in list(function_map.items()):
+                wrapped = self._wrap_function(func, func_name, agent_name)
+                function_map[func_name] = wrapped
 
-        return agent
+    def _wrap_modern_autogen(self, agent: Any, agent_name: str) -> None:
+        """Wrap modern autogen-agentchat v0.4+ agents with on_messages."""
+        original_on_messages = agent.on_messages
+
+        adapter = self  # capture reference for closure
+
+        def instrumented_on_messages(
+            messages: List[Any], cancellation_token: Optional[Any] = None
+        ) -> Any:
+            # Record incoming messages
+            for msg in messages:
+                msg_content = ""
+                if isinstance(msg, dict):
+                    msg_content = str(msg.get("content", ""))
+                else:
+                    msg_content = str(getattr(msg, "content", str(msg)))
+
+                adapter.gateway.receive(
+                    content=msg_content.encode("utf-8"),
+                    sender_id=f"autogen-{agent_name}",
+                    sender_name=agent_name,
+                    sender_framework="autogen-agentchat",
+                    message_type="request",
+                )
+                adapter._message_count += 1
+
+            # Call original
+            result = original_on_messages(messages, cancellation_token)
+
+            # Record outgoing response if it's a generator, consume it carefully
+            if result is not None:
+                result_text = str(result)[:500]
+                adapter.gateway.send(
+                    content=result_text.encode("utf-8"),
+                    receiver_id=f"autogen-{agent_name}",
+                    receiver_name=agent_name,
+                    receiver_framework="autogen-agentchat",
+                    message_type="response",
+                )
+                adapter._message_count += 1
+
+            return result
+
+        agent.on_messages = instrumented_on_messages
 
     def wrap_agents(self, agents: List[Any]) -> List[Any]:
         """Wrap multiple AutoGen agents.
@@ -170,7 +252,10 @@ class A2AAutoGenAdapter:
     def _wrap_function(
         self, func: Any, func_name: str, agent_name: str
     ) -> Any:
-        """Wrap a single function from the agent's function_map."""
+        """Wrap a single function from the agent's function_map.
+
+        Used only for legacy pyautogen v0.2.x agents.
+        """
         adapter = self
 
         def wrapped(*args: Any, **kwargs: Any) -> Any:
@@ -184,7 +269,6 @@ class A2AAutoGenAdapter:
             )
             adapter._tool_count += 1
 
-            start = time.time()
             try:
                 result = func(*args, **kwargs)
 

@@ -21,8 +21,7 @@ Usage:
 """
 
 import json
-import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..gateway import A2AGateway
 
@@ -96,9 +95,7 @@ class A2AOpenAIWrapper:
         )
 
         # Make the actual API call
-        start = time.time()
         response = self._client.chat.completions.create(**kwargs)
-        duration_ms = int((time.time() - start) * 1000)
 
         # Record the incoming response
         response_text = ""

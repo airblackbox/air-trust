@@ -32,9 +32,9 @@ Usage:
 """
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from .transaction import TransactionRecord, TransactionLedger
 

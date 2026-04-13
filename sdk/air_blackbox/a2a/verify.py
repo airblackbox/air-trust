@@ -17,11 +17,10 @@ Usage:
     print(report.summary())
 """
 
-import hashlib
 import json
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set
 
 from .transaction import TransactionLedger, TransactionRecord
 
@@ -142,7 +141,6 @@ def bilateral_verify(
     # Infer agent IDs from records if not provided
     if not agent_a_id and records_a:
         senders = {r.sender_id for r in records_a}
-        receivers = {r.receiver_id for r in records_a}
         # The agent that appears most as sender is likely the owner
         agent_a_id = max(senders, key=lambda s: sum(1 for r in records_a if r.sender_id == s))
     if not agent_b_id and records_b:

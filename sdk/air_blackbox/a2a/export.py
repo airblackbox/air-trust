@@ -28,15 +28,13 @@ Usage:
 
 import hashlib
 import json
-import os
 import zipfile
-from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .transaction import TransactionLedger, TransactionRecord
-from .verify import bilateral_verify, BilateralReport
+from .transaction import TransactionLedger
+from .verify import bilateral_verify
 
 
 # ---------------------------------------------------------------------------

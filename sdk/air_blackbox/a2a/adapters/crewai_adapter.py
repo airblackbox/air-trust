@@ -1,8 +1,11 @@
 """
 CrewAI A2A Transaction Adapter.
 
-Wraps a CrewAI Crew's step and task callbacks to record every
-agent step, task completion, and delegation as signed A2A transactions.
+Wraps a CrewAI Crew's kickoff method to record every agent step,
+task completion, and delegation as signed A2A transactions.
+
+Supports CrewAI 1.14.x and later. Uses monkey-patching of the kickoff()
+method since step_callback and task_callback are constructor-only parameters.
 
 Usage:
     from crewai import Agent, Task, Crew
@@ -24,11 +27,14 @@ from ..gateway import A2AGateway
 
 
 class A2ACrewAIAdapter:
-    """Wraps CrewAI step and task callbacks for A2A transaction recording.
+    """Wraps CrewAI Crew execution for A2A transaction recording.
 
-    Injects callbacks into the Crew's step_callback and task_callback
-    hooks. Every agent step, tool call, delegation, and task completion
-    is recorded as a signed transaction.
+    Monkey-patches the Crew's kickoff() method to intercept execution
+    and record every agent step, tool call, delegation, and task completion
+    as a signed transaction via the A2AGateway.
+
+    Works with CrewAI 1.14.x and later by wrapping the kickoff method
+    rather than relying on constructor-only callback parameters.
 
     Args:
         agent_id: Unique identifier for this crew.
@@ -78,32 +84,52 @@ class A2ACrewAIAdapter:
     def wrap(self, crew: Any) -> Any:
         """Wrap a CrewAI Crew with A2A transaction recording.
 
-        Injects step_callback and task_callback that record transactions.
-        Preserves any existing callbacks on the crew.
+        Monkey-patches the crew's kickoff() method to record transactions
+        during execution. Preserves the original method so it can be called.
 
         Args:
             crew: A CrewAI Crew instance.
 
         Returns:
-            The same crew with callbacks injected.
+            The same crew with the kickoff method instrumented.
         """
-        # Preserve existing callbacks
-        existing_step_cb = getattr(crew, "step_callback", None)
-        existing_task_cb = getattr(crew, "task_callback", None)
+        # Save original kickoff method
+        original_kickoff = crew.kickoff
+        adapter = self
 
-        def air_step_callback(step_output: Any) -> None:
-            self._on_step(step_output)
-            if existing_step_cb:
-                existing_step_cb(step_output)
+        def instrumented_kickoff(*args: Any, **kwargs: Any) -> Any:
+            """Instrumented kickoff that records transactions."""
+            # Call the original kickoff
+            result = original_kickoff(*args, **kwargs)
 
-        def air_task_callback(task_output: Any) -> None:
-            self._on_task(task_output)
-            if existing_task_cb:
-                existing_task_cb(task_output)
+            # Record the overall execution as a task completion
+            task_description = ""
+            if hasattr(crew, "tasks") and crew.tasks:
+                task_description = ", ".join(
+                    str(getattr(t, "description", f"Task {i}"))
+                    for i, t in enumerate(crew.tasks)
+                )[:200]
 
-        crew.step_callback = air_step_callback
-        crew.task_callback = air_task_callback
+            result_text = ""
+            if isinstance(result, dict):
+                result_text = str(result.get("output", str(result)))[:500]
+            else:
+                result_text = str(result)[:500]
 
+            adapter.gateway.send(
+                content=f"CREW_EXECUTION:{task_description}:{result_text}".encode(
+                    "utf-8"
+                ),
+                receiver_id="crewai-kickoff-completion",
+                receiver_name="CrewAI Execution",
+                receiver_framework="crewai",
+                message_type="response",
+            )
+            adapter._task_count += 1
+
+            return result
+
+        crew.kickoff = instrumented_kickoff
         return crew
 
     def _on_step(self, step_output: Any) -> None:

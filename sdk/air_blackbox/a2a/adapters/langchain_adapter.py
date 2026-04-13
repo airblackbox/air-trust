@@ -20,7 +20,7 @@ Usage:
 """
 
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from ..gateway import A2AGateway
 
@@ -106,8 +106,7 @@ class A2ALangChainHandler:
     def on_llm_end(self, response: Any, **kwargs: Any) -> None:
         """Called when an LLM call finishes. Records the response."""
         run_id = str(kwargs.get("run_id", ""))
-        start = self._start_times.pop(run_id, None)
-        duration_ms = int((time.time() - start) * 1000) if start else 0
+        self._start_times.pop(run_id, None)
 
         # Extract text from response
         text = ""
