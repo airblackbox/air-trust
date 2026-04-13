@@ -30,7 +30,7 @@ jobs:
           echo "❌ ${{ steps.compliance.outputs.failing }} failing"
           echo "Total: ${{ steps.compliance.outputs.total }} checks"
 
- trust-layer-tests:
+  trust-layer-tests:
     runs-on: ubuntu-latest
     name: Trust Layer + Audit Chain Tests
     steps:
