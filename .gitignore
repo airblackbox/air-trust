@@ -35,6 +35,9 @@ build/
 .pytest_cache/
 pytest-cache-files-*/
 
+# Build sdist extraction artifacts (never commit these)
+air_blackbox-*/
+
 # Model files (too large for git)
 model/*.gguf
 

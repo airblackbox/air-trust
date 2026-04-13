@@ -7,6 +7,7 @@ on:
       - "sdk/**"
       - "tests/**"
       - "pyproject.toml"
+      - "pytest.ini"
       - ".github/workflows/sdk-tests.yml"
   pull_request:
     branches: [main]
@@ -14,6 +15,7 @@ on:
       - "sdk/**"
       - "tests/**"
       - "pyproject.toml"
+      - "pytest.ini"
 
 permissions:
   contents: read
