@@ -61,6 +61,10 @@ def scan_codebase(scan_path: str) -> List[CodeFinding]:
     findings.extend(_check_action_audit_trail(file_contents, scan_path))
     findings.extend(_check_action_boundaries(file_contents, scan_path))
 
+    # === Agent Identity Binding (Articles 12 + 14, v1.11+) ===
+    # Inspired by NIST RFI Docket NIST-2025-0035 + botbotfromuk (GH gateway#<tbd>)
+    findings.extend(_check_agent_identity_binding(file_contents, scan_path))
+
     return findings
 
 
@@ -654,3 +658,107 @@ def _check_action_boundaries(file_contents: dict, scan_path: str) -> List[CodeFi
     return [CodeFinding(article=14, name="Agent action boundaries",
         status="warn", evidence="No action boundaries detected. Agent has unrestricted tool/action access.",
         fix_hint="Define allowed_tools or action boundaries to limit what the agent can do with delegated auth")]
+
+
+def _check_agent_identity_binding(file_contents: dict, scan_path: str) -> List[CodeFinding]:
+    """Check whether agents have stable cryptographic identity across sessions.
+
+    Maps to:
+      - EU AI Act Article 12 (tamper-evident record-keeping requires verifiable identity)
+      - EU AI Act Article 14 (human oversight requires knowing WHICH agent acted)
+      - NIST AI RMF GOVERN-1.5 (accountability chain)
+      - NIST RFI Docket NIST-2025-0035 (explicitly flags agent identity as a gap)
+
+    Triggers only for projects that look like autonomous agents (tick loops,
+    continuous decision loops, long-running agent processes). Static library
+    code won't get penalized.
+    """
+    # Detect whether this looks like an autonomous/continuous agent at all
+    agent_indicators = [
+        r"\bwhile\s+True\b",           # tick loop
+        r"\btick\s*[=(]", r"def\s+tick", r"run_tick",
+        r"agent_loop", r"decision_loop", r"run_forever",
+        r"autonomous", r"continuous_agent",
+        r"AgentExecutor\(", r"CrewAI\(",
+        r"schedule\.", r"cron\.",
+    ]
+    agent_combined = "|".join(agent_indicators)
+    agent_files = [fp for fp, content in file_contents.items()
+                   if re.search(agent_combined, content, re.IGNORECASE)]
+
+    if not agent_files:
+        # Not an autonomous-agent codebase. Skip with a pass — check doesn't apply.
+        return [CodeFinding(
+            article=12, name="Agent identity binding",
+            status="pass",
+            evidence="No autonomous agent / tick loop detected — identity binding not applicable",
+            detection="auto",
+        )]
+
+    # This IS an autonomous agent codebase — now check for stable identity
+    stable_identity_patterns = [
+        r"air_trust",                        # using AIR's identity system
+        r"AgentIdentity\(",                  # AIR's identity class
+        r"keygen\b.*agent",                  # generating stable agent keys
+        r"Ed25519.*agent", r"agent.*Ed25519",
+        r"stable_(?:key|identity|fingerprint)",
+        r"persistent_(?:key|identity)",
+        r"agent_urn", r"agent_fingerprint",
+        r"identity\.key", r"signing\.key",
+        r"load_identity", r"persist_identity",
+    ]
+    persistence_patterns = [
+        r"~/\.air-trust",                    # default AIR key location
+        r"~/\.ssh/.*agent", r"KEYRING",
+        r"os\.path\.expanduser.*key",
+        r"Path\.home\(\).*key",
+        r"keystore", r"key_store",
+    ]
+
+    identity_combined = "|".join(stable_identity_patterns)
+    persist_combined = "|".join(persistence_patterns)
+
+    has_identity = any(
+        re.search(identity_combined, content, re.IGNORECASE)
+        for content in file_contents.values()
+    )
+    has_persistence = any(
+        re.search(persist_combined, content)
+        for content in file_contents.values()
+    )
+
+    relevant_files = [_rel(f, scan_path) for f in agent_files[:3]]
+
+    if has_identity and has_persistence:
+        return [CodeFinding(
+            article=12, name="Agent identity binding",
+            status="pass",
+            evidence=f"Autonomous agent detected ({len(agent_files)} file(s)) with stable identity + key persistence",
+            detection="auto",
+        )]
+    if has_identity:
+        return [CodeFinding(
+            article=12, name="Agent identity binding",
+            status="warn",
+            evidence=f"Autonomous agent uses identity primitives but key persistence path unclear ({', '.join(relevant_files)})",
+            detection="auto",
+            fix_hint=(
+                "Persist the Ed25519 signing key across restarts at a stable path "
+                "(e.g., ~/.air-trust/keys/<agent>-ed25519.key) so tick N and tick N-1 are "
+                "cryptographically provable as the same agent"
+            ),
+        )]
+    return [CodeFinding(
+        article=12, name="Agent identity binding",
+        status="fail",
+        evidence=(
+            f"Autonomous agent detected in {len(agent_files)} file(s) ({', '.join(relevant_files)}) "
+            "but no stable cryptographic identity binding found"
+        ),
+        detection="auto",
+        fix_hint=(
+            "pip install air-blackbox and run: python3 -m air_trust keygen --agent <name>. "
+            "Wrap each tick's output through air_trust.trust(...) so every decision is signed "
+            "with the same stable key. Required for Article 12 traceability and NIST AI RMF GOVERN-1.5."
+        ),
+    )]

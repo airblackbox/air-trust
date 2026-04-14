@@ -554,6 +554,39 @@ def cmd_atf(args):
     return 1
 
 
+def cmd_agent_identity(args):
+    """Verify agent identity continuity across the audit chain."""
+    from air_trust.agent_identity import verify_identity, format_report
+
+    db_path = args.db
+    if not db_path:
+        db_path = str(Path.home() / ".air-trust" / "events.db")
+
+    if not Path(db_path).exists():
+        if args.json_output:
+            print(json.dumps({"error": f"Database not found at {db_path}"}))
+        else:
+            print(f"{RED}No chain database found at {db_path}{RESET}")
+        return 1
+
+    report = verify_identity(
+        db_path=db_path,
+        agent_name=args.agent,
+        max_gap_seconds=args.max_gap,
+    )
+
+    if args.json_output:
+        print(json.dumps(report.to_dict(), indent=2, default=str))
+    else:
+        print(format_report(report))
+
+    if report.verdict == "fail":
+        return 1
+    if report.verdict == "warn":
+        return 2
+    return 0
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -705,6 +738,29 @@ def main():
         help="Output format (default: text)",
     )
     atf_parser.set_defaults(func=cmd_atf)
+
+    # agent-identity command (v1.11+) — verify continuity across sessions
+    agent_id_parser = subparsers.add_parser(
+        "agent-identity",
+        help="Verify cryptographic identity continuity for an agent across the chain",
+    )
+    agent_id_parser.add_argument(
+        "--agent", type=str, default=None,
+        help="Restrict check to this agent_name (default: all agents in chain)",
+    )
+    agent_id_parser.add_argument(
+        "--db", type=str, default=None,
+        help="Path to events database (default: ~/.air-trust/events.db)",
+    )
+    agent_id_parser.add_argument(
+        "--max-gap", type=int, default=3600,
+        help="Timestamp gap (in seconds) above which a new session is inferred (default: 3600)",
+    )
+    agent_id_parser.add_argument(
+        "--json", dest="json_output", action="store_true", default=False,
+        help="Output as JSON (for CI/CD pipelines)",
+    )
+    agent_id_parser.set_defaults(func=cmd_agent_identity)
 
     # Parse arguments
     args = parser.parse_args()

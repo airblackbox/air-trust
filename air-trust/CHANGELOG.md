@@ -5,6 +5,29 @@ All notable changes to air-trust will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-04-13
+
+**Added**
+
+- **`agent-identity` CLI subcommand** — verify cryptographic identity continuity across the chain
+  - `python3 -m air_trust agent-identity --agent <name>` — verify a specific agent's records
+  - Ghost agent detection — flags same agent_name under multiple fingerprints
+  - Session segmentation with configurable `--max-gap` (default 3600 seconds)
+  - JSON output (`--json`) for CI/CD pipelines
+  - Exit codes: 0 pass, 2 warn, 1 fail
+- `air_trust.agent_identity` module — programmatic API for identity continuity checks
+  - `verify_identity(db_path, agent_name, max_gap_seconds)` → `IdentityReport`
+  - `format_report(report)` → human-readable string output
+- 6 new tests covering identity continuity, ghost detection, missing-agent handling, JSON serialization
+
+**Context**
+
+Addresses the agent identity gap highlighted in NIST RFI Docket NIST-2025-0035 and
+FINOS AIGF response #266. Answers three questions for autonomous agents:
+1. Is this the same agent instance across ticks?
+2. Is lineage verifiable after restart or fork?
+3. Are multiple "ghost" instances running unnoticed?
+
 ## [0.6.1] - 2026-04-10
 
 **Fixed**

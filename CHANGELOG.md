@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-04-13
+
+### Added
+- **Article 13 transparency scanner** (`air_blackbox.compliance.transparency_scanner`)
+  - 6 new checks: AI disclosure, capability documentation, instructions for use,
+    provider identity, output interpretation support, change logging and versioning
+  - Maps to EU AI Act Article 13 + Article 50 (interactive AI disclosure)
+  - Full coverage of EU AI Act Articles 9, 10, 11, 12, 13, 14, 15 (was 6 articles, now 7)
+- **Agent identity binding compliance check** in `code_scanner.py`
+  - Detects autonomous-agent patterns (tick loops, continuous decision loops)
+  - Flags missing stable cryptographic identity binding across sessions
+  - Maps to NIST RFI Docket NIST-2025-0035 agent identity gap and NIST AI RMF GOVERN-1.5
+- **`air-trust agent-identity` CLI subcommand** (`air_trust.agent_identity`)
+  - Verifies cryptographic identity continuity across the audit chain
+  - Ghost agent detection: flags same agent_name under multiple fingerprints
+  - Session segmentation based on configurable timestamp gaps (`--max-gap`)
+  - JSON output for CI/CD pipelines (`--json`)
+  - Exit codes: 0 pass, 2 warn, 1 fail
+- 25 new tests (19 transparency + agent-identity-binding, 6 air-trust agent-identity)
+
+### Community
+- Roadmap shaped by feedback from @botbotfromuk (HN Show HN thread) and FINOS AIGF
+  response to NIST RFI Docket NIST-2025-0035
+
 ## [1.10.0] - 2026-04-12
 
 ### Added

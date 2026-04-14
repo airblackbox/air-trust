@@ -116,6 +116,14 @@ def run_all_checks(status: GatewayStatus, scan_path: str = ".") -> list[dict]:
     except Exception:
         pass  # Graceful fallback if bias scanner has issues
 
+    # Run Article 13 transparency scan (v1.11+)
+    transparency_findings = []
+    try:
+        from air_blackbox.compliance.transparency_scanner import scan_transparency
+        transparency_findings = scan_transparency(scan_path)
+    except Exception:
+        pass  # Graceful fallback if transparency scanner has issues
+
     # Detect frameworks for smart trust layer recommendations
     detected = detect_frameworks(scan_path)
     rec_pkg = TRUST_LAYER_MAP.get(detected[0], "air-langchain-trust") if detected else "air-langchain-trust"
@@ -131,6 +139,7 @@ def run_all_checks(status: GatewayStatus, scan_path: str = ".") -> list[dict]:
         _check_article_10(status, doc_path, code_by_article.get(10, []), rec_pkg),
         _check_article_11(status, doc_path, code_by_article.get(11, []), rec_pkg),
         _check_article_12(status, doc_path, code_by_article.get(12, []), rec_pkg),
+        _check_article_13(transparency_findings),
         _check_article_14(status, doc_path, code_by_article.get(14, []), rec_pkg),
         _check_article_15(status, doc_path, code_by_article.get(15, []), rec_pkg),
     ]
@@ -490,6 +499,36 @@ def _check_article_12(status, scan_path, code_findings=None, rec_pkg="air-langch
     for f in (code_findings or []):
         result["checks"].append(_finding_to_dict(f))
     return result
+
+
+def _check_article_13(transparency_findings=None):
+    """Article 13 — Transparency and Provision of Information to Users.
+
+    All checks come from the transparency_scanner module. This function just
+    wraps the findings into the standard article result dict.
+    """
+    checks = []
+    if transparency_findings:
+        for f in transparency_findings:
+            checks.append({
+                "name": f.name,
+                "status": f.status,
+                "evidence": f.evidence,
+                "detection": f.detection,
+                "fix_hint": f.fix_hint,
+                "tier": "static",
+            })
+    else:
+        # Graceful fallback if transparency scanner failed to run
+        checks.append({
+            "name": "Transparency scan unavailable",
+            "status": "warn",
+            "evidence": "Transparency scanner did not produce findings",
+            "detection": "auto",
+            "fix_hint": "Update to the latest air-blackbox release",
+            "tier": "static",
+        })
+    return {"number": 13, "title": "Transparency and Provision of Information", "checks": checks}
 
 
 def _check_article_14(status, scan_path, code_findings=None, rec_pkg="air-langchain-trust"):
