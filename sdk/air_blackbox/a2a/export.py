@@ -160,7 +160,7 @@ def export_evidence_bundle(
             "bundle_version": "1.0",
             "created_at": timestamp.isoformat(),
             "system_name": system_name,
-            "scanner_version": "air-blackbox 1.10.0",
+            "scanner_version": "air-blackbox 1.11.1",
             "agents": agent_ids,
             "agent_count": len(agent_ids),
         }

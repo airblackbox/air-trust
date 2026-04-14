@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 2026-04-14
+
+### Added
+- **Multi-scheme agent identity detection** — the `agent-identity-binding` compliance
+  check now recognizes three identity schemes instead of one:
+  - `air-trust` — Ed25519 keygen + HMAC-SHA256 chain (this project)
+  - **AAR** — Agent Action Receipt per-action signing (`botindex-aar` npm / Python SDK)
+  - **SCC** — Session Continuity Certificate for session-level identity with Merkle
+    memory roots, capability hash lineage, and prior-session chaining
+    (`botindex-aar@1.1.0`+, co-designed in FINOS AIGF thread by botbotfromuk and
+    Cyberweasel777)
+- Evidence strings now list which schemes were detected (e.g., "air-trust, AAR, SCC")
+- Fix hints reference all three supported schemes so teams can pick what fits their stack
+- 5 new tests covering AAR detection, SCC detection, combined-scheme evidence,
+  multi-scheme fix hints, and SCC-schema-field-only detection
+
+### Fixed
+- Hardcoded `1.10.0` version string in CLI `--version` output, `a2a/export.py`
+  scanner version metadata, and self-audit version-consistency check
+
+### Context
+Positions AIR Blackbox as the EU AI Act compliance scanner that audits *all* major
+agent identity specs — not a competitor to them. Complements the co-design work
+around the FINOS AIGF response to NIST RFI Docket NIST-2025-0035.
+
 ## [1.11.0] - 2026-04-13
 
 ### Added

@@ -63,3 +63,86 @@ def run_tick():
         findings = _check_agent_identity_binding(_contents(tmp_path), str(tmp_path))
         assert findings[0].status == "warn"
         assert "persistence path unclear" in findings[0].evidence
+
+
+class TestSCCAARDetection:
+    """v1.11.1+: detect botindex-aar (AAR) and Session Continuity Certificate (SCC)."""
+
+    def test_aar_with_persistence_passes(self, tmp_path):
+        _write(tmp_path, "agent.py", """
+from botindex_aar import AgentActionReceipt, createAndSignAAR
+from pathlib import Path
+
+def tick():
+    key_path = Path.home() / ".aar" / "keys" / "botbotfromuk.key"
+    while True:
+        receipt = createAndSignAAR(action="decide", previousReceiptHash="abc")
+""")
+        findings = _check_agent_identity_binding(_contents(tmp_path), str(tmp_path))
+        assert findings[0].status == "pass"
+        assert "AAR" in findings[0].evidence
+
+    def test_scc_with_persistence_passes(self, tmp_path):
+        _write(tmp_path, "agent.py", """
+from botindex_aar import createAndSignSCC, validateSCCChain, detectCapabilityDrift
+from pathlib import Path
+
+def run_tick():
+    scc_path = Path.home() / ".scc" / "session.key"
+    while True:
+        scc = createAndSignSCC(
+            prior_session_hash="beef",
+            memory_root="cafe",
+            capability_hash="dead",
+        )
+""")
+        findings = _check_agent_identity_binding(_contents(tmp_path), str(tmp_path))
+        assert findings[0].status == "pass"
+        assert "SCC" in findings[0].evidence
+
+    def test_both_schemes_listed_in_evidence(self, tmp_path):
+        _write(tmp_path, "agent.py", """
+import air_trust
+from botindex_aar import AgentActionReceipt, createAndSignSCC
+from pathlib import Path
+
+def tick():
+    key = Path.home() / ".air-trust" / "keys" / "agent.key"
+    while True:
+        pass
+""")
+        findings = _check_agent_identity_binding(_contents(tmp_path), str(tmp_path))
+        evidence = findings[0].evidence
+        assert findings[0].status == "pass"
+        assert "air-trust" in evidence
+        assert "AAR" in evidence
+        assert "SCC" in evidence
+
+    def test_fail_message_references_all_three_schemes(self, tmp_path):
+        _write(tmp_path, "agent.py", """
+def tick():
+    while True:
+        do_stuff()
+""")
+        findings = _check_agent_identity_binding(_contents(tmp_path), str(tmp_path))
+        assert findings[0].status == "fail"
+        fix_hint = findings[0].fix_hint
+        assert "air-trust" in fix_hint
+        assert "AAR" in fix_hint
+        assert "SCC" in fix_hint
+
+    def test_scc_schema_fields_alone_trigger_detection(self, tmp_path):
+        # Even without imports — field names like memory_root are a strong signal
+        _write(tmp_path, "agent.py", """
+def tick():
+    while True:
+        cert = {
+            "prior_session_hash": "abc",
+            "memory_root": "def",
+            "capability_hash": "ghi",
+        }
+""")
+        # No persistence patterns -> should warn (not fail)
+        findings = _check_agent_identity_binding(_contents(tmp_path), str(tmp_path))
+        assert findings[0].status == "warn"
+        assert "SCC" in findings[0].evidence

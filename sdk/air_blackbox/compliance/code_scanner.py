@@ -663,11 +663,17 @@ def _check_action_boundaries(file_contents: dict, scan_path: str) -> List[CodeFi
 def _check_agent_identity_binding(file_contents: dict, scan_path: str) -> List[CodeFinding]:
     """Check whether agents have stable cryptographic identity across sessions.
 
+    Detects three families of agent identity implementations:
+      1. air-trust (Ed25519 agent keys + HMAC chain, this project)
+      2. AAR — Agent Action Receipt (botindex-aar npm / Python SDK, per-action signing)
+      3. SCC — Session Continuity Certificate (botindex-aar@1.1.0+, session-level identity)
+
     Maps to:
       - EU AI Act Article 12 (tamper-evident record-keeping requires verifiable identity)
       - EU AI Act Article 14 (human oversight requires knowing WHICH agent acted)
       - NIST AI RMF GOVERN-1.5 (accountability chain)
       - NIST RFI Docket NIST-2025-0035 (explicitly flags agent identity as a gap)
+      - FINOS AIGF response to NIST RFI (co-designed with botbotfromuk + Cyberweasel777)
 
     Triggers only for projects that look like autonomous agents (tick loops,
     continuous decision loops, long-running agent processes). Static library
@@ -695,9 +701,9 @@ def _check_agent_identity_binding(file_contents: dict, scan_path: str) -> List[C
             detection="auto",
         )]
 
-    # This IS an autonomous agent codebase — now check for stable identity
-    stable_identity_patterns = [
-        r"air_trust",                        # using AIR's identity system
+    # --- air-trust identity patterns (AIR's own system) ---
+    air_trust_patterns = [
+        r"air_trust\b", r"from\s+air_trust", r"import\s+air_trust",
         r"AgentIdentity\(",                  # AIR's identity class
         r"keygen\b.*agent",                  # generating stable agent keys
         r"Ed25519.*agent", r"agent.*Ed25519",
@@ -707,45 +713,88 @@ def _check_agent_identity_binding(file_contents: dict, scan_path: str) -> List[C
         r"identity\.key", r"signing\.key",
         r"load_identity", r"persist_identity",
     ]
+
+    # --- AAR (Agent Action Receipt) patterns from botindex-aar / spec ---
+    aar_patterns = [
+        r"botindex[-_]aar",                  # npm or Python package
+        r"agent[-_]action[-_]receipt",       # spec name
+        r"AgentActionReceipt",               # TS/Python class
+        r"createAndSignAAR", r"verifyReceipt", r"verifyAAR",
+        r"previousReceiptHash",              # AAR chain field
+        r"receipt_hash", r"receiptHash",
+    ]
+
+    # --- SCC (Session Continuity Certificate) patterns from botindex-aar@1.1.0+ ---
+    scc_patterns = [
+        r"SessionContinuityCertificate", r"session_continuity",
+        r"createAndSignSCC", r"validateSCCChain", r"verifySCC",
+        r"detectCapabilityDrift", r"detectMemoryDrift",
+        r"prior_session_(?:id|hash)", r"priorSession(?:Id|Hash)",
+        r"memory_root", r"memoryRoot",       # Merkle root over memory state
+        r"capability_hash", r"capabilityHash",
+        r"generateMerkleProof", r"verifyMerkleProof",
+    ]
+
+    # --- Stable key persistence patterns (any scheme) ---
     persistence_patterns = [
         r"~/\.air-trust",                    # default AIR key location
         r"~/\.ssh/.*agent", r"KEYRING",
         r"os\.path\.expanduser.*key",
         r"Path\.home\(\).*key",
         r"keystore", r"key_store",
+        r"~/\.aar", r"~/\.scc",              # AAR/SCC default key dirs
+        r"agent[-_]key(?:s)?/.*\.key",
     ]
 
-    identity_combined = "|".join(stable_identity_patterns)
-    persist_combined = "|".join(persistence_patterns)
+    def _any_match(patterns, ignore_case=True):
+        """Return True if any file content matches any pattern in the list."""
+        combined = "|".join(patterns)
+        flags = re.IGNORECASE if ignore_case else 0
+        return any(re.search(combined, content, flags)
+                   for content in file_contents.values())
 
-    has_identity = any(
-        re.search(identity_combined, content, re.IGNORECASE)
-        for content in file_contents.values()
-    )
-    has_persistence = any(
-        re.search(persist_combined, content)
-        for content in file_contents.values()
-    )
+    has_air_trust = _any_match(air_trust_patterns)
+    has_aar = _any_match(aar_patterns)
+    has_scc = _any_match(scc_patterns)
+    has_persistence = _any_match(persistence_patterns, ignore_case=False)
+    has_any_identity = has_air_trust or has_aar or has_scc
+
+    # Name the systems in use (for evidence strings)
+    schemes_detected = []
+    if has_air_trust:
+        schemes_detected.append("air-trust")
+    if has_aar:
+        schemes_detected.append("AAR")
+    if has_scc:
+        schemes_detected.append("SCC")
+    schemes_str = ", ".join(schemes_detected) if schemes_detected else "none"
 
     relevant_files = [_rel(f, scan_path) for f in agent_files[:3]]
 
-    if has_identity and has_persistence:
+    if has_any_identity and has_persistence:
         return [CodeFinding(
             article=12, name="Agent identity binding",
             status="pass",
-            evidence=f"Autonomous agent detected ({len(agent_files)} file(s)) with stable identity + key persistence",
+            evidence=(
+                f"Autonomous agent detected ({len(agent_files)} file(s)) "
+                f"with stable identity + key persistence. Schemes: {schemes_str}"
+            ),
             detection="auto",
         )]
-    if has_identity:
+    if has_any_identity:
         return [CodeFinding(
             article=12, name="Agent identity binding",
             status="warn",
-            evidence=f"Autonomous agent uses identity primitives but key persistence path unclear ({', '.join(relevant_files)})",
+            evidence=(
+                f"Autonomous agent uses identity primitives ({schemes_str}) "
+                f"but key persistence path unclear ({', '.join(relevant_files)})"
+            ),
             detection="auto",
             fix_hint=(
-                "Persist the Ed25519 signing key across restarts at a stable path "
-                "(e.g., ~/.air-trust/keys/<agent>-ed25519.key) so tick N and tick N-1 are "
-                "cryptographically provable as the same agent"
+                "Persist the signing key across restarts at a stable path "
+                "(e.g., ~/.air-trust/keys/<agent>-ed25519.key for air-trust, "
+                "or ~/.aar/keys/<agent>.key for AAR/SCC) so tick N and tick N-1 "
+                "are cryptographically provable as the same agent."
             ),
         )]
     return [CodeFinding(
@@ -753,12 +802,15 @@ def _check_agent_identity_binding(file_contents: dict, scan_path: str) -> List[C
         status="fail",
         evidence=(
             f"Autonomous agent detected in {len(agent_files)} file(s) ({', '.join(relevant_files)}) "
-            "but no stable cryptographic identity binding found"
+            "but no stable cryptographic identity binding found. "
+            "Checked for: air-trust, AAR (Agent Action Receipt), SCC (Session Continuity Certificate)."
         ),
         detection="auto",
         fix_hint=(
-            "pip install air-blackbox and run: python3 -m air_trust keygen --agent <name>. "
-            "Wrap each tick's output through air_trust.trust(...) so every decision is signed "
-            "with the same stable key. Required for Article 12 traceability and NIST AI RMF GOVERN-1.5."
+            "Adopt one of the supported identity schemes:\n"
+            "  - air-trust: pip install air-blackbox && python3 -m air_trust keygen --agent <name>\n"
+            "  - AAR (botindex-aar): Ed25519-signed per-action receipts (see agent-action-receipt-spec)\n"
+            "  - SCC (botindex-aar@1.1.0+): session-level identity continuity with Merkle memory roots\n"
+            "Required for Article 12 traceability and NIST AI RMF GOVERN-1.5."
         ),
     )]
