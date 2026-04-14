@@ -13,7 +13,7 @@ ML-DSA-65 quantum-safe signing. Tamper-evident audit chains.
     air-blackbox replay      # Incident reconstruction from audit chain
 """
 
-__version__ = "1.11.2"
+__version__ = "1.12.0"
 __all__ = ["AirBlackbox", "AirTrust"]
 
 

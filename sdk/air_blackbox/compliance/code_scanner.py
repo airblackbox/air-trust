@@ -65,6 +65,13 @@ def scan_codebase(scan_path: str) -> List[CodeFinding]:
     # Inspired by NIST RFI Docket NIST-2025-0035 + botbotfromuk (GH gateway#<tbd>)
     findings.extend(_check_agent_identity_binding(file_contents, scan_path))
 
+    # === Hardware Determinism (Article 15, v1.12+) ===
+    # SR 11-7 model validation requires reproducibility. Non-deterministic
+    # outputs across GPU types is a documented Article 15 robustness failure.
+    findings.extend(_check_deterministic_seeds(file_contents, scan_path))
+    findings.extend(_check_deterministic_algorithms(file_contents, scan_path))
+    findings.extend(_check_hardware_abstraction(file_contents, scan_path))
+
     return findings
 
 
@@ -812,5 +819,361 @@ def _check_agent_identity_binding(file_contents: dict, scan_path: str) -> List[C
             "  - AAR (botindex-aar): Ed25519-signed per-action receipts (see agent-action-receipt-spec)\n"
             "  - SCC (botindex-aar@1.1.0+): session-level identity continuity with Merkle memory roots\n"
             "Required for Article 12 traceability and NIST AI RMF GOVERN-1.5."
+        ),
+    )]
+
+
+# =============================================================================
+# Hardware Determinism Checks (Article 15 — Accuracy, Robustness, Cybersecurity)
+# Added in v1.12.0
+#
+# Context:
+#   - EU AI Act Article 15 requires consistent behavior across deployment environments
+#   - SR 11-7 model validation requires reproducible outputs
+#   - PyTorch reproducibility docs: https://docs.pytorch.org/docs/stable/notes/randomness.html
+#   - ISO 42001 Annex A.10.3 requires operational control of ML systems
+#
+# The three checks below each address one class of hardware-induced non-determinism:
+#   1. Seed setting (RNG state)
+#   2. Deterministic algorithm flags (cuDNN, CUDA, TF ops)
+#   3. Hardware abstraction (hardcoded device strings without fallback)
+# =============================================================================
+
+
+# Patterns used by multiple checks
+_ML_FRAMEWORK_INDICATORS = [
+    r"\bimport\s+torch\b", r"\bfrom\s+torch\b",
+    r"\bimport\s+tensorflow\b", r"\bfrom\s+tensorflow\b",
+    r"\bimport\s+tf\b", r"\bas\s+tf\b",
+    r"\bimport\s+jax\b", r"\bfrom\s+jax\b",
+]
+
+
+def _is_ml_codebase(file_contents: dict) -> bool:
+    """Return True if the codebase uses an ML framework where determinism matters."""
+    combined = "|".join(_ML_FRAMEWORK_INDICATORS)
+    return any(re.search(combined, content) for content in file_contents.values())
+
+
+def _check_deterministic_seeds(file_contents: dict, scan_path: str) -> List[CodeFinding]:
+    """Check for RNG seed setting across Python, NumPy, PyTorch, and TensorFlow.
+
+    Per PyTorch reproducibility docs, reproducible runs require seeds set for:
+      - Python's random module
+      - NumPy's RNG
+      - PyTorch CPU + CUDA generators
+      - TensorFlow global seed
+
+    Missing any of these can cause different outputs across runs/hardware.
+    """
+    if not _is_ml_codebase(file_contents):
+        return [CodeFinding(
+            article=15, name="RNG seed determinism",
+            status="pass",
+            evidence="No ML framework detected — determinism check not applicable",
+            detection="auto",
+        )]
+
+    # Source files only (tests legitimately use randomness without seeds)
+    source_files = _source_files_only(file_contents)
+
+    seed_patterns = {
+        "python_random": [r"random\.seed\s*\(", r"seed\s*=\s*\d+"],
+        "numpy": [r"np\.random\.seed\s*\(", r"numpy\.random\.seed\s*\(",
+                  r"np\.random\.default_rng\s*\(\s*\d", r"np\.random\.Generator\("],
+        "torch_cpu": [r"torch\.manual_seed\s*\("],
+        "torch_cuda": [r"torch\.cuda\.manual_seed(?:_all)?\s*\("],
+        "tf_global": [r"tf\.random\.set_seed\s*\(", r"tensorflow\.random\.set_seed\s*\("],
+        "jax": [r"jax\.random\.PRNGKey\s*\(", r"random\.PRNGKey\s*\("],
+    }
+
+    seeds_found = {}
+    files_with_seeds = set()
+    for fp, content in source_files.items():
+        for rng_name, patterns in seed_patterns.items():
+            combined = "|".join(patterns)
+            if re.search(combined, content):
+                seeds_found.setdefault(rng_name, []).append(_rel(fp, scan_path))
+                files_with_seeds.add(fp)
+
+    # Determine which frameworks are present to know what seeds are expected
+    using_torch = any(re.search(r"\bimport\s+torch\b|\bfrom\s+torch\b", c)
+                      for c in source_files.values())
+    using_tf = any(re.search(r"\bimport\s+tensorflow\b|\bas\s+tf\b", c)
+                   for c in source_files.values())
+    using_jax = any(re.search(r"\bimport\s+jax\b|\bfrom\s+jax\b", c)
+                    for c in source_files.values())
+    using_numpy = any(re.search(r"\bimport\s+numpy\b|\bimport\s+numpy\s+as\s+np\b", c)
+                      for c in source_files.values())
+
+    required_seeds = set()
+    if using_torch:
+        required_seeds.add("torch_cpu")
+    if using_tf:
+        required_seeds.add("tf_global")
+    if using_jax:
+        required_seeds.add("jax")
+    if using_numpy:
+        required_seeds.add("numpy")
+
+    if not required_seeds:
+        return [CodeFinding(
+            article=15, name="RNG seed determinism",
+            status="pass",
+            evidence="No stochastic ML framework operations detected",
+            detection="auto",
+        )]
+
+    missing = required_seeds - set(seeds_found.keys())
+
+    if not missing:
+        return [CodeFinding(
+            article=15, name="RNG seed determinism",
+            status="pass",
+            evidence=f"Seeds set for all detected frameworks: {', '.join(sorted(seeds_found.keys()))}",
+            detection="auto",
+        )]
+
+    # Partial coverage -> warn. No seeds at all -> fail.
+    if seeds_found:
+        return [CodeFinding(
+            article=15, name="RNG seed determinism",
+            status="warn",
+            evidence=(
+                f"Seeds found for {', '.join(sorted(seeds_found.keys()))} "
+                f"but missing: {', '.join(sorted(missing))}"
+            ),
+            detection="auto",
+            fix_hint=(
+                "Set seeds for ALL RNG sources before stochastic operations. "
+                "For PyTorch: torch.manual_seed(seed); torch.cuda.manual_seed_all(seed). "
+                "For TensorFlow: tf.random.set_seed(seed). "
+                "Missing any one can cause different outputs across runs."
+            ),
+        )]
+    return [CodeFinding(
+        article=15, name="RNG seed determinism",
+        status="fail",
+        evidence=(
+            f"ML framework detected ({', '.join(sorted(required_seeds))}) but no RNG seeds set. "
+            "Outputs will vary across runs, preventing SR 11-7 validation and Article 15 robustness."
+        ),
+        detection="auto",
+        fix_hint=(
+            "Add seed setting at the top of your entrypoint:\n"
+            "  import random, numpy as np, torch\n"
+            "  SEED = 42\n"
+            "  random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)\n"
+            "  if torch.cuda.is_available(): torch.cuda.manual_seed_all(SEED)"
+        ),
+    )]
+
+
+def _check_deterministic_algorithms(file_contents: dict, scan_path: str) -> List[CodeFinding]:
+    """Check for framework-level deterministic algorithm flags.
+
+    Seeds alone are insufficient. cuDNN, CUDA, and TF op libraries pick
+    non-deterministic kernels by default for performance. The flags below
+    force deterministic implementations.
+
+    PyTorch: torch.use_deterministic_algorithms(True)
+             torch.backends.cudnn.deterministic = True
+             torch.backends.cudnn.benchmark = False
+             CUBLAS_WORKSPACE_CONFIG=":4096:8" env var
+    TensorFlow: tf.config.experimental.enable_op_determinism()
+                TF_DETERMINISTIC_OPS=1 env var
+    """
+    if not _is_ml_codebase(file_contents):
+        return [CodeFinding(
+            article=15, name="Deterministic algorithm flags",
+            status="pass",
+            evidence="No ML framework detected — check not applicable",
+            detection="auto",
+        )]
+
+    source_files = _source_files_only(file_contents)
+
+    # Look across code AND config files (YAML, env files, Dockerfile)
+    all_files = file_contents.copy()
+    try:
+        for root, dirs, files in os.walk(scan_path):
+            dirs[:] = [d for d in dirs if d not in {
+                "__pycache__", ".git", "node_modules", ".venv", "venv", "dist", "build",
+            }]
+            for fname in files:
+                if fname.endswith((".yaml", ".yml", ".toml", ".env", "Dockerfile", ".sh")):
+                    fp = os.path.join(root, fname)
+                    try:
+                        with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                            all_files[fp] = f.read()
+                    except (OSError, UnicodeDecodeError):
+                        continue
+    except Exception:
+        pass
+
+    torch_determinism_patterns = [
+        r"torch\.use_deterministic_algorithms\s*\(\s*True",
+        r"torch\.backends\.cudnn\.deterministic\s*=\s*True",
+        r"CUBLAS_WORKSPACE_CONFIG",
+    ]
+    torch_benchmark_disabled = [
+        r"torch\.backends\.cudnn\.benchmark\s*=\s*False",
+    ]
+    tf_determinism_patterns = [
+        r"tf\.config\.experimental\.enable_op_determinism\s*\(",
+        r"tf\.config\.experimental\.enable_determinism\s*\(",
+        r"TF_DETERMINISTIC_OPS\s*=?\s*['\"]?1",
+    ]
+
+    using_torch = any(re.search(r"\bimport\s+torch\b|\bfrom\s+torch\b", c)
+                      for c in source_files.values())
+    using_tf = any(re.search(r"\bimport\s+tensorflow\b|\bas\s+tf\b", c)
+                   for c in source_files.values())
+
+    def _any_hit(patterns, corpus):
+        combined = "|".join(patterns)
+        return any(re.search(combined, c) for c in corpus.values())
+
+    has_torch_determinism = _any_hit(torch_determinism_patterns, all_files)
+    has_torch_bench_off = _any_hit(torch_benchmark_disabled, all_files)
+    has_tf_determinism = _any_hit(tf_determinism_patterns, all_files)
+
+    issues = []
+    if using_torch:
+        if not has_torch_determinism:
+            issues.append("torch.use_deterministic_algorithms(True) or cudnn.deterministic not set")
+        if not has_torch_bench_off:
+            issues.append("torch.backends.cudnn.benchmark=False not set (benchmark mode is non-deterministic)")
+    if using_tf and not has_tf_determinism:
+        issues.append("tf.config.experimental.enable_op_determinism() not set")
+
+    if not using_torch and not using_tf:
+        return [CodeFinding(
+            article=15, name="Deterministic algorithm flags",
+            status="pass",
+            evidence="No framework requiring determinism flags detected",
+            detection="auto",
+        )]
+
+    if not issues:
+        return [CodeFinding(
+            article=15, name="Deterministic algorithm flags",
+            status="pass",
+            evidence="Framework-level determinism flags configured",
+            detection="auto",
+        )]
+
+    return [CodeFinding(
+        article=15, name="Deterministic algorithm flags",
+        status="fail",
+        evidence=(
+            "ML framework in use but deterministic algorithm flags missing. "
+            f"Issues: {'; '.join(issues)}. "
+            "Even with seeds set, cuDNN/op libraries pick non-deterministic kernels by default, "
+            "producing different outputs across GPU types (A100 vs H100) and CUDA versions."
+        ),
+        detection="auto",
+        fix_hint=(
+            "For PyTorch, add at startup:\n"
+            "  torch.use_deterministic_algorithms(True)\n"
+            "  torch.backends.cudnn.deterministic = True\n"
+            "  torch.backends.cudnn.benchmark = False\n"
+            "  os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'\n"
+            "For TensorFlow:\n"
+            "  tf.config.experimental.enable_op_determinism()\n"
+            "  os.environ['TF_DETERMINISTIC_OPS'] = '1'"
+        ),
+    )]
+
+
+def _check_hardware_abstraction(file_contents: dict, scan_path: str) -> List[CodeFinding]:
+    """Flag hardcoded device strings without capability fallback.
+
+    Pattern `.to("cuda")` without `cuda.is_available()` check = runtime crash
+    on CPU-only or Apple Silicon hardware. Article 15 requires the system to
+    operate consistently on declared target hardware — but hardcoding a single
+    device means ANY hardware change breaks the system.
+    """
+    if not _is_ml_codebase(file_contents):
+        return [CodeFinding(
+            article=15, name="Hardware abstraction",
+            status="pass",
+            evidence="No ML framework detected — check not applicable",
+            detection="auto",
+        )]
+
+    source_files = _source_files_only(file_contents)
+
+    # Hardcoded device patterns (concern)
+    hardcoded_device_patterns = [
+        r'\.to\s*\(\s*["\']cuda["\']',
+        r'\.to\s*\(\s*["\']cuda:\d+["\']',
+        r'\.cuda\s*\(\s*\)',
+        r'device\s*=\s*["\']cuda["\']',
+        r'device\s*=\s*["\']cuda:\d+["\']',
+    ]
+    # Capability-aware patterns (good)
+    capability_check_patterns = [
+        r'torch\.cuda\.is_available\s*\(',
+        r'torch\.backends\.mps\.is_available\s*\(',
+        r'torch\.accelerator\.is_available',
+        r'device\s*=\s*["\']cuda["\'][\s,]+if[\s\S]{0,40}is_available',
+        r'["\']cuda["\']\s+if[\s\S]{0,40}is_available[\s\S]{0,40}else\s+["\']cpu["\']',
+        r'torch\.device\s*\([^)]*is_available',
+    ]
+
+    hardcoded_combined = "|".join(hardcoded_device_patterns)
+    capability_combined = "|".join(capability_check_patterns)
+
+    files_with_hardcoded = []
+    for fp, content in source_files.items():
+        if re.search(hardcoded_combined, content):
+            files_with_hardcoded.append(fp)
+
+    has_capability_check = any(
+        re.search(capability_combined, content)
+        for content in source_files.values()
+    )
+
+    if not files_with_hardcoded:
+        return [CodeFinding(
+            article=15, name="Hardware abstraction",
+            status="pass",
+            evidence="No hardcoded device strings detected — code is hardware-portable",
+            detection="auto",
+        )]
+
+    if has_capability_check:
+        return [CodeFinding(
+            article=15, name="Hardware abstraction",
+            status="warn",
+            evidence=(
+                f"Hardcoded device strings in {len(files_with_hardcoded)} file(s), "
+                "but capability checks found elsewhere. Review for consistency."
+            ),
+            detection="auto",
+            fix_hint=(
+                "Prefer device-agnostic pattern across all files:\n"
+                '  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")\n'
+                "  model = model.to(device)"
+            ),
+        )]
+
+    rel_files = [_rel(f, scan_path) for f in files_with_hardcoded[:3]]
+    return [CodeFinding(
+        article=15, name="Hardware abstraction",
+        status="fail",
+        evidence=(
+            f"Hardcoded CUDA device strings in {len(files_with_hardcoded)} file(s) "
+            f"({', '.join(rel_files)}) with no capability fallback. "
+            "Will crash on CPU-only, Apple Silicon, or AMD hardware, "
+            "and silently produce different outputs across GPU generations."
+        ),
+        detection="auto",
+        fix_hint=(
+            'Replace .to("cuda") with device-agnostic pattern:\n'
+            '  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")\n'
+            "  model = model.to(device)\n"
+            "This satisfies Article 15 robustness across declared target hardware."
         ),
     )]

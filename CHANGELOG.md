@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-04-14
+
+### Added
+- **Hardware determinism scanning (Article 15)** — three new compliance checks
+  target a documented EU AI Act Article 15 robustness failure mode that no other
+  compliance scanner covers:
+  - **RNG seed determinism** — checks Python random, NumPy, PyTorch (CPU + CUDA),
+    TensorFlow, and JAX for seed setting. Partial coverage warns; missing seeds in
+    an ML codebase fails.
+  - **Deterministic algorithm flags** — detects `torch.use_deterministic_algorithms`,
+    `torch.backends.cudnn.deterministic`, `torch.backends.cudnn.benchmark = False`,
+    `CUBLAS_WORKSPACE_CONFIG`, and TensorFlow `enable_op_determinism`. Scans across
+    code, YAML, `.env`, Dockerfile, and shell scripts.
+  - **Hardware abstraction** — flags hardcoded `.to("cuda")`, `cuda:0`, `.cuda()`,
+    or `device="cuda"` patterns without a `torch.cuda.is_available()` capability
+    fallback. Prevents CPU-only / Apple Silicon / AMD hardware crashes.
+- 16 new tests covering torch, TensorFlow, partial coverage, env file detection,
+  device-agnostic patterns, and mixed-pattern warn states
+- `air-blackbox --version` now reports `1.12.0`
+
+### Context
+Addresses a regulatory gap: EU AI Act Article 15 requires consistent behavior
+across deployment environments, and SR 11-7 model validation requires
+reproducibility. Atherik was just acquired for solving this at runtime; AIR
+Blackbox now detects the anti-patterns at CI/CD time so teams can fix them
+before production. Complementary, not competitive.
+
 ## [1.11.1] - 2026-04-14
 
 ### Added
