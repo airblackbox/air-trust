@@ -1,39 +1,52 @@
 # AIR Blackbox
 
-**Trust infrastructure for AI systems. Compliance scanning, quantum-safe signing, tamper-evident audit chains.**
+**Audit infrastructure for AI systems that make real decisions.**
 
-The EU AI Act enforcement deadline is **August 2, 2026**. AIR Blackbox gives development teams the tooling to scan, sign, and prove compliance from their terminal.
+Your agents are calling APIs, writing to databases, and moving money.
+When something goes wrong — and it will — you need a record of exactly
+what happened, who authorized it, and proof nobody altered the log.
 
-## What we build
-
-| Package | What it does | Install |
-|---------|-------------|---------|
-| [air-blackbox](https://github.com/airblackbox/gateway) | 48 compliance checks across 6 EU AI Act articles + GDPR. ML-DSA-65 signing. Evidence bundles. Attestation registry. | `pip install air-blackbox` |
-| [air-trust](https://github.com/airblackbox/gateway/tree/main/air-trust) | HMAC-SHA256 tamper-evident audit chains. Ed25519 signed handoffs. Session completeness. | `pip install air-trust` |
-| [air-openai-trust](https://github.com/airblackbox/gateway/tree/main/packages/air-openai-trust) | Drop-in OpenAI SDK wrapper that adds audit chains without code changes. | `pip install air-openai-trust` |
-| [air-blackbox-mcp](https://github.com/airblackbox/air-blackbox-mcp) | MCP server for Claude Desktop and Cursor. 14 compliance tools. | `pip install air-blackbox-mcp` |
-
-## Quick start
-
-```bash
-pip install air-blackbox
-air-blackbox comply --scan .
-```
-
-48 checks. 6 articles. No config, no API keys, no Docker.
-
-## Trust layers for 7 frameworks
-
-LangChain, CrewAI, OpenAI Agents SDK, Google ADK, Claude Agent SDK, AutoGen, Haystack.
-
-## Standards crosswalk
-
-Every check maps to four compliance frameworks simultaneously: EU AI Act, ISO/IEC 42001, NIST AI RMF, and Colorado SB 24-205.
-
-## Links
-
-[airblackbox.ai](https://airblackbox.ai) | [PyPI](https://pypi.org/project/air-blackbox/) | [Documentation](https://airblackbox.ai/quickstart) | [Attestation Registry](https://airblackbox.ai/attest)
+That's what AIR Blackbox builds.
 
 ---
 
-Apache-2.0 licensed. Built by [Jason Shotwell](mailto:jason@airblackbox.ai).
+## What It Does
+
+```bash
+pip install air-blackbox
+air-blackbox comply --scan . -v   # EU AI Act gap analysis, 60 seconds
+```
+
+One proxy swap gives every LLM call in your stack:
+
+* A tamper-evident audit record — HMAC-SHA256 chained, async, zero latency impact
+* Quantum-safe signing — ML-DSA-65 / FIPS 204. Signatures hold against future quantum attacks
+* PII and injection detection — scanned before the model sees the prompt
+* Replay — reconstruct any incident from the audit chain, not from memory
+* EU AI Act coverage — 48 gap analysis checks across Articles 9, 10, 11, 12, 14, 15
+
+No SDK changes. No code refactoring. Change `base_url`. Done.
+
+## Repos
+
+| Repo | What it is |
+|---|---|
+| [gateway](https://github.com/airblackbox/gateway) | The core monorepo. Go proxy + Python scanner + trust layers for 7 frameworks |
+| [air-platform](https://github.com/airblackbox/air-platform) | Full stack: Gateway + Episode Store + Policy Engine + Jaeger + Prometheus. `make up`. |
+| [air-blackbox-mcp](https://github.com/airblackbox/air-blackbox-mcp) | MCP server — expose audit, replay, and compliance tools to any MCP-compatible agent |
+| [VaultMind](https://github.com/airblackbox/VaultMind) | Local-first private AI. Qwen3 + LlamaIndex. Nothing leaves the machine. |
+
+## Validated By
+
+* **Julian Risch** (deepset) — public validation on LinkedIn and GitHub issue #10810
+* **Piero Molino** (Ludwig maintainer) — merged EU AI Act compliance changes driven by AIR scan results
+* **arXiv AEGIS paper** (March 2026) — independent researchers published the same interception-layer architecture
+* **McKinsey State of AI Trust 2026** — named trust infrastructure as the critical agentic AI category
+
+## Install
+
+```bash
+pip install air-blackbox
+```
+
+[airblackbox.ai](https://airblackbox.ai) · [PyPI](https://pypi.org/project/air-blackbox/) · [Live Demo](https://airblackbox.ai/demo/hub)

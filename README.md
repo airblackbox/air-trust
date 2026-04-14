@@ -1,186 +1,145 @@
-# air-trust
+# AIR Blackbox
 
-Tamper-evident audit chain for AI agents.
+[![PyPI](https://img.shields.io/pypi/v/air-blackbox)](https://pypi.org/project/air-blackbox/)
+[![Downloads](https://img.shields.io/pypi/dm/air-blackbox?label=PyPI%20installs)](https://pypi.org/project/air-blackbox/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Art.%2012%20Ready-green)](https://airblackbox.ai)
+[![Status](https://img.shields.io/badge/status-production-brightgreen)](https://github.com/airblackbox/gateway)
 
-[![PyPI](https://img.shields.io/pypi/v/air-trust)](https://pypi.org/project/air-trust/)
-[![Python](https://img.shields.io/pypi/pyversions/air-trust)](https://pypi.org/project/air-trust/)
-[![SDK Tests](https://github.com/airblackbox/air-trust/actions/workflows/sdk-tests.yml/badge.svg)](https://github.com/airblackbox/air-trust/actions/workflows/sdk-tests.yml)
-[![Tests](https://img.shields.io/badge/tests-305_passing-brightgreen)](air-trust/tests/)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-
-<p align="center">
-  <img src="air-trust/demo.gif" alt="air-trust terminal demo" width="820">
-</p>
-
-## Highlights
-
-- One line to start recording: `client = air_trust.trust(OpenAI())`
-- HMAC-SHA256 chained signatures — if anyone modifies a record, the chain breaks
-- Ed25519 signed handoffs — cryptographic proof of which agent handed off to which
-- 25+ frameworks auto-detected — OpenAI, LangChain, CrewAI, Anthropic, Google ADK, and more
-- Attestation Pool — publish ML-DSA-65 signed compliance proofs to a public registry
-- Zero dependencies — pure Python, no cloud, no API keys, runs on your machine
-- 305 tests covering integrity, completeness, handoffs, and edge cases
-
-## Install
-
-```bash
-pip install air-trust
-```
-
-That's it. No config, no API keys, no Docker.
-
-## Quick Start
+**Audit infrastructure for AI agents. One proxy swap. Complete coverage.**
 
 ```python
-import air_trust
-from openai import OpenAI
+# Before
+client = OpenAI(base_url="https://api.openai.com/v1")
 
-# Wrap any AI client — every call is now HMAC-SHA256 audited
-client = air_trust.trust(OpenAI())
-
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "Hello"}]
+# After — everything else in your code stays identical
+client = OpenAI(
+    base_url="http://localhost:8080/v1",
+    default_headers={"X-Gateway-Key": "your-key"}
 )
-
-# Verify the chain anytime
-result = air_trust.verify()
-# {'valid': True, 'records': 42, 'broken_at': None}
 ```
 
-Or from the CLI:
+Every LLM call now generates a signed, tamper-evident, replayable audit record. No SDK changes. No refactoring. No performance impact.
+
+## What You Get
+
+**Audit chain** — every call produces an HMAC-SHA256 chained `.air.json` record, written asynchronously. Tamper with one record and every record after it breaks.
+
+**Quantum-safe signing** — the chain is signed with ML-DSA-65 (FIPS 204 / Dilithium3). Keys are generated locally and never leave your machine. Post-quantum secure today.
+
+**Evidence bundle** — one command packages the audit chain, scan results, and ML-DSA-65 signatures into a self-verifying `.air-evidence` ZIP. An auditor runs `python verify.py` and gets PASS/FAIL in two seconds. No pip install needed on their end.
+
+**PII and injection scanning** — 20 weighted patterns across 5 attack categories detected before the prompt reaches the model. Configurable sensitivity. Auto-blocking.
+
+**EU AI Act gap analysis** — 48 checks across Articles 9, 10, 11, 12, 14, 15. Maps to ISO 42001, NIST AI RMF, and Colorado SB 24-205. One scan, four frameworks, one report.
+
+**Replay** — load any past episode from the audit chain, verify the HMAC signature, and replay every step with timestamps. Incident reconstruction without guesswork.
+
+**Framework trust layers** — drop-in wrappers for LangChain, CrewAI, OpenAI Agents SDK, Anthropic, AutoGen, Google ADK, and Haystack. Same audit chain, native integration.
+
+## Quickstart
 
 ```bash
-python3 -m air_trust verify
-# INTEGRITY     PASS  42 events, 42 valid HMAC links
-# COMPLETENESS  PASS  3 sessions complete, no gaps
+pip install air-blackbox
+
+# Run your first gap analysis — works on any Python AI project
+air-blackbox comply --scan . -v
+
+# Find undeclared model calls hiding in helpers and utilities
+air-blackbox discover
+
+# Replay any recorded episode
+air-blackbox replay
+
+# Generate a signed evidence package for audit or regulator review
+air-blackbox export
 ```
 
-## What It Proves
-
-air-trust gives you three layers of cryptographic proof. Each is backward-compatible — you can start with v1.0 and add layers as you need them.
-
-| Layer | What It Proves | How |
-|---|---|---|
-| Integrity (v1.0) | No record was changed after it was written | HMAC-SHA256 chained signatures |
-| Completeness (v1.1) | No record was silently dropped | Monotonic sequence numbers + gap detection |
-| Handoff provenance (v1.2) | Agent A handed data to Agent B, and B acknowledged it | Ed25519 asymmetric signatures |
-
-## Framework Auto-Detection
-
-Pass anything to `air_trust.trust()` and it figures out the rest:
-
-```python
-client = air_trust.trust(OpenAI())         # Proxy adapter
-crew = air_trust.trust(my_crew)            # CrewAI decorator adapter
-handler = air_trust.trust(my_chain)        # LangChain callback adapter
-```
-
-| Adapter | Frameworks |
-|---|---|
-| Proxy | OpenAI, Anthropic, Google GenAI, Ollama, vLLM, LiteLLM, Together, Groq, Mistral, Cohere |
-| Callback | LangChain, LangGraph, LlamaIndex, Haystack |
-| Decorator | CrewAI, Smolagents, PydanticAI, DSPy, AutoGen, Browser Use |
-| OpenTelemetry | Semantic Kernel, any OTel-instrumented system |
-| MCP | Claude Desktop, Cursor, Claude Code, Windsurf |
-
-## Signed Handoffs
-
-When agents pass work to other agents, signed handoffs create cryptographic proof of who sent what to whom. Three record types — handoff_request, handoff_ack, handoff_result — each signed with the sending agent's Ed25519 private key.
+Full stack (Gateway + Episode Store + Policy Engine + observability):
 
 ```bash
-pip install "air-trust[handoffs]"
-python3 -m air_trust keygen --agent research-bot
-python3 -m air_trust keygen --agent writer-bot
+git clone https://github.com/airblackbox/air-platform.git
+cd air-platform
+cp .env.example .env      # add OPENAI_API_KEY
+make up                   # running in ~8 seconds
 ```
 
-```python
-# Agent A requests handoff — auto-signed with Ed25519
-chain.write(Event(
-    type="handoff_request",
-    identity=identity_a,
-    interaction_id="task-001",
-    counterparty_id=identity_b.fingerprint,
-    payload_hash=compute_payload_hash("Summarize this document"),
-    nonce=generate_nonce(),
-))
+* Traces → `localhost:16686` (Jaeger)
+* Metrics → `localhost:9091` (Prometheus)
+* Episodes → `localhost:8081` (Episode Store API)
+
+## How It Fits Your Stack
+
 ```
+Your Agent
+    │
+    ▼
+AIR Gateway          ← swap base_url here
+    │
+    ├── PII + injection scan      (before prompt reaches model)
+    ├── HMAC audit record         (async, zero latency impact)
+    ├── ML-DSA-65 signing         (keys never leave your machine)
+    │
+    ▼
+LLM Provider         ← OpenAI / Anthropic / Azure / local
+    │
+    ▼
+AIR Record           ← tamper-evident .air.json
+    │
+    ▼
+Evidence Bundle      ← self-verifying .air-evidence ZIP
+```
+
+Works with any OpenAI-compatible API. Same format, same integration, regardless of provider.
+
+## Why Not Just Log Everything?
+
+You probably already have logging. The problems logging doesn't solve:
+
+**Tamper-evidence** — anyone with write access to your log store can alter a record. HMAC chains make alteration detectable. ML-DSA-65 signatures prove who signed and when.
+
+**Prompt reconstruction** — most logging captures responses but not the full prompt context, tool calls, and intermediate reasoning. AIR records the complete episode.
+
+**Compliance structure** — EU AI Act Article 12 requires tamper-evident logs with specific retention and audit access guarantees. Raw logs don't satisfy that. Evidence bundles do.
+
+**Secrets leaking into traces** — every team that builds their own logging eventually discovers credentials in their observability backend. AIR strips and vault-encrypts API keys before writing any record.
+
+## Framework Trust Layers
 
 ```bash
-python3 -m air_trust verify
-# HANDOFFS      PASS  1 interaction verified
-#   request   PASS  Ed25519 OK (research-bot)
-#   ack       PASS  Ed25519 OK (writer-bot)
-#   result    PASS  Ed25519 OK (writer-bot)
-#   payload   PASS  SHA-256 hash match
+# LangChain
+pip install air-langchain-trust
+
+# CrewAI
+pip install air-crewai-trust
+
+# OpenAI Agents SDK (included in gateway)
+from air_blackbox.trust import OpenAITrustLayer
 ```
 
-Tamper with the payload? The verifier catches it immediately.
+Each trust layer produces the same HMAC audit chain as the gateway, natively, inside the framework's execution loop. Pick the integration that fits your stack.
 
-[Try the interactive demo →](https://airblackbox.ai/demo/signed-handoff)
+## Validated By
 
-## Compliance Oracle & Attestation Pool
+* **Julian Risch** (deepset) — public validation on LinkedIn and GitHub issue #10810
+* **Piero Molino** (Ludwig maintainer) — merged EU AI Act compliance changes driven by AIR scan results
+* **arXiv AEGIS** (March 2026) — independent researchers published the identical interception-layer architecture for AI agent governance
+* **McKinsey State of AI Trust 2026** — trust infrastructure named as the critical agentic AI category
 
-Publish cryptographically signed compliance proofs to a public registry. Three-party trust: your team signs with ML-DSA-65, the registry stores it, anyone can verify independently.
+## Contributing
 
-```bash
-# Scan, sign, and publish in one command
-air-blackbox attest create --publish --name "My AI System"
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-# Output:
-# Published! Registry accepted the attestation.
-#   Verify: https://airblackbox.ai/verify/air-att-2026-04-12-a7f3c2e1
-#   Badge:  https://airblackbox.ai/badge/air-att-2026-04-12-a7f3c2e1
-```
+False positive on a compliance check? Correct it — your correction flows into training data for the fine-tuned scanner model. The scanner gets smarter with every fix your team submits.
 
-```bash
-# Or publish an existing local attestation
-air-blackbox attest publish --id air-att-2026-04-12-a7f3c2e1
-```
-
-Embeddable badge for your README:
-
-```markdown
-[![AIR Attested](https://airblackbox.ai/badge/air-att-2026-04-12-a7f3c2e1)](https://airblackbox.ai/verify/air-att-2026-04-12-a7f3c2e1)
-```
-
-No source code is stored. Only signed proofs — system hash, check counts, framework list, scanner version, and the ML-DSA-65 signature.
-
-[Learn more about the Attestation Pool →](https://airblackbox.ai/attest)
-
-## How It Works
-
-Every event is signed and chained to the previous one:
-
-```
-HMAC(key, previous_hash_bytes || JSON(record, sort_keys=True))
-```
-
-Modify any record → the chain breaks. Delete a record → the next hash won't match. Reorder records → sequence breaks. Replay an old record → session numbers catch it.
-
-Everything is stored locally in SQLite at `~/.air-trust/events.db`. The signing key auto-generates at `~/.air-trust/signing.key`. No cloud, no network calls.
-
-## Who Made This
-
-Built by [Jason Shotwell](mailto:jason@airblackbox.ai) as the cryptographic backbone of [AIR Blackbox](https://airblackbox.ai) — open-source EU AI Act compliance tooling for developers.
-
-EU AI Act Article 12 requires high-risk AI systems to maintain logs "sufficient to ensure traceability." air-trust provides exactly that: tamper-evident proof of what happened, stored on your infrastructure.
-
-Enforcement deadline: August 2, 2026.
-
-## Learn More
-
-- [Interactive demo](https://airblackbox.ai/demo/signed-handoff) — see signed handoffs in action (no install needed)
-- [Spec v1.2](air-trust/SPEC.md) — the full protocol specification
-- [Changelog](air-trust/CHANGELOG.md) — what shipped in each version
-- [airblackbox.ai](https://airblackbox.ai) — the project homepage
-- [PyPI](https://pypi.org/project/air-trust/) — package page
+Good first issues: labeled `good first issue` — mostly new compliance checks and framework integrations.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0 — [airblackbox.ai](https://airblackbox.ai)
+
+*This is not a certified compliance test. It is a starting point to identify potential gaps.*
 
 ---
 
-If this helps you prepare for EU AI Act enforcement, [star the repo](https://github.com/airblackbox/air-trust) — it helps other teams find it.
+If this helps you prepare for EU AI Act enforcement, [star the repo](https://github.com/airblackbox/gateway) — it helps other teams find it.
