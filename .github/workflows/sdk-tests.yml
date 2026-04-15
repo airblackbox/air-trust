@@ -41,7 +41,7 @@ jobs:
       - name: Install package and test deps
         run: |
           pip install --upgrade pip setuptools wheel
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-asyncio
           pip install -e ".[langchain,openai]"
 
       - name: Run unit tests with coverage
@@ -72,7 +72,7 @@ jobs:
 
       - name: Install package with CrewAI
         run: |
-          pip install pytest
+          pip install pytest pytest-asyncio
           pip install -e .
           pip install crewai || echo "CrewAI install failed -- skipping"
 
