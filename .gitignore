@@ -115,3 +115,17 @@ skills/
 
 # Telemetry dev
 air-blackbox-telemetry/
+
+# Internal drafts and planning docs (not for public repo)
+finos-267-comment.md
+reply-botbotfromuk*.md
+show-hn-post.md
+hn-post-*.md
+github-release-*.md
+growth-strategy.md*
+linkedin-post-*.md
+tuesday-launch-checklist.md
+twitter-post.md
+
+# Evidence bundles (runtime artifacts, not source)
+evidence-bundle-*.air-evidence
