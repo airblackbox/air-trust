@@ -1,6 +1,6 @@
 # AIR Blackbox
 
-**Audit infrastructure for AI systems that make real decisions.**
+**The flight recorder for autonomous AI agents. Record, replay, enforce, audit.**
 
 Your agents are calling APIs, writing to databases, and moving money.
 When something goes wrong — and it will — you need a record of exactly

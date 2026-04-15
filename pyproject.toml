@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "air-blackbox"
 version = "1.12.0"
-description = "AI governance control plane — compliance, inventory, incident response, and audit for AI agents"
+description = "The flight recorder for autonomous AI agents. Record, replay, enforce, audit."
 readme = "sdk/README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"

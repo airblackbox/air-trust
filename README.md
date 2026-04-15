@@ -6,7 +6,9 @@
 [![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Art.%2012%20Ready-green)](https://airblackbox.ai)
 [![Status](https://img.shields.io/badge/status-production-brightgreen)](https://github.com/airblackbox/gateway)
 
-**Audit infrastructure for AI agents. One proxy swap. Complete coverage.**
+**The flight recorder for autonomous AI agents. Record, replay, enforce, audit.**
+
+One proxy swap. Complete coverage. Runs locally.
 
 ```python
 # Before
