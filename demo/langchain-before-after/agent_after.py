@@ -1,5 +1,5 @@
 """
-The SAME LangChain agent — now EU AI Act compliant with AIR Blackbox.
+The SAME LangChain agent - now EU AI Act compliant with AIR Blackbox.
 
 Added in 5 minutes:
   1. pip install air-blackbox[langchain]
@@ -89,7 +89,7 @@ def send_email(to: str, subject: str, body: str) -> str:
     # --- Human Oversight Gate (Article 14) ---
     logger.info(f"Email approval requested: to={to}, subject={subject}")
     print(f"\n{'='*60}")
-    print(f"  APPROVAL REQUIRED — Agent wants to send email:")
+    print(f"  APPROVAL REQUIRED - Agent wants to send email:")
     print(f"  To:      {to}")
     print(f"  Subject: {subject}")
     print(f"  Body:    {body[:200]}")
@@ -97,7 +97,7 @@ def send_email(to: str, subject: str, body: str) -> str:
     approval = input("  Approve? (y/n): ").strip().lower()
     if approval != "y":
         logger.info(f"Email to {to} REJECTED by human operator")
-        return "Email was not sent — rejected by human operator."
+        return "Email was not sent - rejected by human operator."
     logger.info(f"Email to {to} APPROVED and sent")
     return f"Email sent to {to}: {subject}"
 

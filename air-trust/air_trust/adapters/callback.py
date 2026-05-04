@@ -1,5 +1,5 @@
 """
-Callback Adapter — hooks into framework event systems.
+Callback Adapter - hooks into framework event systems.
 
 Covers: LangChain, LangGraph, LlamaIndex, Haystack.
 

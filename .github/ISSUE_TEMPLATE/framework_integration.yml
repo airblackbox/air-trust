@@ -22,7 +22,7 @@ body:
       options:
         - "Yes"
         - "No"
-        - "Maybe — depends on timeline"
+        - "Maybe - depends on timeline"
     validations:
       required: true
   - type: textarea

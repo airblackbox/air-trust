@@ -41,17 +41,17 @@ v1.2 is **additive-only**:
 
 - v1.0 records (integrity only) remain valid and verify successfully
 - v1.1 records (session completeness) remain valid and verify successfully
-- Handoff fields are `Optional` — only present on handoff record types
+- Handoff fields are `Optional` - only present on handoff record types
 - Non-handoff records are completely unaffected
 - The verifier runs handoff checks only on records with `interaction_id`
 - Mixed chains (v1.0 + v1.1 + v1.2 records) are explicitly supported
 
 ### 1.3 Standards Alignment
 
-- **CSA Agentic Trust Framework v0.9.1** — signed handoffs strengthen ATF Interaction Logging (Section 4.3) by providing cryptographic proof of agent-to-agent communication
-- **EU AI Act Article 12 (Record-Keeping)** — handoff provenance supports the requirement that logs cover "the entire lifecycle of the system," including multi-agent decision chains
-- **EU AI Act Article 14 (Human Oversight)** — binding agent identities to Ed25519 keys creates a verifiable link between the authorizing human (via AgentIdentity.owner) and the agent's actions
-- **ISO 42001 Clause 8** — handoff records provide operational evidence of controlled AI interactions
+- **CSA Agentic Trust Framework v0.9.1** - signed handoffs strengthen ATF Interaction Logging (Section 4.3) by providing cryptographic proof of agent-to-agent communication
+- **EU AI Act Article 12 (Record-Keeping)** - handoff provenance supports the requirement that logs cover "the entire lifecycle of the system," including multi-agent decision chains
+- **EU AI Act Article 14 (Human Oversight)** - binding agent identities to Ed25519 keys creates a verifiable link between the authorizing human (via AgentIdentity.owner) and the agent's actions
+- **ISO 42001 Clause 8** - handoff records provide operational evidence of controlled AI interactions
 
 ---
 
@@ -86,7 +86,7 @@ A monotonically increasing sequence number scoped to a single session.
 
 - Starts at `0` for the first record in a session (the `session_start` record)
 - Increments by exactly `1` for each subsequent record in the same session
-- Scoped by `session_id` — different sessions have independent counters
+- Scoped by `session_id` - different sessions have independent counters
 - MUST be present on every record that has a `session_id`
 
 ### 3.2 `prev_session_seq` (integer)
@@ -105,9 +105,9 @@ A unique identifier for the session. Format: UUID v4 (hex string, no dashes).
 
 ### 3.4 Lifecycle Record Types (unchanged from v1.1)
 
-- `session_start` — first record in a session (`session_seq: 0`, `prev_session_seq: -1`)
-- `checkpoint` — developer-defined intermediate record (optional)
-- `session_end` — final record in a session (`status: "success"` or `"error"`)
+- `session_start` - first record in a session (`session_seq: 0`, `prev_session_seq: -1`)
+- `checkpoint` - developer-defined intermediate record (optional)
+- `session_end` - final record in a session (`status: "success"` or `"error"`)
 
 ---
 
@@ -218,7 +218,7 @@ The `payload_hash` is computed as:
 payload_hash = "sha256:" + SHA256(payload_bytes)
 ```
 
-Where `payload_bytes` is the UTF-8 encoding of whatever data is being handed off (task description, context, documents, etc.). The actual payload is NOT stored in the audit chain — only its hash.
+Where `payload_bytes` is the UTF-8 encoding of whatever data is being handed off (task description, context, documents, etc.). The actual payload is NOT stored in the audit chain - only its hash.
 
 ### 5.4 `handoff_ack`
 
@@ -341,10 +341,10 @@ Missing records:
 
 | Present | Missing | Severity |
 |---|---|---|
-| request only | ack + result | **WARN** — handoff was never acknowledged |
-| request + ack | result | **INFO** — handoff in progress or agent crashed |
-| request + ack + result | nothing | **PASS** — complete handoff |
-| ack or result without request | request | **WARN** — orphaned handoff response |
+| request only | ack + result | **WARN** - handoff was never acknowledged |
+| request + ack | result | **INFO** - handoff in progress or agent crashed |
+| request + ack + result | nothing | **PASS** - complete handoff |
+| ack or result without request | request | **WARN** - orphaned handoff response |
 
 #### 6.3.2 Signature Verification
 
@@ -352,12 +352,12 @@ For each handoff record:
 
 1. Extract the `signing_payload` (Section 5.2) from the record fields
 2. Verify `Ed25519.verify(public_key, signature, signing_payload)`
-3. If verification fails: **FAIL** — the signature does not match
+3. If verification fails: **FAIL** - the signature does not match
 
 #### 6.3.3 Payload Hash Matching
 
 - The `payload_hash` in `handoff_ack` MUST equal the `payload_hash` in `handoff_request`
-- If they differ: **WARN** — Agent B received different data than Agent A sent
+- If they differ: **WARN** - Agent B received different data than Agent A sent
 
 The `payload_hash` in `handoff_result` is allowed to differ (it hashes the *result*, not the original request).
 
@@ -365,12 +365,12 @@ The `payload_hash` in `handoff_result` is allowed to differ (it hashes the *resu
 
 - In `handoff_request`: `counterparty_id` MUST match `handoff_ack.public_key`'s agent fingerprint
 - In `handoff_ack`: `counterparty_id` MUST match `handoff_request.public_key`'s agent fingerprint
-- If they differ: **WARN** — the handoff was acknowledged by a different agent than intended
+- If they differ: **WARN** - the handoff was acknowledged by a different agent than intended
 
 #### 6.3.5 Nonce Uniqueness
 
 - Every `nonce` in handoff records MUST be unique within the chain
-- Duplicate nonces: **WARN** — possible replay attack
+- Duplicate nonces: **WARN** - possible replay attack
 
 ### 6.4 Verification Output
 
@@ -463,7 +463,7 @@ Integrity and signature failures are always **FAIL** (cryptographic proof of tam
 
 Both mechanisms operate on every handoff record. HMAC proves the record is part of the chain and hasn't been tampered with. Ed25519 proves which agent wrote it.
 
-A record with valid HMAC but invalid Ed25519 signature means: "the record is in the chain and wasn't modified, but the claimed signer didn't actually sign it." This is a **FAIL** — the record is authentic (HMAC) but forged (identity).
+A record with valid HMAC but invalid Ed25519 signature means: "the record is in the chain and wasn't modified, but the claimed signer didn't actually sign it." This is a **FAIL** - the record is authentic (HMAC) but forged (identity).
 
 ---
 

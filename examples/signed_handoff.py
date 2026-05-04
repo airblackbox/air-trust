@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Signed Handoff Demo — Two agents doing a research → write handoff.
+Signed Handoff Demo - Two agents doing a research → write handoff.
 
 This demonstrates AIR Trust v1.2 signed handoffs:
   1. Agent A (researcher) generates an Ed25519 keypair
@@ -31,7 +31,7 @@ from air_trust.chain import AuditChain
 
 def main():
     print("=" * 60)
-    print("  AIR Trust v1.2 — Signed Handoff Demo")
+    print("  AIR Trust v1.2 - Signed Handoff Demo")
     print("=" * 60)
     print()
 
@@ -156,7 +156,7 @@ def main():
     ))
 
     # Agent B delivers the result
-    result_payload = "Blog post: 'Why Tamper-Evident Audit Chains Matter for EU AI Act Compliance' — 1,200 words covering Article 12 requirements with practical implementation guidance."
+    result_payload = "Blog post: 'Why Tamper-Evident Audit Chains Matter for EU AI Act Compliance' - 1,200 words covering Article 12 requirements with practical implementation guidance."
     result_hash = keys_module.compute_payload_hash(result_payload)
 
     result_event = Event(
@@ -192,20 +192,20 @@ def main():
     # Integrity
     integrity = result["integrity"]
     if integrity["valid"]:
-        print(f"  \033[32m✓ PASS\033[0m: Integrity — {integrity['records']} records, chain intact (HMAC-SHA256)")
+        print(f"  \033[32m✓ PASS\033[0m: Integrity - {integrity['records']} records, chain intact (HMAC-SHA256)")
     else:
-        print(f"  \033[31m✗ FAIL\033[0m: Integrity — chain broken at record {integrity['broken_at']}")
+        print(f"  \033[31m✗ FAIL\033[0m: Integrity - chain broken at record {integrity['broken_at']}")
 
     # Completeness
     completeness = result["completeness"]
-    print(f"  \033[32m✓ PASS\033[0m: Completeness — {completeness['sessions_checked']} session(s), {completeness['sessions_complete']} complete")
+    print(f"  \033[32m✓ PASS\033[0m: Completeness - {completeness['sessions_checked']} session(s), {completeness['sessions_complete']} complete")
 
     # Handoffs
     handoffs = result["handoffs"]
     if handoffs["interactions_complete"] == handoffs["interactions_checked"]:
-        print(f"  \033[32m✓ PASS\033[0m: Handoffs — {handoffs['interactions_checked']} handoff(s), all Ed25519 signatures valid")
+        print(f"  \033[32m✓ PASS\033[0m: Handoffs - {handoffs['interactions_checked']} handoff(s), all Ed25519 signatures valid")
     else:
-        print(f"  \033[33m⚠ WARN\033[0m: Handoffs — {handoffs['interactions_incomplete']} incomplete")
+        print(f"  \033[33m⚠ WARN\033[0m: Handoffs - {handoffs['interactions_incomplete']} incomplete")
         for issue in handoffs["issues"]:
             print(f"    {issue['issue']}: {issue.get('detail', '')}")
 

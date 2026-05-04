@@ -19,7 +19,7 @@ body:
     id: article
     attributes:
       label: Specific article or control
-      placeholder: "e.g. Article 12 — Logging obligations"
+      placeholder: "e.g. Article 12 - Logging obligations"
     validations:
       required: true
   - type: textarea

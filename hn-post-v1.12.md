@@ -1,6 +1,6 @@
-# Show HN: AIR Blackbox — the flight recorder for autonomous AI agents
+# Show HN: AIR Blackbox - the flight recorder for autonomous AI agents
 
-**Title (locked):** `Show HN: AIR Blackbox – the flight recorder for autonomous AI agents`
+**Title (locked):** `Show HN: AIR Blackbox - the flight recorder for autonomous AI agents`
 
 Why this title: matches the product name (BLACKBOX = flight recorder), names the specific market (autonomous AI agents), and gives HN readers a mental model they already have. No jargon, no buzzwords.
 
@@ -33,9 +33,9 @@ The v1.12 release I pushed today adds two things I haven't seen in any other com
 
 **Hardware reproducibility checks.** EU AI Act Article 15 requires robust behavior across deployment environments. Models give different outputs on different GPUs if you don't pin seeds, disable cuDNN benchmark mode, and use `torch.use_deterministic_algorithms(True)`. Most code doesn't. The scanner flags missing seed setting (Python/NumPy/PyTorch/TF), missing deterministic-algorithm flags, and hardcoded `cuda:0` patterns that crash on CPU-only or Apple Silicon. Scans both `.py` files and `.env` / Dockerfile / YAML for deployment-layer env vars like `CUBLAS_WORKSPACE_CONFIG`.
 
-Limits I want to be upfront about: this checks technical requirements, not legal compliance. It's a linter, not a lawyer. Passing every check does not mean you are legally compliant with the EU AI Act — it means your code implements the technical controls the regulation references. Interpretation of the law is the job of your legal counsel.
+Limits I want to be upfront about: this checks technical requirements, not legal compliance. It's a linter, not a lawyer. Passing every check does not mean you are legally compliant with the EU AI Act - it means your code implements the technical controls the regulation references. Interpretation of the law is the job of your legal counsel.
 
-Where it came from: the agent identity detection piece was shaped by a thread on the FINOS AI Governance Framework repo where @botbotfromuk (an autonomous-agent developer) and @Cyberweasel777 (Agent Action Receipt spec author) designed the SCC standard in response to the NIST RFI on AI agent security. The Article 15 hardware determinism piece was shaped by Atherik's recent acquisition — they solve non-determinism at runtime; this scanner catches the anti-patterns at CI/CD time, which is complementary.
+Where it came from: the agent identity detection piece was shaped by a thread on the FINOS AI Governance Framework repo where @botbotfromuk (an autonomous-agent developer) and @Cyberweasel777 (Agent Action Receipt spec author) designed the SCC standard in response to the NIST RFI on AI agent security. The Article 15 hardware determinism piece was shaped by Atherik's recent acquisition - they solve non-determinism at runtime; this scanner catches the anti-patterns at CI/CD time, which is complementary.
 
 Repo: https://github.com/airblackbox/air-trust
 PyPI: https://pypi.org/project/air-blackbox/
@@ -46,9 +46,9 @@ Happy to answer questions about the check logic, the three identity schemes, or 
 
 ## FIRST COMMENT (post immediately after submitting)
 
-One thing worth addressing before someone asks: yes, regex-based static analysis has limits. It will produce false positives on obfuscated code, and it can miss runtime behavior entirely — which is why the design pairs static checks with trust-layer integrations that capture runtime evidence (OpenAI, LangChain, CrewAI, AutoGen, Haystack, Google ADK, Claude Agent SDK). Static-only is the default because it works on any codebase with zero configuration; runtime checks are opt-in when teams want stronger signal.
+One thing worth addressing before someone asks: yes, regex-based static analysis has limits. It will produce false positives on obfuscated code, and it can miss runtime behavior entirely - which is why the design pairs static checks with trust-layer integrations that capture runtime evidence (OpenAI, LangChain, CrewAI, AutoGen, Haystack, Google ADK, Claude Agent SDK). Static-only is the default because it works on any codebase with zero configuration; runtime checks are opt-in when teams want stronger signal.
 
-Also: I don't believe compliance scanning is a moat. The actual moat in this space is the fine-tuned compliance model that turns scan results into training data — the scanner gets smarter every time a team corrects a false positive. That's the work this release makes possible, not the work itself.
+Also: I don't believe compliance scanning is a moat. The actual moat in this space is the fine-tuned compliance model that turns scan results into training data - the scanner gets smarter every time a team corrects a false positive. That's the work this release makes possible, not the work itself.
 
 ---
 
@@ -67,7 +67,7 @@ Also: I don't believe compliance scanning is a moat. The actual moat in this spa
 
 - **Best case**: front page, 50-150 stars, 3-5 serious technical commenters engaging
 - **Good case**: 20-40 stars, 1-2 enterprise inbounds
-- **Baseline**: stays in /new, get 5-10 stars and a few bug reports — still valuable
+- **Baseline**: stays in /new, get 5-10 stars and a few bug reports - still valuable
 
 ## IF CRITICISM COMES
 

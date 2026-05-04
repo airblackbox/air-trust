@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Added**
 
-- **`agent-identity` CLI subcommand** — verify cryptographic identity continuity across the chain
-  - `python3 -m air_trust agent-identity --agent <name>` — verify a specific agent's records
-  - Ghost agent detection — flags same agent_name under multiple fingerprints
+- **`agent-identity` CLI subcommand** - verify cryptographic identity continuity across the chain
+  - `python3 -m air_trust agent-identity --agent <name>` - verify a specific agent's records
+  - Ghost agent detection - flags same agent_name under multiple fingerprints
   - Session segmentation with configurable `--max-gap` (default 3600 seconds)
   - JSON output (`--json`) for CI/CD pipelines
   - Exit codes: 0 pass, 2 warn, 1 fail
-- `air_trust.agent_identity` module — programmatic API for identity continuity checks
+- `air_trust.agent_identity` module - programmatic API for identity continuity checks
   - `verify_identity(db_path, agent_name, max_gap_seconds)` → `IdentityReport`
   - `format_report(report)` → human-readable string output
 - 6 new tests covering identity continuity, ghost detection, missing-agent handling, JSON serialization
@@ -38,7 +38,7 @@ FINOS AIGF response #266. Answers three questions for autonomous agents:
 - **HIGH**: Verifier validates all required signing fields before attempting signature verification (`malformed_record` check)
 - **HIGH**: Session `__exit__` now resets `_active_session_id` ContextVar in a `finally` block (prevents session ID leak on exception)
 - **HIGH**: Global `_global_chain` and `_global_identity` protected by threading lock (prevents cross-thread identity clobbering)
-- **HIGH**: HMAC signing key validated on load — warns on loose permissions, rejects invalid hex content
+- **HIGH**: HMAC signing key validated on load - warns on loose permissions, rejects invalid hex content
 - Handoff structural completeness: added missing branch for request + result without ack
 - Stress test suite: 19 additional tests covering false positives, false negatives, mixed-version chains, and edge cases
 
@@ -48,7 +48,7 @@ FINOS AIGF response #266. Answers three questions for autonomous agents:
 
 ## [0.6.0] - 2026-04-10
 
-**Added — Signed Handoffs (Spec v1.2)**
+**Added - Signed Handoffs (Spec v1.2)**
 
 - Ed25519 key management: `air_trust.keys` module for keypair generation, storage (`~/.air-trust/keys/`), loading, signing, and verification
 - Three new handoff record types: `handoff_request`, `handoff_ack`, `handoff_result`
@@ -71,13 +71,13 @@ FINOS AIGF response #266. Answers three questions for autonomous agents:
 
 ## [0.5.0] - 2026-04-10
 
-**Added — Session Completeness (Spec v1.1)**
+**Added - Session Completeness (Spec v1.1)**
 
 - `session_seq` and `prev_session_seq` fields on every Event within a session
 - Monotonic sequence numbering scoped per session_id
 - ContextVar-based session_id propagation: adapter events written inside
   `air_trust.session()` blocks automatically inherit the session_id and
-  get sequence numbers — zero adapter code changes needed
+  get sequence numbers - zero adapter code changes needed
 - Completeness verifier: detects gaps, duplicates, rewinds, missing
   session_start, and missing session_end within each session
 - `verify()` now returns both `integrity` (v1.0 HMAC check) and
@@ -97,7 +97,7 @@ FINOS AIGF response #266. Answers three questions for autonomous agents:
 
 ## [0.4.0] - 2026-04-09
 
-**Added — CSA Agentic Trust Framework (ATF) Conformance**
+**Added - CSA Agentic Trust Framework (ATF) Conformance**
 
 - AgentIdentity with ATF Identity Core Elements (I-1 through I-5)
 - Four maturity levels: Intern, Junior, Senior, Principal

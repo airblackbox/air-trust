@@ -575,9 +575,9 @@ class ResilientLLM:
 # ============================================================================
 
 INSTRUCTIONS_PASS_HEAVY = [
-    "Analyze this Python code for EU AI Act compliance. This is a {sample_context} from a project with {total_files} Python files. Assess ONLY what is visible in the code below — do not assume patterns are missing if they could exist in files not shown.\n\nFor each of Articles 9, 10, 11, 12, 14, and 15: report status (pass if evidence found, warn if partial, fail only if clearly absent), cite specific evidence from the code (function names, patterns, line references), and give fix recommendations. Output as a JSON array.",
-    "Scan the following Python code sample for EU AI Act compliance patterns. This is a {sample_context} from a project with {total_files} Python files. Focus on what IS present — cite specific classes, functions, and patterns you can see. Only mark FAIL for articles where the code clearly contradicts requirements.\n\nAnalyze Articles 9, 10, 11, 12, 14, and 15. Output structured findings.",
-    "Review this Python AI agent code for EU AI Act Articles 9-15 compliance. This represents a {sample_context} from a {total_files}-file project. Identify compliance evidence in the code — name specific functions, classes, decorators, and patterns. Be precise about what you observe.",
+    "Analyze this Python code for EU AI Act compliance. This is a {sample_context} from a project with {total_files} Python files. Assess ONLY what is visible in the code below - do not assume patterns are missing if they could exist in files not shown.\n\nFor each of Articles 9, 10, 11, 12, 14, and 15: report status (pass if evidence found, warn if partial, fail only if clearly absent), cite specific evidence from the code (function names, patterns, line references), and give fix recommendations. Output as a JSON array.",
+    "Scan the following Python code sample for EU AI Act compliance patterns. This is a {sample_context} from a project with {total_files} Python files. Focus on what IS present - cite specific classes, functions, and patterns you can see. Only mark FAIL for articles where the code clearly contradicts requirements.\n\nAnalyze Articles 9, 10, 11, 12, 14, and 15. Output structured findings.",
+    "Review this Python AI agent code for EU AI Act Articles 9-15 compliance. This represents a {sample_context} from a {total_files}-file project. Identify compliance evidence in the code - name specific functions, classes, decorators, and patterns. Be precise about what you observe.",
     "Evaluate EU AI Act compliance in this code sample. This is a {sample_context} from a project with {total_files} Python files total. Cite specific evidence for each article: function names, class names, pattern descriptions. Output findings for Articles 9, 10, 11, 12, 14, 15.",
 ]
 
@@ -619,7 +619,7 @@ def make_pass_example(code: str, framework: str, articles_status: dict,
         name = article_names[art_num]
         status_upper = status.upper()
 
-        output_parts.append(f"### Article {art_num} — {name}\n")
+        output_parts.append(f"### Article {art_num} - {name}\n")
         output_parts.append(f"**Status**: {status_upper}")
         output_parts.append(f"**Analysis**: {evidence}")
         if fix and status != "pass":
@@ -637,30 +637,30 @@ def generate_haystack_examples() -> list:
     """Generate training examples from Haystack code patterns."""
     examples = []
 
-    # Example 1: logging_tracer.py — strong Article 12 pass
+    # Example 1: logging_tracer.py - strong Article 12 pass
     examples.append(make_pass_example(
         code=HAYSTACK_LOGGING_TRACER,
         framework="Haystack",
         sample_desc="targeted sample of 4 compliance-relevant source files",
         total_files=552,
         articles_status={
-            9: ("warn", "No explicit error handling or fallback mechanisms visible in this file. However, this is a tracing module — error handling may exist in other pipeline files not shown in this sample.", "Add try/except around trace operations for resilience"),
+            9: ("warn", "No explicit error handling or fallback mechanisms visible in this file. However, this is a tracing module - error handling may exist in other pipeline files not shown in this sample.", "Add try/except around trace operations for resilience"),
             10: ("warn", "No input validation visible in this tracing module. Data governance patterns likely exist in other files (552 total files in project).", "Consider adding validation to trace content"),
             11: ("pass", "LoggingTracer class has comprehensive docstrings on all methods: trace(), get_spans(), __init__(). Type hints present on all function signatures (tags: Optional[Dict[str, Any]], operation_name: str, content: Dict[str, Any]).", ""),
             12: ("pass", "Production-grade tracing implementation: LoggingTracer class records all operations with timestamps via trace() method. Uses logger.info() for structured logging. HAYSTACK_CONTENT_TRACING_ENABLED flag enables production tracing. get_spans() provides audit trail access.", ""),
-            14: ("warn", "No human-in-the-loop gates visible in this tracing module. HITL patterns may exist in other files — this is a sample of 4 files from 552.", "Consider adding approval gates for sensitive operations"),
+            14: ("warn", "No human-in-the-loop gates visible in this tracing module. HITL patterns may exist in other files - this is a sample of 4 files from 552.", "Consider adding approval gates for sensitive operations"),
             15: ("warn", "No explicit injection defense or retry logic in this module. Security patterns likely exist in other files not shown.", "Add input sanitization to trace content"),
         }
     ))
 
-    # Example 2: filter_policy.py — strong Article 10 pass
+    # Example 2: filter_policy.py - strong Article 10 pass
     examples.append(make_pass_example(
         code=HAYSTACK_FILTER_POLICY,
         framework="Haystack",
         sample_desc="targeted sample of 3 core data governance files",
         total_files=552,
         articles_status={
-            9: ("pass", "FilterPolicy.apply() raises ValueError for invalid policies — explicit error handling. The enum pattern prevents invalid states by design.", ""),
+            9: ("pass", "FilterPolicy.apply() raises ValueError for invalid policies - explicit error handling. The enum pattern prevents invalid states by design.", ""),
             10: ("pass", "FilterPolicy class implements data governance through controlled filter operations. The apply() method validates inputs, raises ValueError for invalid filters, and uses type-safe Enum pattern. Pydantic-style dataclass with type hints enforces schema.", ""),
             11: ("pass", "Comprehensive docstrings on FilterPolicy class, apply() method with full Args/Returns/Raises documentation. Type hints on all parameters (init_filters: Optional[Dict[str, Any]], runtime_filters: Optional[Dict[str, Any]]).", ""),
             12: ("warn", "No logging visible in this module. Record-keeping likely handled by other components.", "Add logging to filter operations for audit trail"),
@@ -669,7 +669,7 @@ def generate_haystack_examples() -> list:
         }
     ))
 
-    # Example 3: pipeline_tool.py — strong Articles 9, 12, 14 pass
+    # Example 3: pipeline_tool.py - strong Articles 9, 12, 14 pass
     examples.append(make_pass_example(
         code=HAYSTACK_PIPELINE_TOOL,
         framework="Haystack",
@@ -685,7 +685,7 @@ def generate_haystack_examples() -> list:
         }
     ))
 
-    # Example 4: errors.py — strong Article 9 pass
+    # Example 4: errors.py - strong Article 9 pass
     examples.append(make_pass_example(
         code=HAYSTACK_ERRORS,
         framework="Haystack",
@@ -696,12 +696,12 @@ def generate_haystack_examples() -> list:
             10: ("pass", "PipelineValidationError provides input validation error handling. DeserializationError guards against corrupted/tampered serialized data. Exception hierarchy enables typed error handling for data governance.", ""),
             11: ("pass", "All exception classes have docstrings explaining purpose. PipelineMaxComponentVisitsExceeded documented as 'safety mechanism per Article 14 requirements'. Type hints on __init__ parameters (message: str, component: Optional[str]).", ""),
             12: ("pass", "Every exception class automatically logs via logger.error() on instantiation. Component name captured in log context. Full error chain preserved through inheritance.", ""),
-            14: ("pass", "PipelineMaxComponentVisitsExceeded serves as an execution boundary / kill switch — prevents infinite loops in agent pipelines. Docstring explicitly references Article 14 compliance.", ""),
+            14: ("pass", "PipelineMaxComponentVisitsExceeded serves as an execution boundary / kill switch - prevents infinite loops in agent pipelines. Docstring explicitly references Article 14 compliance.", ""),
             15: ("pass", "DeserializationError guards against tampered serialized data (security). PipelineValidationError catches invalid inputs before execution. Exception hierarchy enables precise error handling and recovery.", ""),
         }
     ))
 
-    # Example 5: logging.py — strong Article 12 pass
+    # Example 5: logging.py - strong Article 12 pass
     examples.append(make_pass_example(
         code=HAYSTACK_LOGGING_MODULE,
         framework="Haystack",
@@ -742,7 +742,7 @@ def generate_langchain_examples() -> list:
     """Generate training examples from LangChain code patterns."""
     examples = []
 
-    # Example 1: Callback handler — strong Article 12
+    # Example 1: Callback handler - strong Article 12
     examples.append(make_pass_example(
         code=LANGCHAIN_CALLBACK_HANDLER,
         framework="LangChain",
@@ -758,7 +758,7 @@ def generate_langchain_examples() -> list:
         }
     ))
 
-    # Example 2: Chain with validation — strong Articles 10, 14, 15
+    # Example 2: Chain with validation - strong Articles 10, 14, 15
     examples.append(make_pass_example(
         code=LANGCHAIN_CHAIN_WITH_VALIDATION,
         framework="LangChain",
@@ -774,7 +774,7 @@ def generate_langchain_examples() -> list:
         }
     ))
 
-    # Example 3: Retry with fallback — strong Article 9
+    # Example 3: Retry with fallback - strong Article 9
     examples.append(make_pass_example(
         code=LANGCHAIN_RETRY_WITH_FALLBACK,
         framework="LangChain",
@@ -797,7 +797,7 @@ def generate_crewai_examples() -> list:
     """Generate training examples from CrewAI code patterns."""
     examples = []
 
-    # Example 1: SafeAgent — strong Articles 12, 14
+    # Example 1: SafeAgent - strong Articles 12, 14
     examples.append(make_pass_example(
         code=CREWAI_AGENT_SAFE,
         framework="CrewAI",
@@ -820,7 +820,7 @@ def generate_mixed_examples() -> list:
     """Generate examples with mixed PASS/WARN/FAIL for realism."""
     examples = []
 
-    # Minimal code — mostly WARN (not FAIL, because we can't see everything)
+    # Minimal code - mostly WARN (not FAIL, because we can't see everything)
     minimal_code = '''
 import os
 from typing import Optional

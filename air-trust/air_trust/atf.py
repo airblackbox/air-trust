@@ -57,10 +57,10 @@ if TYPE_CHECKING:
 LEVELS = ("intern", "junior", "senior", "principal")
 
 LEVEL_DESCRIPTIONS = {
-    "intern": "Observe + Report — continuous human oversight",
-    "junior": "Recommend + Approve — human approves all actions",
-    "senior": "Act + Notify — post-action notification",
-    "principal": "Autonomous — strategic oversight only",
+    "intern": "Observe + Report - continuous human oversight",
+    "junior": "Recommend + Approve - human approves all actions",
+    "senior": "Act + Notify - post-action notification",
+    "principal": "Autonomous - strategic oversight only",
 }
 
 REQUIREMENT_NAMES = {

@@ -1,18 +1,18 @@
 """
-Article 13 — Transparency and Provision of Information to Users.
+Article 13 - Transparency and Provision of Information to Users.
 
 EU AI Act Article 13 requires high-risk AI systems to be transparent about:
   13(1): Designed so deployers can interpret the output and use it appropriately
-  13(2): Instructions for use — clear, complete, correct, and relevant info
+  13(2): Instructions for use - clear, complete, correct, and relevant info
   13(3)(a): Identity of provider
   13(3)(b): Characteristics, capabilities, and limitations of performance
   13(3)(c): Changes to the system after conformity assessment
-  13(3)(d): Human oversight measures — technical measures to facilitate output interpretation
+  13(3)(d): Human oversight measures - technical measures to facilitate output interpretation
   13(3)(e): Computational and hardware resources needed
   13(3)(f): Expected lifetime, maintenance, and care
 
 For AI agents specifically, Article 13 intersects with Article 50 (transparency
-obligations for interactive AI) — users must be informed they are interacting
+obligations for interactive AI) - users must be informed they are interacting
 with an AI system.
 
 Related NIST RFI Docket NIST-2025-0035 identifies agent identity disclosure as
@@ -38,7 +38,7 @@ class TransparencyFinding:
     files: list = field(default_factory=list)
 
 
-# Disclosure patterns — code indicating the AI identifies itself to users
+# Disclosure patterns - code indicating the AI identifies itself to users
 AI_DISCLOSURE_PATTERNS = [
     r"['\"].*?(?:I am an? AI|AI assistant|language model|this is an AI|powered by AI).*?['\"]",
     r"ai_disclosure",
@@ -63,7 +63,7 @@ CAPABILITY_DOC_PATTERNS = [
     r"LIMITATIONS",
 ]
 
-# Instructions-for-use patterns — user-facing guidance
+# Instructions-for-use patterns - user-facing guidance
 INSTRUCTIONS_PATTERNS = [
     r"INSTRUCTIONS_FOR_USE",
     r"user_guide",
@@ -184,7 +184,7 @@ def _check_ai_disclosure(file_contents: dict) -> TransparencyFinding:
             article=13,
             name="AI disclosure to users",
             status="warn",
-            evidence="No Python files scanned — cannot verify AI disclosure",
+            evidence="No Python files scanned - cannot verify AI disclosure",
             fix_hint="Article 50 requires users be informed they are interacting with AI",
         )
     return TransparencyFinding(
@@ -259,7 +259,7 @@ def _check_instructions_for_use(scan_path: str) -> TransparencyFinding:
             article=13,
             name="Instructions for use",
             status="warn",
-            evidence=f"Only {readme_path} found — Article 13(2) expects dedicated instructions for use",
+            evidence=f"Only {readme_path} found - Article 13(2) expects dedicated instructions for use",
             fix_hint="Create OPERATOR_GUIDE.md or USER_GUIDE.md with usage instructions, known limitations, and escalation procedures",
             detection="hybrid",
         )
@@ -317,7 +317,7 @@ def _check_provider_identity(file_contents: dict, scan_path: str) -> Transparenc
 
 
 def _check_output_interpretation(file_contents: dict) -> TransparencyFinding:
-    """Check for output interpretation support — confidence, rationale, explanation (13(3)(d))."""
+    """Check for output interpretation support - confidence, rationale, explanation (13(3)(d))."""
     combined = "|".join(OUTPUT_INTERPRETATION_PATTERNS)
     hits = [fp for fp, content in file_contents.items() if re.search(combined, content, re.IGNORECASE)]
     if hits:
@@ -338,7 +338,7 @@ def _check_output_interpretation(file_contents: dict) -> TransparencyFinding:
 
 
 def _check_change_logging(scan_path: str) -> TransparencyFinding:
-    """Check for change logging (13(3)(c)) — CHANGELOG or git history."""
+    """Check for change logging (13(3)(c)) - CHANGELOG or git history."""
     change_files = ["CHANGELOG.md", "CHANGELOG.rst", "CHANGES.md", "HISTORY.md", "RELEASES.md"]
     has_changelog = any(os.path.exists(os.path.join(scan_path, f)) for f in change_files)
     if has_changelog:

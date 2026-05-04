@@ -23,9 +23,9 @@ OUTPUT_FILE = os.path.join(os.path.dirname(__file__), "phase34_pass_scaled.jsonl
 # ============================================================================
 
 INSTRUCTIONS = [
-    "Analyze this Python code for EU AI Act compliance. This is a {sample_context} from a project with {total_files} Python files. Assess ONLY what is visible in the code below — do not assume patterns are missing if they could exist in files not shown.\n\nFor each of Articles 9, 10, 11, 12, 14, and 15: report status (pass if evidence found, warn if partial, fail only if clearly absent), cite specific evidence from the code (function names, patterns, line references), and give fix recommendations. Output as a JSON array.",
-    "Scan the following Python code sample for EU AI Act compliance patterns. This is a {sample_context} from a project with {total_files} Python files. Focus on what IS present — cite specific classes, functions, and patterns you can see. Only mark FAIL for articles where the code clearly contradicts requirements.",
-    "Review this Python AI agent code for EU AI Act Articles 9-15 compliance. This represents a {sample_context} from a {total_files}-file project. Identify compliance evidence in the code — name specific functions, classes, decorators, and patterns.",
+    "Analyze this Python code for EU AI Act compliance. This is a {sample_context} from a project with {total_files} Python files. Assess ONLY what is visible in the code below - do not assume patterns are missing if they could exist in files not shown.\n\nFor each of Articles 9, 10, 11, 12, 14, and 15: report status (pass if evidence found, warn if partial, fail only if clearly absent), cite specific evidence from the code (function names, patterns, line references), and give fix recommendations. Output as a JSON array.",
+    "Scan the following Python code sample for EU AI Act compliance patterns. This is a {sample_context} from a project with {total_files} Python files. Focus on what IS present - cite specific classes, functions, and patterns you can see. Only mark FAIL for articles where the code clearly contradicts requirements.",
+    "Review this Python AI agent code for EU AI Act Articles 9-15 compliance. This represents a {sample_context} from a {total_files}-file project. Identify compliance evidence in the code - name specific functions, classes, decorators, and patterns.",
     "Evaluate EU AI Act compliance in this code sample. This is a {sample_context} from a project with {total_files} Python files total. Cite specific evidence for each article: function names, class names, pattern descriptions.",
     "Perform EU AI Act compliance analysis on this Python code. You are analyzing a {sample_context} from a {total_files}-file codebase. For each article, cite specific code evidence (class names, function signatures, patterns). Use pass/warn/fail based on visible evidence only.",
     "Check this Python code against EU AI Act Articles 9, 10, 11, 12, 14, 15. This is a {sample_context} from a project with {total_files} files. Report specific evidence from the code for each article. Do not assume compliance gaps in files not shown.",
@@ -49,7 +49,7 @@ ARTICLE_NAMES = {
 }
 
 # ============================================================================
-# CODE PATTERN LIBRARY — realistic snippets the model needs to recognize
+# CODE PATTERN LIBRARY - realistic snippets the model needs to recognize
 # ============================================================================
 
 LOGGING_PATTERNS = [
@@ -660,7 +660,7 @@ def make_example(code: str, framework: str, articles_status: dict,
     for art_num in [9, 10, 11, 12, 14, 15]:
         status, evidence, fix = articles_status.get(art_num, ("warn", "Partial evidence", ""))
         name = ARTICLE_NAMES[art_num]
-        output_parts.append(f"### Article {art_num} — {name}\n")
+        output_parts.append(f"### Article {art_num} - {name}\n")
         output_parts.append(f"**Status**: {status.upper()}")
         output_parts.append(f"**Analysis**: {evidence}")
         if fix and status != "pass":
@@ -675,7 +675,7 @@ def make_example(code: str, framework: str, articles_status: dict,
 
 
 # ============================================================================
-# EVIDENCE TEMPLATES — realistic pass/warn/fail text for each article
+# EVIDENCE TEMPLATES - realistic pass/warn/fail text for each article
 # ============================================================================
 
 ART9_PASS = [

@@ -2,7 +2,7 @@
 PII detection and prompt injection scanning.
 
 Runs on every event before it hits the chain.
-Zero dependencies — pure regex.
+Zero dependencies - pure regex.
 """
 
 from __future__ import annotations

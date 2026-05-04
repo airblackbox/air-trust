@@ -1,4 +1,4 @@
-"""Tests for AgentIdentity — Article 14 agent-to-user identity binding."""
+"""Tests for AgentIdentity - Article 14 agent-to-user identity binding."""
 import pytest
 import hashlib
 from air_trust.events import AgentIdentity, Event

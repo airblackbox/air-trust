@@ -17,23 +17,23 @@ pip install air-trust
 ```python
 import air_trust
 
-# 1. One-liner — wraps any AI client automatically
+# 1. One-liner - wraps any AI client automatically
 from openai import OpenAI
 client = air_trust.trust(OpenAI())
 # Every call is now audited with HMAC-SHA256 signed evidence
 
-# 2. Decorator — wrap any function
+# 2. Decorator - wrap any function
 @air_trust.monitor
 def my_agent_step(prompt):
     return client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
 
-# 3. Context manager — audit a block of code
+# 3. Context manager - audit a block of code
 with air_trust.session("my-pipeline") as s:
     result = my_agent_step("Analyze this document")
     s.log("Pipeline complete", risk_level="low")
 ```
 
-That's it. HMAC-SHA256 signed audit chain, Ed25519 signed handoffs, PII detection, prompt injection scanning — all local, no API key, no network calls.
+That's it. HMAC-SHA256 signed audit chain, Ed25519 signed handoffs, PII detection, prompt injection scanning - all local, no API key, no network calls.
 
 ## Why air-trust?
 
@@ -159,7 +159,7 @@ identity_b = AgentIdentity(agent_name="writer-bot", owner="jason@airblackbox.ai"
 generate_keypair(identity_a.fingerprint)
 generate_keypair(identity_b.fingerprint)
 
-# Agent A sends a handoff request — auto-signed with Ed25519
+# Agent A sends a handoff request - auto-signed with Ed25519
 chain = AuditChain(db_path="handoffs.db", signing_key="my-key")
 chain.write(Event(
     type="handoff_request",
@@ -175,8 +175,8 @@ Verify handoffs alongside integrity and completeness:
 
 ```bash
 python3 -m air_trust verify --db handoffs.db
-# ✓ PASS: Integrity — chain is intact (HMAC-SHA256)
-# ✓ PASS: Handoffs — all handoffs verified (Ed25519)
+# ✓ PASS: Integrity - chain is intact (HMAC-SHA256)
+# ✓ PASS: Handoffs - all handoffs verified (Ed25519)
 ```
 
 ## Storage
@@ -196,13 +196,13 @@ chain = AuditChain(
 
 ## EU AI Act Compliance
 
-air-trust is purpose-built for EU AI Act Article 11 (Technical Documentation) and Article 12 (Record-Keeping). The tamper-evident audit chain provides the evidence trail that regulators require — stored on your infrastructure, signed with NIST FIPS 198-1 compliant HMAC-SHA256.
+air-trust is purpose-built for EU AI Act Article 11 (Technical Documentation) and Article 12 (Record-Keeping). The tamper-evident audit chain provides the evidence trail that regulators require - stored on your infrastructure, signed with NIST FIPS 198-1 compliant HMAC-SHA256.
 
 **Deadline: August 2, 2026.**
 
 ## Part of AIR Blackbox
 
-air-trust is the runtime compliance layer in the [AIR Blackbox](https://airblackbox.ai) ecosystem — open-source EU AI Act compliance tooling for developers.
+air-trust is the runtime compliance layer in the [AIR Blackbox](https://airblackbox.ai) ecosystem - open-source EU AI Act compliance tooling for developers.
 
 ## License
 

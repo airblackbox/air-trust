@@ -9,7 +9,7 @@ Demonstrates AIR Blackbox's complete trust pipeline:
   2. HMAC-SHA256 tamper-evident audit chains
   3. Agent-to-Agent compliance verification
   4. Signed bilateral handshakes (co-attestation proof)
-  5. Tamper detection — proves chains break if modified
+  5. Tamper detection - proves chains break if modified
 
 Run:
     python demo/co_attestation_demo.py
@@ -72,7 +72,7 @@ def info(msg: str) -> None:
 # ── Demo starts here ─────────────────────────────────────────────
 
 def main():
-    print(f"\n{BOLD}AIR Blackbox — Co-Attestation & Bilateral Proof Demo{RESET}")
+    print(f"\n{BOLD}AIR Blackbox - Co-Attestation & Bilateral Proof Demo{RESET}")
     print(f"{DIM}Quantum-safe signing · Tamper-evident chains · Agent-to-Agent trust{RESET}\n")
 
     # Create isolated temp directories for this demo
@@ -86,7 +86,7 @@ def main():
         # ────────────────────────────────────────────────
         # STEP 1: Generate ML-DSA-65 key pairs
         # ────────────────────────────────────────────────
-        header("Step 1 — ML-DSA-65 Key Generation (FIPS 204)")
+        header("Step 1 - ML-DSA-65 Key Generation (FIPS 204)")
 
         km_a = KeyManager(key_dir=keys_dir_a)
         pub_a, priv_a = km_a.generate()
@@ -104,7 +104,7 @@ def main():
         # ────────────────────────────────────────────────
         # STEP 2: Sign and verify compliance data
         # ────────────────────────────────────────────────
-        header("Step 2 — Sign & Verify Compliance Evidence")
+        header("Step 2 - Sign & Verify Compliance Evidence")
 
         signer_a = EvidenceSigner(km_a)
 
@@ -127,7 +127,7 @@ def main():
         # Verify with Agent A's public key
         verified = signer_a.verify_json(compliance_data, envelope["signature_hex"])
         if verified:
-            ok(f"Signature verified — evidence is authentic")
+            ok(f"Signature verified - evidence is authentic")
         else:
             fail(f"Signature verification failed!")
 
@@ -136,7 +136,7 @@ def main():
         tampered_data["checks_passed"] = 48  # lie about results
         tampered_ok = signer_a.verify_json(tampered_data, envelope["signature_hex"])
         if not tampered_ok:
-            ok(f"Tampered data rejected — signature mismatch detected")
+            ok(f"Tampered data rejected - signature mismatch detected")
         else:
             fail(f"Tampered data was incorrectly accepted!")
 
@@ -144,14 +144,14 @@ def main():
         signer_b = EvidenceSigner(km_b)
         cross_ok = signer_b.verify_json(compliance_data, envelope["signature_hex"])
         if not cross_ok:
-            ok(f"Cross-key verification rejected — Agent B cannot forge Agent A's proof")
+            ok(f"Cross-key verification rejected - Agent B cannot forge Agent A's proof")
         else:
             fail(f"Cross-key verification should have failed!")
 
         # ────────────────────────────────────────────────
         # STEP 3: HMAC-SHA256 Tamper-Evident Audit Chain
         # ────────────────────────────────────────────────
-        header("Step 3 — HMAC-SHA256 Audit Chain")
+        header("Step 3 - HMAC-SHA256 Audit Chain")
 
         chain = AuditChain(runs_dir=runs_dir, signing_key=signing_key)
         ok(f"Audit chain initialized")
@@ -174,11 +174,11 @@ def main():
             info(f"Chain hash: {h[:32]}...")
 
         print()
-        ok(f"Chain complete — {chain.record_count} records linked")
+        ok(f"Chain complete - {chain.record_count} records linked")
         info(f"Chain head: {chain.current_hash[:32]}...")
 
         # Verify chain integrity
-        header("Step 3b — Tamper Detection")
+        header("Step 3b - Tamper Detection")
 
         # Re-read a record file and tamper with it
         files = sorted(os.listdir(runs_dir))
@@ -210,14 +210,14 @@ def main():
                 ok(f"Record #{i+1} ({fname}): hash valid")
 
         if not chain_valid:
-            ok(f"Tamper detection working — modified record broke the chain")
+            ok(f"Tamper detection working - modified record broke the chain")
         else:
             warn(f"Chain appeared valid (unexpected)")
 
         # ────────────────────────────────────────────────
         # STEP 4: Agent-to-Agent Compliance Verification
         # ────────────────────────────────────────────────
-        header("Step 4 — Agent-to-Agent (A2A) Compliance Gate")
+        header("Step 4 - Agent-to-Agent (A2A) Compliance Gate")
 
         card_a = AgentComplianceCard(
             agent_id="agent-alpha-001",
@@ -270,7 +270,7 @@ def main():
         # ────────────────────────────────────────────────
         # STEP 5: Signed Bilateral Handshake (Co-Attestation)
         # ────────────────────────────────────────────────
-        header("Step 5 — Signed Co-Attestation (Bilateral Proof)")
+        header("Step 5 - Signed Co-Attestation (Bilateral Proof)")
 
         handshake = result.handshake_record
         if handshake:
@@ -299,7 +299,7 @@ def main():
             b_valid = signer_b.verify_json(handshake, counter_envelope["signature_hex"])
 
             if a_valid and b_valid:
-                ok(f"Both signatures verified — bilateral proof complete")
+                ok(f"Both signatures verified - bilateral proof complete")
             else:
                 fail(f"Signature verification failed (A={a_valid}, B={b_valid})")
 
@@ -339,12 +339,12 @@ def main():
             info(f"File: {proof_path}")
 
         else:
-            fail(f"No handshake produced — agents may not meet minimum requirements")
+            fail(f"No handshake produced - agents may not meet minimum requirements")
 
         # ────────────────────────────────────────────────
-        # STEP 6: Negative test — non-compliant agent
+        # STEP 6: Negative test - non-compliant agent
         # ────────────────────────────────────────────────
-        header("Step 6 — Negative Test: Non-Compliant Agent Rejected")
+        header("Step 6 - Negative Test: Non-Compliant Agent Rejected")
 
         card_bad = AgentComplianceCard(
             agent_id="agent-rogue-999",
@@ -390,7 +390,7 @@ def main():
 
   {BOLD}3. HMAC-SHA256 Audit Chain{RESET}
      {chain.record_count} events chained. Tampering with record #3
-     broke the chain — modification detected immediately.
+     broke the chain - modification detected immediately.
 
   {BOLD}4. A2A Compliance Gate{RESET}
      Two compliant agents verified each other (score: 1.00).
@@ -398,7 +398,7 @@ def main():
 
   {BOLD}5. Bilateral Co-Attestation{RESET}
      Both agents signed the handshake with ML-DSA-65.
-     Dual signatures verified — cryptographic proof that both
+     Dual signatures verified - cryptographic proof that both
      agents agreed to communicate under EU AI Act compliance.
 
   {DIM}No API keys. No internet. No cloud. Everything ran locally.{RESET}

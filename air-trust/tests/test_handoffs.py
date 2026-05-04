@@ -1,4 +1,4 @@
-"""Tests for v1.2 signed handoffs — Ed25519 key management and handoff protocol."""
+"""Tests for v1.2 signed handoffs - Ed25519 key management and handoff protocol."""
 
 import os
 import json

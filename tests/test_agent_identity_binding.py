@@ -132,7 +132,7 @@ def tick():
         assert "SCC" in fix_hint
 
     def test_scc_schema_fields_alone_trigger_detection(self, tmp_path):
-        # Even without imports — field names like memory_root are a strong signal
+        # Even without imports - field names like memory_root are a strong signal
         _write(tmp_path, "agent.py", """
 def tick():
     while True:

@@ -1,5 +1,5 @@
 """
-AIR Trust — Public API.
+AIR Trust - Public API.
 
 Three ways to use it:
 
@@ -57,7 +57,7 @@ def _get_chain() -> AuditChain:
         return _global_chain
 
 
-# ── trust() — The One-Liner ────────────────────────────────────
+# ── trust() - The One-Liner ────────────────────────────────────
 
 def trust(obj: Any, *, chain: Optional[AuditChain] = None,
           framework: Optional[str] = None,
@@ -220,7 +220,7 @@ def _apply_adapter(obj: Any, chain: AuditChain,
     return obj
 
 
-# ── monitor — The Decorator ────────────────────────────────────
+# ── monitor - The Decorator ────────────────────────────────────
 
 def monitor(fn: Optional[Callable] = None, *,
             event_type: str = "function_call",
@@ -253,7 +253,7 @@ def monitor(fn: Optional[Callable] = None, *,
         return decorator
 
 
-# ── session — The Context Manager ───────────────────────────────
+# ── session - The Context Manager ───────────────────────────────
 
 class AirTrustSession:
     """Context manager for auditing a block of code.
@@ -467,7 +467,7 @@ def scan_text(text: str) -> dict:
 def enforce(policy, *, chain: Optional[AuditChain] = None, on_violation: str = "block"):
     """Attach a policy to the trust layer.
 
-    Policies enforce runtime rules on every event — block certain models,
+    Policies enforce runtime rules on every event - block certain models,
     require identities, reject high injection scores, etc.
 
     Args:

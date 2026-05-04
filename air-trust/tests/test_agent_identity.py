@@ -1,4 +1,4 @@
-"""Tests for air_trust.agent_identity — continuity + ghost detection."""
+"""Tests for air_trust.agent_identity - continuity + ghost detection."""
 
 import json
 import os

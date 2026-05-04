@@ -1,5 +1,5 @@
 """
-A typical LangChain agent — works great, but has zero compliance coverage.
+A typical LangChain agent - works great, but has zero compliance coverage.
 
 This is how most developers build LangChain apps today.
 No logging. No input validation. No audit trail. No human oversight.
@@ -20,14 +20,14 @@ from langchain_core.tools import tool
 @tool
 def search_database(query: str) -> str:
     """Search the company database for information."""
-    # Simulated database search — no input sanitization
+    # Simulated database search - no input sanitization
     return f"Results for '{query}': Found 3 matching records."
 
 
 @tool
 def send_email(to: str, subject: str, body: str) -> str:
     """Send an email to a customer."""
-    # No approval gate — agent can email anyone automatically
+    # No approval gate - agent can email anyone automatically
     return f"Email sent to {to}: {subject}"
 
 
@@ -44,7 +44,7 @@ llm = ChatOpenAI(model="gpt-4o-mini")
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a helpful customer service agent. Help users with their requests."),
-    ("human", "{input}"),  # Raw user input — no sanitization
+    ("human", "{input}"),  # Raw user input - no sanitization
     ("placeholder", "{agent_scratchpad}"),
 ])
 
@@ -56,7 +56,7 @@ executor = AgentExecutor(agent=agent, tools=tools)
 # --- Run ---
 
 if __name__ == "__main__":
-    # User input goes straight to the LLM — no validation, no PII check
+    # User input goes straight to the LLM - no validation, no PII check
     user_input = input("What can I help you with? > ")
     result = executor.invoke({"input": user_input})
     print(result["output"])

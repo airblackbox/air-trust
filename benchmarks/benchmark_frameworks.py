@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AIR Blackbox — Framework Benchmark Scanner
+AIR Blackbox - Framework Benchmark Scanner
 
 Scans CrewAI, LangFlow, and Quivr for EU AI Act compliance using
 both the rule-based engine AND the fine-tuned AI model, then outputs
@@ -15,8 +15,8 @@ Requirements:
       (script will clone them if missing)
 
 Output:
-    - benchmarks/results/  — JSON results per framework
-    - benchmarks/results/comparison.json — side-by-side comparison
+    - benchmarks/results/  - JSON results per framework
+    - benchmarks/results/comparison.json - side-by-side comparison
     - Console table showing the matrix
 """
 
@@ -62,7 +62,7 @@ FRAMEWORKS = {
     },
 }
 
-# What we expect to find (from manual code analysis) — for validation
+# What we expect to find (from manual code analysis) - for validation
 EXPECTED = {
     "crewai": {
         9: "warn",   # Risk mgmt: RPM controller, guardrails, but no circuit breakers
@@ -70,7 +70,7 @@ EXPECTED = {
         11: "pass",  # Tech docs: 1918 typed functions, multi-language docs, 73% docstrings
         12: "pass",  # Record-keeping: OpenTelemetry, event bus, 72 event files
         14: "pass",  # Human oversight: @human_feedback decorator (560 lines)
-        15: "pass",  # Security: guardrails, output validation, retry logic — scanner correctly finds these
+        15: "pass",  # Security: guardrails, output validation, retry logic - scanner correctly finds these
     },
     "langflow": {
         9: "warn",   # Risk mgmt: GuardrailsComponent is strong but scanner also checks for risk docs/mitigations
@@ -83,10 +83,10 @@ EXPECTED = {
     "quivr": {
         9: "warn",   # Risk mgmt: Basic error handling, tokenizer fallback
         10: "warn",  # Data gov: Pydantic BaseModel exists (15/77 files), but no PII lib → WARN is correct
-        11: "pass",  # Tech docs: 73%+ docstrings, type hints — scanner correctly scores PASS
-        12: "warn",  # Record-keeping: Langfuse in 6 files but only 1 action audit file — thin
+        11: "pass",  # Tech docs: 73%+ docstrings, type hints - scanner correctly scores PASS
+        12: "warn",  # Record-keeping: Langfuse in 6 files but only 1 action audit file - thin
         14: "warn",  # Human oversight: no real HITL, basic iteration limits only → WARN after tightening
-        15: "warn",  # Security: minimal retry (1 file), output validation (2 files) — thin
+        15: "warn",  # Security: minimal retry (1 file), output validation (2 files) - thin
     },
 }
 
@@ -264,7 +264,7 @@ def build_rule_context(articles: list) -> str:
 
 
 def reconcile(deep_findings: list, articles: list) -> int:
-    """Smart reconciliation — override model FAILs when rule-based has strong PASS."""
+    """Smart reconciliation - override model FAILs when rule-based has strong PASS."""
     rule_pass_counts = {}
     rule_evidence_map = {}
     for article in articles:
@@ -295,7 +295,7 @@ def reconcile(deep_findings: list, articles: list) -> int:
             finding["status"] = "warn"
             rule_ev = rule_evidence_map.get(art, "")
             finding["evidence"] = (
-                f"[Partial — rule-based found evidence] {rule_ev}. "
+                f"[Partial - rule-based found evidence] {rule_ev}. "
                 f"Model noted: {finding.get('evidence', '')}"
             )
             overrides += 1
@@ -337,9 +337,9 @@ def scan_framework(key: str, config: dict) -> dict:
         fails = sum(1 for c in checks if c.get("status") == "fail")
         total = passes + warns + fails
 
-        # Determine article-level status — proportional scoring
+        # Determine article-level status - proportional scoring
         # When scanning code-only (no gateway), exclude runtime checks that
-        # auto-fail just because "gateway not reachable" — those aren't fair
+        # auto-fail just because "gateway not reachable" - those aren't fair
         static_checks = [c for c in checks if c.get("tier") == "static"]
         static_passes = sum(1 for c in static_checks if c.get("status") == "pass")
         static_warns = sum(1 for c in static_checks if c.get("status") == "warn")
@@ -420,7 +420,7 @@ def scan_framework(key: str, config: dict) -> dict:
         else:
             print(f"  AI model error: {result.get('error', 'unknown')}")
     else:
-        print(f"  AI model not available — rule-based only")
+        print(f"  AI model not available - rule-based only")
 
     # Step 5: Merge into final results
     elapsed = time.time() - start_time
@@ -509,7 +509,7 @@ def scan_framework(key: str, config: dict) -> dict:
 def print_comparison_table(results: dict):
     """Print a formatted comparison table to console."""
     print(f"\n\n{'='*80}")
-    print(f"  AIR BLACKBOX — EU AI ACT BENCHMARK COMPARISON")
+    print(f"  AIR BLACKBOX - EU AI ACT BENCHMARK COMPARISON")
     print(f"{'='*80}\n")
 
     # Header
@@ -520,14 +520,14 @@ def print_comparison_table(results: dict):
     icons = {"pass": "✅ PASS", "warn": "⚠️  WARN", "fail": "❌ FAIL", "unknown": "?"}
 
     for art_num in [9, 10, 11, 12, 14, 15]:
-        name = f"Art. {art_num} — {ARTICLE_NAMES[art_num]}"
+        name = f"Art. {art_num} - {ARTICLE_NAMES[art_num]}"
         cols = []
         for fw_key in ["crewai", "langflow", "quivr"]:
             if fw_key in results:
                 status = results[fw_key]["articles"][art_num]["final_status"]
                 cols.append(icons.get(status, "?"))
             else:
-                cols.append("—")
+                cols.append("-")
 
         print(f"{name:<30} {cols[0]:^12} {cols[1]:^12} {cols[2]:^12}")
 
@@ -540,7 +540,7 @@ def print_comparison_table(results: dict):
             s = results[fw_key]["summary"]
             totals.append(f"{s['score']}")
         else:
-            totals.append("—")
+            totals.append("-")
 
     print(f"{'TOTAL PASS':<30} {totals[0]:^12} {totals[1]:^12} {totals[2]:^12}")
 
@@ -558,7 +558,7 @@ def print_comparison_table(results: dict):
 
 def main():
     print("╔══════════════════════════════════════════════════════════╗")
-    print("║    AIR Blackbox — Framework Benchmark Scanner           ║")
+    print("║    AIR Blackbox - Framework Benchmark Scanner           ║")
     print("║    Scanning CrewAI, LangFlow, Quivr                     ║")
     print("╚══════════════════════════════════════════════════════════╝")
 
@@ -569,10 +569,10 @@ def main():
         if _model_available("air-compliance"):
             print("  [OK] air-compliance model available")
         else:
-            print("  [!!] air-compliance model NOT found — will use rule-based only")
+            print("  [!!] air-compliance model NOT found - will use rule-based only")
             print("       Run: air-blackbox setup")
     else:
-        print("  [!!] Ollama NOT installed — will use rule-based only")
+        print("  [!!] Ollama NOT installed - will use rule-based only")
         print("       Install: https://ollama.com")
 
     # Clone repos
@@ -617,7 +617,7 @@ def main():
     # Final summary
     print(f"\n\nDone. Results in: {RESULTS_DIR}/")
     print("Next steps:")
-    print("  1. Review mismatches — are they scanner bugs or expected data?")
+    print("  1. Review mismatches - are they scanner bugs or expected data?")
     print("  2. If model didn't run, install it: air-blackbox setup")
     print("  3. Share comparison.json with framework maintainers for validation")
 

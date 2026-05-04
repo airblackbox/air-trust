@@ -270,11 +270,11 @@ class TestParseMarkdownOutput:
     def test_parse_markdown_article_with_status(self):
         """Test parsing markdown with article and status on same line."""
         markdown = """
-**Article 9 — Risk Management**: FAIL
+**Article 9 - Risk Management**: FAIL
 
 Missing error handling in LLM calls.
 
-### Article 10 — Data Governance: PASS
+### Article 10 - Data Governance: PASS
 
 Input validation is present.
 """
@@ -286,7 +286,7 @@ Input validation is present.
     def test_parse_markdown_hash_headers(self):
         """Test parsing markdown with # headers."""
         markdown = """
-### Article 9 — Risk Management
+### Article 9 - Risk Management
 **Status**: FAIL
 **Evidence**: No try/except blocks found
 **Recommendation**: Add error handling
@@ -296,7 +296,7 @@ Input validation is present.
 
     def test_parse_markdown_format_a(self):
         """Test Format A: status on same line as header."""
-        markdown = "**Article 14 — Human Oversight**: PASS"
+        markdown = "**Article 14 - Human Oversight**: PASS"
         findings = _parse_llm_output(markdown)
         assert len(findings) > 0
         if findings:
@@ -305,7 +305,7 @@ Input validation is present.
 
     def test_parse_markdown_format_b(self):
         """Test Format B: status on separate line."""
-        markdown = """### Article 15 — Accuracy & Security
+        markdown = """### Article 15 - Accuracy & Security
 **Status**: WARN
 **Analysis**: Partial injection defense
 """
@@ -315,12 +315,12 @@ Input validation is present.
     def test_parse_markdown_multiple_articles(self):
         """Test parsing multiple articles."""
         markdown = """
-**Article 9 — Risk**: FAIL
-**Article 10 — Data**: PASS
-**Article 11 — Docs**: WARN
-**Article 12 — Logging**: PASS
-**Article 14 — HITL**: FAIL
-**Article 15 — Security**: PASS
+**Article 9 - Risk**: FAIL
+**Article 10 - Data**: PASS
+**Article 11 - Docs**: WARN
+**Article 12 - Logging**: PASS
+**Article 14 - HITL**: FAIL
+**Article 15 - Security**: PASS
 """
         findings = _parse_llm_output(markdown)
         assert len(findings) >= 2

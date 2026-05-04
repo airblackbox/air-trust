@@ -1,5 +1,5 @@
 """
-air_trust.agent_identity — verify agent identity continuity across the audit chain.
+air_trust.agent_identity - verify agent identity continuity across the audit chain.
 
 Answers the three NIST RFI Docket NIST-2025-0035 questions for AI agents:
   1. Is this the same agent instance that made previous decisions?
@@ -162,7 +162,7 @@ def verify_identity(
         report.first_seen = timestamps[0].isoformat()
         report.last_seen = timestamps[-1].isoformat()
 
-        # Session segmentation — gap > max_gap_seconds = new session
+        # Session segmentation - gap > max_gap_seconds = new session
         sessions: list = []
         current = [timestamps[0]]
         for t in timestamps[1:]:
@@ -188,7 +188,7 @@ def verify_identity(
         })
         report.sessions = sessions
 
-    # Ghost-agent detection — multiple fingerprints for same agent_name
+    # Ghost-agent detection - multiple fingerprints for same agent_name
     if agent_name:
         fps_for_name = [fp for fp, meta in fingerprints_seen.items()
                         if meta["agent_name"] == agent_name]
@@ -208,7 +208,7 @@ def verify_identity(
             if len(fps) > 1:
                 report.ghost_risk = True
                 report.ghost_evidence.append(
-                    f"Agent '{name}' has {len(fps)} distinct fingerprints — possible ghost instances or version drift"
+                    f"Agent '{name}' has {len(fps)} distinct fingerprints - possible ghost instances or version drift"
                 )
 
     # Verdict logic

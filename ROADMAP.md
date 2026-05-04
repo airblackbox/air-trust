@@ -8,7 +8,7 @@
 
 ## TL;DR
 
-Phase 1 (Session Completeness) shipped on April 10, 2026 as `air-trust` v0.5.0 — spec v1.1, 254 tests, PyPI live, RFC blog post published. The next 30 days are focused on exactly one thing: **signed handoffs between cooperating agents**, shipped as `air-trust` v0.6.0 (spec v1.2). This adds Ed25519 asymmetric signatures on top of the existing HMAC-SHA256 chain so two agents can cryptographically prove a task was handed off, acknowledged, and completed. Everything beyond that — federated trust, policy engine, evidence graphs — stays in the vision section.
+Phase 1 (Session Completeness) shipped on April 10, 2026 as `air-trust` v0.5.0 - spec v1.1, 254 tests, PyPI live, RFC blog post published. The next 30 days are focused on exactly one thing: **signed handoffs between cooperating agents**, shipped as `air-trust` v0.6.0 (spec v1.2). This adds Ed25519 asymmetric signatures on top of the existing HMAC-SHA256 chain so two agents can cryptographically prove a task was handed off, acknowledged, and completed. Everything beyond that - federated trust, policy engine, evidence graphs - stays in the vision section.
 
 ---
 
@@ -26,12 +26,12 @@ The wedge is single-agent tamper-evident logging (shipped). The expansion is cro
 
 ## What we've shipped
 
-### Phase 1 — Session Completeness ✅ SHIPPED
+### Phase 1 - Session Completeness ✅ SHIPPED
 
 **Shipped:** April 10, 2026 as `air-trust` v0.5.0
 
 - Spec v1.1 with `session_seq` / `prev_session_seq` for gap detection
-- ContextVar-based `session_id` propagation — zero adapter changes needed
+- ContextVar-based `session_id` propagation - zero adapter changes needed
 - Completeness verifier: gaps, duplicates, rewinds, missing lifecycle records
 - CLI upgrade with PASS/WARN/FAIL tiers, `--json` and `--key` flags
 - 31 new tests (254 total), SPEC.md, CHANGELOG.md published
@@ -40,32 +40,32 @@ The wedge is single-agent tamper-evident logging (shipped). The expansion is cro
 
 ### Previously shipped
 
-- `air-trust` v0.4.0 — CSA Agentic Trust Framework v0.9.1 conformant
-- `gateway` — HTTP proxy with HMAC-SHA256 audit chain
-- `air-gate` — Human-in-the-loop tool approval checkpoint
-- `air-platform` — Full-stack Docker bundle
-- `air-blackbox-mcp` — MCP server
-- `air-controls` / `air-controls-mcp` — Runtime visibility
-- `compliance-action` — GitHub Action
-- `airblackbox-site` — Marketing site with `/which-product` decision tree
+- `air-trust` v0.4.0 - CSA Agentic Trust Framework v0.9.1 conformant
+- `gateway` - HTTP proxy with HMAC-SHA256 audit chain
+- `air-gate` - Human-in-the-loop tool approval checkpoint
+- `air-platform` - Full-stack Docker bundle
+- `air-blackbox-mcp` - MCP server
+- `air-controls` / `air-controls-mcp` - Runtime visibility
+- `compliance-action` - GitHub Action
+- `airblackbox-site` - Marketing site with `/which-product` decision tree
 
 ### Standards pegs
 
-- CSA Agentic Trust Framework v0.9.1 — air-trust conforms
-- EU AI Act Articles 11 (Technical Documentation) and 12 (Record-Keeping) — targeted
-- ISO 42001 and NIST AI RMF — mapping docs in progress
+- CSA Agentic Trust Framework v0.9.1 - air-trust conforms
+- EU AI Act Articles 11 (Technical Documentation) and 12 (Record-Keeping) - targeted
+- ISO 42001 and NIST AI RMF - mapping docs in progress
 
-**The deadline that matters:** August 2, 2026 — roughly **16 weeks** from today for EU AI Act high-risk AI system obligations.
+**The deadline that matters:** August 2, 2026 - roughly **16 weeks** from today for EU AI Act high-risk AI system obligations.
 
 ---
 
-## Phase 2 — Signed Handoffs ✅ SHIPPED
+## Phase 2 - Signed Handoffs ✅ SHIPPED
 
 **Shipped:** April 10, 2026 as `air-trust` v0.6.1 (28 days ahead of schedule)
 
 ### The problem Phase 2 solves
 
-Phase 1 proves records weren't dropped *within a single session*. But modern AI workflows involve multiple agents cooperating — Agent A researches, then hands context to Agent B for writing, then Agent C reviews. Today, the audit chain can prove each agent's individual records are intact, but it cannot prove:
+Phase 1 proves records weren't dropped *within a single session*. But modern AI workflows involve multiple agents cooperating - Agent A researches, then hands context to Agent B for writing, then Agent C reviews. Today, the audit chain can prove each agent's individual records are intact, but it cannot prove:
 
 1. That Agent A actually sent the handoff to Agent B (not spoofed)
 2. That Agent B acknowledged receiving it (not dropped silently)
@@ -77,7 +77,7 @@ This matters for EU AI Act Article 12 because record-keeping must cover the *ent
 
 **Keep HMAC for chain integrity. Add Ed25519 for cross-agent identity.**
 
-HMAC-SHA256 is perfect for "records in this chain haven't been tampered with" — a shared secret between writer and verifier. But HMAC can't prove *who* wrote a record because any party with the key can sign. For cross-agent handoffs, you need asymmetric signatures: Agent A signs with its private key, Agent B (and auditors) verify with Agent A's public key.
+HMAC-SHA256 is perfect for "records in this chain haven't been tampered with" - a shared secret between writer and verifier. But HMAC can't prove *who* wrote a record because any party with the key can sign. For cross-agent handoffs, you need asymmetric signatures: Agent A signs with its private key, Agent B (and auditors) verify with Agent A's public key.
 
 **The handoff protocol (three records):**
 
@@ -110,9 +110,9 @@ The verifier checks: (1) signatures are valid, (2) the `interaction_id` links al
 
 **What stays the same:**
 
-- HMAC-SHA256 chain integrity (untouched — still the backbone)
-- Session completeness (v1.1 — still works, handoff records get session_seq too)
-- All existing adapters (zero changes needed — handoffs are opt-in)
+- HMAC-SHA256 chain integrity (untouched - still the backbone)
+- Session completeness (v1.1 - still works, handoff records get session_seq too)
+- All existing adapters (zero changes needed - handoffs are opt-in)
 - SQLite storage (new columns, migration on first access)
 - CLI backward compat (v1.0 and v1.1 records still verify)
 
@@ -120,21 +120,21 @@ The verifier checks: (1) signatures are valid, (2) the `interaction_id` links al
 
 **`air-trust`** owns Phase 2 record shapes, key generation, signing, and verification. Rationale:
 
-- Handoff records are Events with new fields — same dataclass, same chain
+- Handoff records are Events with new fields - same dataclass, same chain
 - Ed25519 key generation is a library function, not a transport concern
-- The verifier already lives in air-trust — handoff verification extends it
+- The verifier already lives in air-trust - handoff verification extends it
 - `gateway` will inherit handoff support by bumping its air-trust dependency (Phase 2 scope does NOT include Go-side changes)
 
 ### Deliverables
 
-1. **Spec v1.2** — published as update to `SPEC.md`, covering handoff record types, Ed25519 signing rules, verification rules, and threat model
-2. **Ed25519 key management** — `air_trust.keys` module: generate keypair, store in `~/.air-trust/keys/`, load by agent fingerprint
-3. **Handoff record types** — `handoff_request`, `handoff_ack`, `handoff_result` with new fields on Event
-4. **Handoff signing** — `AuditChain.write()` auto-signs handoff records with agent's Ed25519 private key
-5. **Handoff verification** — `verify()` returns `integrity` + `completeness` + `handoffs` section: checks signatures, interaction linking, payload hash matching
-6. **CLI output** — `air-trust verify` adds HANDOFF tier alongside PASS/WARN/FAIL
-7. **End-to-end demo** — `examples/signed-handoff/` with two agents doing a research→write handoff
-8. **Public RFC** — blog post: "Proving the Handoff: Adding Cross-Agent Signatures to Tamper-Evident Audit Chains"
+1. **Spec v1.2** - published as update to `SPEC.md`, covering handoff record types, Ed25519 signing rules, verification rules, and threat model
+2. **Ed25519 key management** - `air_trust.keys` module: generate keypair, store in `~/.air-trust/keys/`, load by agent fingerprint
+3. **Handoff record types** - `handoff_request`, `handoff_ack`, `handoff_result` with new fields on Event
+4. **Handoff signing** - `AuditChain.write()` auto-signs handoff records with agent's Ed25519 private key
+5. **Handoff verification** - `verify()` returns `integrity` + `completeness` + `handoffs` section: checks signatures, interaction linking, payload hash matching
+6. **CLI output** - `air-trust verify` adds HANDOFF tier alongside PASS/WARN/FAIL
+7. **End-to-end demo** - `examples/signed-handoff/` with two agents doing a research→write handoff
+8. **Public RFC** - blog post: "Proving the Handoff: Adding Cross-Agent Signatures to Tamper-Evident Audit Chains"
 
 ### Spec changes (v1.2)
 
@@ -171,7 +171,7 @@ Verification rules:
 
 ### 30-day timeline
 
-**Week 1 (Apr 11–17): Spec + Key Management**
+**Week 1 (Apr 11-17): Spec + Key Management**
 
 - Write SPEC.md v1.2 draft with threat model and scope statement
 - Implement `air_trust/keys.py`: Ed25519 keypair generation, storage in `~/.air-trust/keys/{fingerprint}.pub` and `{fingerprint}.key`, key loading by fingerprint
@@ -179,7 +179,7 @@ Verification rules:
 - Write acceptance tests: key generation, key storage permissions (0o600), key loading, key-not-found errors
 - Decide: does `AgentIdentity` auto-generate a keypair on first use, or require explicit `air_trust.keys.generate()`?
 
-**Week 2 (Apr 18–24): Record Types + Signing**
+**Week 2 (Apr 18-24): Record Types + Signing**
 
 - Add handoff fields to Event dataclass (all Optional, backward compat)
 - Add `handoff_request`, `handoff_ack`, `handoff_result` to recognized event types
@@ -195,7 +195,7 @@ Verification rules:
   ```
 - Write tests: signing produces valid signature, wrong key fails verification, nonce uniqueness, payload hash computation
 
-**Week 3 (Apr 25–May 1): Verification + CLI**
+**Week 3 (Apr 25-May 1): Verification + CLI**
 
 - Extend `verify()` to return `handoffs` section alongside `integrity` and `completeness`
 - Implement `_check_handoffs(records)`: groups by `interaction_id`, checks request/ack/result completeness, verifies Ed25519 signatures, checks payload hash matching
@@ -204,9 +204,9 @@ Verification rules:
 - All existing tests still pass (v1.0 and v1.1 records unaffected)
 - Write comprehensive handoff test suite: clean handoff, missing ack, bad signature, payload tamper, multi-handoff chain
 
-**Week 4 (May 2–8): Demo + Blog + Ship**
+**Week 4 (May 2-8): Demo + Blog + Ship**
 
-- Build `examples/signed-handoff/` — two-agent demo (Agent A = researcher, Agent B = writer)
+- Build `examples/signed-handoff/` - two-agent demo (Agent A = researcher, Agent B = writer)
 - Demo generates a complete audit chain with handoff records, then verifies it
 - Write RFC blog post for airblackbox.ai
 - Update CHANGELOG.md
@@ -262,7 +262,7 @@ Verification rules:
 
 ---
 
-## Phase 3+ — Trust Infrastructure (vision whitepaper only)
+## Phase 3+ - Trust Infrastructure (vision whitepaper only)
 
 Everything below is **not on any build timeline**. It exists so the story has a horizon.
 
@@ -283,7 +283,7 @@ These will be written up as a `VISION.md` whitepaper after Phase 2 ships.
 ## What we are explicitly NOT doing in the next 30 days
 
 - Building federated PKI or key rotation infrastructure
-- Building bilateral co-attestation (Phase 2 is unilateral signing — A signs for A, B signs for B)
+- Building bilateral co-attestation (Phase 2 is unilateral signing - A signs for A, B signs for B)
 - Building a policy engine around handoffs
 - Building an evidence graph visualizer
 - Making Go-side gateway changes (air-trust only)

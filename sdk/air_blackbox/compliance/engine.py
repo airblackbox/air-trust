@@ -1,5 +1,5 @@
 """
-Compliance engine — maps gateway traffic data to EU AI Act articles.
+Compliance engine - maps gateway traffic data to EU AI Act articles.
 Detection types: AUTO, HYBRID, MANUAL
 """
 import os
@@ -502,7 +502,7 @@ def _check_article_12(status, scan_path, code_findings=None, rec_pkg="air-langch
 
 
 def _check_article_13(transparency_findings=None):
-    """Article 13 — Transparency and Provision of Information to Users.
+    """Article 13 - Transparency and Provision of Information to Users.
 
     All checks come from the transparency_scanner module. This function just
     wraps the findings into the standard article result dict.

@@ -8,17 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.12.0] - 2026-04-14
 
 ### Added
-- **Hardware determinism scanning (Article 15)** — three new compliance checks
+- **Hardware determinism scanning (Article 15)** - three new compliance checks
   target a documented EU AI Act Article 15 robustness failure mode that no other
   compliance scanner covers:
-  - **RNG seed determinism** — checks Python random, NumPy, PyTorch (CPU + CUDA),
+  - **RNG seed determinism** - checks Python random, NumPy, PyTorch (CPU + CUDA),
     TensorFlow, and JAX for seed setting. Partial coverage warns; missing seeds in
     an ML codebase fails.
-  - **Deterministic algorithm flags** — detects `torch.use_deterministic_algorithms`,
+  - **Deterministic algorithm flags** - detects `torch.use_deterministic_algorithms`,
     `torch.backends.cudnn.deterministic`, `torch.backends.cudnn.benchmark = False`,
     `CUBLAS_WORKSPACE_CONFIG`, and TensorFlow `enable_op_determinism`. Scans across
     code, YAML, `.env`, Dockerfile, and shell scripts.
-  - **Hardware abstraction** — flags hardcoded `.to("cuda")`, `cuda:0`, `.cuda()`,
+  - **Hardware abstraction** - flags hardcoded `.to("cuda")`, `cuda:0`, `.cuda()`,
     or `device="cuda"` patterns without a `torch.cuda.is_available()` capability
     fallback. Prevents CPU-only / Apple Silicon / AMD hardware crashes.
 - 16 new tests covering torch, TensorFlow, partial coverage, env file detection,
@@ -35,11 +35,11 @@ before production. Complementary, not competitive.
 ## [1.11.1] - 2026-04-14
 
 ### Added
-- **Multi-scheme agent identity detection** — the `agent-identity-binding` compliance
+- **Multi-scheme agent identity detection** - the `agent-identity-binding` compliance
   check now recognizes three identity schemes instead of one:
-  - `air-trust` — Ed25519 keygen + HMAC-SHA256 chain (this project)
-  - **AAR** — Agent Action Receipt per-action signing (`botindex-aar` npm / Python SDK)
-  - **SCC** — Session Continuity Certificate for session-level identity with Merkle
+  - `air-trust` - Ed25519 keygen + HMAC-SHA256 chain (this project)
+  - **AAR** - Agent Action Receipt per-action signing (`botindex-aar` npm / Python SDK)
+  - **SCC** - Session Continuity Certificate for session-level identity with Merkle
     memory roots, capability hash lineage, and prior-session chaining
     (`botindex-aar@1.1.0`+, co-designed in FINOS AIGF thread by botbotfromuk and
     Cyberweasel777)
@@ -54,7 +54,7 @@ before production. Complementary, not competitive.
 
 ### Context
 Positions AIR Blackbox as the EU AI Act compliance scanner that audits *all* major
-agent identity specs — not a competitor to them. Complements the co-design work
+agent identity specs - not a competitor to them. Complements the co-design work
 around the FINOS AIGF response to NIST RFI Docket NIST-2025-0035.
 
 ## [1.11.0] - 2026-04-13

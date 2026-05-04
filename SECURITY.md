@@ -15,7 +15,7 @@ If you discover a security vulnerability in any AIR Blackbox package, please rep
 **Do not open a public GitHub issue for security vulnerabilities.**
 
 **Email:** [jason@airblackbox.ai](mailto:jason@airblackbox.ai)
-**Subject line:** `[SECURITY] AIR Blackbox — <brief description>`
+**Subject line:** `[SECURITY] AIR Blackbox - <brief description>`
 
 Include:
 
@@ -65,9 +65,9 @@ AIR Blackbox is built with a local-first, zero-trust architecture:
 
 ## Threat Model
 
-1. **Signing key security** — The Ed25519 and HMAC-SHA256 keys at `~/.air-trust/` control audit chain integrity. Protect these files with appropriate filesystem permissions.
-2. **Audit record files** — `.air.json` files contain vault references and checksums, not raw content. Metadata (model names, timestamps, token counts) may still be sensitive. Apply appropriate access controls.
-3. **Gateway network position** — If using the full gateway, it terminates your agent's API call and forwards it. Deploy it in the same trust boundary as your agent.
+1. **Signing key security** - The Ed25519 and HMAC-SHA256 keys at `~/.air-trust/` control audit chain integrity. Protect these files with appropriate filesystem permissions.
+2. **Audit record files** - `.air.json` files contain vault references and checksums, not raw content. Metadata (model names, timestamps, token counts) may still be sensitive. Apply appropriate access controls.
+3. **Gateway network position** - If using the full gateway, it terminates your agent's API call and forwards it. Deploy it in the same trust boundary as your agent.
 
 ## Responsible Disclosure
 

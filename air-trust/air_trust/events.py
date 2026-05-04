@@ -1,7 +1,7 @@
 """
 Canonical event format for air-trust.
 
-Every adapter — regardless of framework — produces Event objects.
+Every adapter - regardless of framework - produces Event objects.
 Events are the universal currency of the trust layer.
 """
 
@@ -96,7 +96,7 @@ class AgentIdentity:
     # Maps the local URN to an external registry (AgentLair, DID, etc.)
     external_id: str = ""
 
-    # ATF Maturity Level — one of: "intern", "junior", "senior", "principal"
+    # ATF Maturity Level - one of: "intern", "junior", "senior", "principal"
     # Defaults to "intern" (lowest trust, most oversight).
     atf_level: str = "intern"
 
@@ -223,7 +223,7 @@ class Event:
     tool_args: Optional[Dict[str, Any]] = None
     risk_level: Optional[str] = None    # critical | high | medium | low
 
-    # Content (previews only — never log full prompts/responses)
+    # Content (previews only - never log full prompts/responses)
     input_preview: Optional[str] = None   # max 500 chars
     output_preview: Optional[str] = None  # max 500 chars
     description: Optional[str] = None     # human-readable summary
@@ -237,7 +237,7 @@ class Event:
     status: str = "success"             # success | error | blocked | skipped
     error: Optional[str] = None
 
-    # Identity (Article 14 — agent-to-user binding)
+    # Identity (Article 14 - agent-to-user binding)
     identity: Optional[AgentIdentity] = None
 
     # Metadata (adapter can attach anything)
@@ -245,7 +245,7 @@ class Event:
 
     # ── v1.1: Session Completeness ────────────────────────────────
     # Set by AuditChain.write() when session_id is present.
-    # Do not set manually — the chain manages these.
+    # Do not set manually - the chain manages these.
     session_seq: Optional[int] = None         # monotonic counter within session (starts at 0)
     prev_session_seq: Optional[int] = None    # previous record's session_seq (-1 for first)
 
@@ -259,7 +259,7 @@ class Event:
     signature_alg: Optional[str] = None       # "ed25519" in v1.2
     public_key: Optional[str] = None          # ed25519:hex of signing agent's public key
 
-    # Set by AuditChain after signing — never set manually
+    # Set by AuditChain after signing - never set manually
     chain_hash: Optional[str] = None
     version: str = "1.2.0"
 

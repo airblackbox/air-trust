@@ -1,5 +1,5 @@
 """
-Code-level scanner — reads Python files and detects compliance-relevant patterns.
+Code-level scanner - reads Python files and detects compliance-relevant patterns.
 
 This module makes every project get a DIFFERENT score by actually reading
 the Python source code and checking for real patterns.
@@ -226,7 +226,7 @@ def _check_docstrings(file_contents: dict, scan_path: str) -> List[CodeFinding]:
     """Check docstring coverage, handling multi-line function signatures.
     Fixed in v1.3.1: joins multi-line signatures before searching for docstrings.
     """
-    # Exclude test files — they tank docstring coverage with bare test_* functions
+    # Exclude test files - they tank docstring coverage with bare test_* functions
     source_files = _source_files_only(file_contents)
     total_defs = 0
     documented_defs = 0
@@ -295,7 +295,7 @@ def _check_type_hints(file_contents: dict, scan_path: str) -> List[CodeFinding]:
         r'|[A-Z][a-zA-Z0-9_]*'
         r')'
     )
-    # Exclude test files — test functions rarely have type hints
+    # Exclude test files - test functions rarely have type hints
     source_files = _source_files_only(file_contents)
     total_defs = 0
     typed_defs = 0
@@ -348,7 +348,7 @@ def _check_logging(file_contents: dict, scan_path: str) -> List[CodeFinding]:
 
 
 def _check_tracing(file_contents: dict, scan_path: str) -> List[CodeFinding]:
-    # Core tracing patterns — instrumentation is the modern standard
+    # Core tracing patterns - instrumentation is the modern standard
     # (learned from LlamaIndex: callback_manager is deprecated in favor of instrumentation module)
     # Learned from Haystack (Julian Risch): HAYSTACK_CONTENT_TRACING_ENABLED + logging_tracer.py
     # is real production audit capability, stronger than basic debug logging
@@ -515,7 +515,7 @@ def _check_output_validation(file_contents: dict, scan_path: str) -> List[CodeFi
 
 
 # ─────────────────────────────────────────────
-# Article 12 + 14 — OAuth & Delegation Tracking
+# Article 12 + 14 - OAuth & Delegation Tracking
 # ─────────────────────────────────────────────
 
 def _check_oauth_delegation(file_contents: dict, scan_path: str) -> List[CodeFinding]:
@@ -584,7 +584,7 @@ def _check_token_expiry_revocation(file_contents: dict, scan_path: str) -> List[
     """Check if tokens have expiry/revocation handling or execution time-bounding.
 
     Tightened in v1.4.1: separated token security (strong) from basic config params (weak).
-    max_iterations alone is not a security boundary — it's a config param.
+    max_iterations alone is not a security boundary - it's a config param.
     """
     # Strong: actual token lifecycle management
     strong_patterns = [
@@ -655,7 +655,7 @@ def _check_action_boundaries(file_contents: dict, scan_path: str) -> List[CodeFi
         r'action_polic', r'execution_polic',  # Haystack policy patterns
     ]
     combined = "|".join(boundary_patterns)
-    # Exclude serialization files — is_allowed in serialization is deserialization safety, not action boundaries
+    # Exclude serialization files - is_allowed in serialization is deserialization safety, not action boundaries
     hits = [fp for fp, content in file_contents.items()
             if re.search(combined, content, re.IGNORECASE)
             and 'serializ' not in os.path.basename(fp).lower()]
@@ -672,8 +672,8 @@ def _check_agent_identity_binding(file_contents: dict, scan_path: str) -> List[C
 
     Detects three families of agent identity implementations:
       1. air-trust (Ed25519 agent keys + HMAC chain, this project)
-      2. AAR — Agent Action Receipt (botindex-aar npm / Python SDK, per-action signing)
-      3. SCC — Session Continuity Certificate (botindex-aar@1.1.0+, session-level identity)
+      2. AAR - Agent Action Receipt (botindex-aar npm / Python SDK, per-action signing)
+      3. SCC - Session Continuity Certificate (botindex-aar@1.1.0+, session-level identity)
 
     Maps to:
       - EU AI Act Article 12 (tamper-evident record-keeping requires verifiable identity)
@@ -700,11 +700,11 @@ def _check_agent_identity_binding(file_contents: dict, scan_path: str) -> List[C
                    if re.search(agent_combined, content, re.IGNORECASE)]
 
     if not agent_files:
-        # Not an autonomous-agent codebase. Skip with a pass — check doesn't apply.
+        # Not an autonomous-agent codebase. Skip with a pass - check doesn't apply.
         return [CodeFinding(
             article=12, name="Agent identity binding",
             status="pass",
-            evidence="No autonomous agent / tick loop detected — identity binding not applicable",
+            evidence="No autonomous agent / tick loop detected - identity binding not applicable",
             detection="auto",
         )]
 
@@ -824,7 +824,7 @@ def _check_agent_identity_binding(file_contents: dict, scan_path: str) -> List[C
 
 
 # =============================================================================
-# Hardware Determinism Checks (Article 15 — Accuracy, Robustness, Cybersecurity)
+# Hardware Determinism Checks (Article 15 - Accuracy, Robustness, Cybersecurity)
 # Added in v1.12.0
 #
 # Context:
@@ -870,7 +870,7 @@ def _check_deterministic_seeds(file_contents: dict, scan_path: str) -> List[Code
         return [CodeFinding(
             article=15, name="RNG seed determinism",
             status="pass",
-            evidence="No ML framework detected — determinism check not applicable",
+            evidence="No ML framework detected - determinism check not applicable",
             detection="auto",
         )]
 
@@ -987,7 +987,7 @@ def _check_deterministic_algorithms(file_contents: dict, scan_path: str) -> List
         return [CodeFinding(
             article=15, name="Deterministic algorithm flags",
             status="pass",
-            evidence="No ML framework detected — check not applicable",
+            evidence="No ML framework detected - check not applicable",
             detection="auto",
         )]
 
@@ -1091,14 +1091,14 @@ def _check_hardware_abstraction(file_contents: dict, scan_path: str) -> List[Cod
 
     Pattern `.to("cuda")` without `cuda.is_available()` check = runtime crash
     on CPU-only or Apple Silicon hardware. Article 15 requires the system to
-    operate consistently on declared target hardware — but hardcoding a single
+    operate consistently on declared target hardware - but hardcoding a single
     device means ANY hardware change breaks the system.
     """
     if not _is_ml_codebase(file_contents):
         return [CodeFinding(
             article=15, name="Hardware abstraction",
             status="pass",
-            evidence="No ML framework detected — check not applicable",
+            evidence="No ML framework detected - check not applicable",
             detection="auto",
         )]
 
@@ -1139,7 +1139,7 @@ def _check_hardware_abstraction(file_contents: dict, scan_path: str) -> List[Cod
         return [CodeFinding(
             article=15, name="Hardware abstraction",
             status="pass",
-            evidence="No hardcoded device strings detected — code is hardware-portable",
+            evidence="No hardcoded device strings detected - code is hardware-portable",
             detection="auto",
         )]
 

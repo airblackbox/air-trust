@@ -1,5 +1,5 @@
 """
-Proxy Adapter — intercepts LLM API calls at the HTTP/SDK level.
+Proxy Adapter - intercepts LLM API calls at the HTTP/SDK level.
 
 Covers: OpenAI, Anthropic, Google, Ollama, vLLM, LiteLLM, Together,
         Groq, Mistral, Cohere, and any SDK that calls an LLM endpoint.

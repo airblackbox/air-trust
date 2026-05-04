@@ -1,4 +1,4 @@
-# LangChain EU AI Act Compliance — Before & After
+# LangChain EU AI Act Compliance - Before & After
 
 This demo shows how a typical LangChain agent goes from **zero compliance** to **EU AI Act ready** in 5 minutes using [AIR Blackbox](https://github.com/airblackbox/gateway).
 
@@ -8,7 +8,7 @@ Most LangChain agents ship with no logging, no audit trail, no input validation,
 
 ## The Demo
 
-### `agent_before.py` — How most developers build today
+### `agent_before.py` - How most developers build today
 
 A working LangChain customer service agent with 3 tools. It does the job, but:
 
@@ -19,15 +19,15 @@ A working LangChain customer service agent with 3 tools. It does the job, but:
 - No injection defense (Article 15 violation)
 - Raw user input piped straight to the LLM
 
-### `agent_after.py` — Same agent, now compliant
+### `agent_after.py` - Same agent, now compliant
 
 The exact same agent with 5 additions:
 
-1. **`pip install air-blackbox[langchain]`** — one-line install
-2. **`AirLangChainHandler`** — drop-in callback that logs every LLM call with HMAC-SHA256 tamper-evident audit chain, PII detection, and injection scanning
-3. **Pydantic input validation** — sanitizes user input, redacts PII, blocks injection attempts
-4. **Error handling** — try/except on every tool with structured logging
-5. **Human approval gate** — agent asks for permission before sending emails
+1. **`pip install air-blackbox[langchain]`** - one-line install
+2. **`AirLangChainHandler`** - drop-in callback that logs every LLM call with HMAC-SHA256 tamper-evident audit chain, PII detection, and injection scanning
+3. **Pydantic input validation** - sanitizes user input, redacts PII, blocks injection attempts
+4. **Error handling** - try/except on every tool with structured logging
+5. **Human approval gate** - agent asks for permission before sending emails
 
 ## Run the Scanner
 
@@ -49,12 +49,12 @@ air-blackbox comply --scan . --verbose
 
 | Article | Before | After | What Changed |
 |---------|--------|-------|-------------|
-| Art 9 — Risk Management | FAIL | PASS | Added try/except + fallback responses |
-| Art 10 — Data Governance | FAIL | PASS | Pydantic validation + PII redaction |
-| Art 11 — Technical Documentation | WARN | PASS | Docstrings + type annotations |
-| Art 12 — Record-Keeping | FAIL | PASS | AirLangChainHandler + structured logging |
-| Art 14 — Human Oversight | FAIL | PASS | Approval gate + max_iterations limit |
-| Art 15 — Accuracy & Security | FAIL | PASS | Injection defense + input sanitization |
+| Art 9 - Risk Management | FAIL | PASS | Added try/except + fallback responses |
+| Art 10 - Data Governance | FAIL | PASS | Pydantic validation + PII redaction |
+| Art 11 - Technical Documentation | WARN | PASS | Docstrings + type annotations |
+| Art 12 - Record-Keeping | FAIL | PASS | AirLangChainHandler + structured logging |
+| Art 14 - Human Oversight | FAIL | PASS | Approval gate + max_iterations limit |
+| Art 15 - Accuracy & Security | FAIL | PASS | Injection defense + input sanitization |
 
 ## The Trust Layer
 

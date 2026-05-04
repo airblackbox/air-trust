@@ -1,5 +1,5 @@
 """
-MCP Adapter — protocol-level auditing for Model Context Protocol.
+MCP Adapter - protocol-level auditing for Model Context Protocol.
 
 Covers: Claude Desktop, Cursor, Claude Code, Windsurf, any MCP client.
 

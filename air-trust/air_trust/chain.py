@@ -51,7 +51,7 @@ class AuditChain:
         signing_key: Optional[str] = None,
         runs_dir: Optional[str] = None,
     ):
-        # SQLite is the default — single file, no setup
+        # SQLite is the default - single file, no setup
         self._db_path = db_path or os.path.expanduser("~/.air-trust/events.db")
         os.makedirs(os.path.dirname(self._db_path), exist_ok=True)
 
@@ -60,7 +60,7 @@ class AuditChain:
         if runs_dir:
             os.makedirs(runs_dir, exist_ok=True)
 
-        # Signing key — from env, argument, or auto-generated
+        # Signing key - from env, argument, or auto-generated
         self._key = (
             signing_key
             or os.environ.get("AIR_TRUST_KEY")
@@ -527,7 +527,7 @@ class AuditChain:
                     "severity": "warn",
                 })
             elif has_request and not has_ack and has_result:
-                # Result without ack — ack was deleted or never written
+                # Result without ack - ack was deleted or never written
                 interaction_issues.append({
                     "interaction_id": iid,
                     "issue": "missing_ack",

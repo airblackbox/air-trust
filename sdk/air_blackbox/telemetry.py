@@ -1,5 +1,5 @@
 """
-AIR Blackbox — Lightweight anonymous telemetry.
+AIR Blackbox - Lightweight anonymous telemetry.
 
 Sends a single anonymous event per scan so we can understand
 real usage patterns. No code, no file paths, no project names.
@@ -30,7 +30,7 @@ import threading
 import uuid
 from pathlib import Path
 
-# Telemetry endpoint — configurable via env for testing/sandbox
+# Telemetry endpoint - configurable via env for testing/sandbox
 TELEMETRY_URL = os.environ.get(
     "AIR_BLACKBOX_TELEMETRY_URL",
     "https://airblackbox.ai/api/telemetry",
@@ -46,7 +46,7 @@ def _is_enabled() -> bool:
     env = os.environ.get("AIR_BLACKBOX_TELEMETRY", "").lower()
     if env in ("off", "false", "0", "no", "disable", "disabled"):
         return False
-    # Also check for CI environments — don't count CI runs
+    # Also check for CI environments - don't count CI runs
     if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
         return False
     return True
@@ -114,7 +114,7 @@ def send_event(
     if extra:
         event.update(extra)
 
-    # Fire and forget in a background thread — never block the CLI
+    # Fire and forget in a background thread - never block the CLI
     def _send():
         try:
             import httpx
@@ -126,7 +126,7 @@ def send_event(
                 follow_redirects=True,
             )
         except Exception:
-            pass  # Silently fail — telemetry should never break the tool
+            pass  # Silently fail - telemetry should never break the tool
 
     thread = threading.Thread(target=_send, daemon=True)
     thread.start()

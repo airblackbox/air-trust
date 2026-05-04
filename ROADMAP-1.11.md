@@ -1,7 +1,7 @@
 # AIR Blackbox v1.11.0 Roadmap
 
 **Target release:** Before August 2, 2026 EU AI Act high-risk deadline
-**Current state:** v1.10.0 — 459 tests, 16,372 LOC, 56 source files, 84 ruff warnings
+**Current state:** v1.10.0 - 459 tests, 16,372 LOC, 56 source files, 84 ruff warnings
 
 ---
 

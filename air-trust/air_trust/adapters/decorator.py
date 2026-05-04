@@ -1,5 +1,5 @@
 """
-Decorator Adapter — wraps functions and methods with audit logging.
+Decorator Adapter - wraps functions and methods with audit logging.
 
 Covers: CrewAI, Smolagents, PydanticAI, DSPy, AutoGen, Browser Use,
         and any custom Python function/class.

@@ -45,5 +45,5 @@ body:
     id: air-record
     attributes:
       label: Relevant .air.json record
-      description: If applicable — redact any credentials
+      description: If applicable - redact any credentials
       render: json

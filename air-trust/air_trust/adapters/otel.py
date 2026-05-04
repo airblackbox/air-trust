@@ -1,5 +1,5 @@
 """
-OpenTelemetry Adapter — reads gen_ai spans from OTel-instrumented systems.
+OpenTelemetry Adapter - reads gen_ai spans from OTel-instrumented systems.
 
 Covers: Semantic Kernel, any system already emitting OTel traces,
         enterprise observability stacks.

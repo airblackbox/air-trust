@@ -1,4 +1,4 @@
-# AIR Blackbox — Article 12 Compliance Layer
+# AIR Blackbox - Article 12 Compliance Layer
 
 > One chain. One signer. One bundle. Tamper-evident logging for the EU AI Act.
 
@@ -32,7 +32,7 @@ Agent Action
 |   3. Evidence Bundle       |   Everything gets packaged into
 |   (evidence/bundle.py)    |   a self-verifying .air-evidence
 |                            |   ZIP. Auditor runs verify.py
-|                            |   inside — no pip install needed.
+|                            |   inside - no pip install needed.
 +---------------------------+
     |
     v
@@ -44,24 +44,24 @@ Agent Action
 
 ### Step 1: The Chain
 
-Every AI agent action — tool call, LLM response, human override — is written as a JSON record to the HMAC-SHA256 audit chain. Each record's hash is computed as:
+Every AI agent action - tool call, LLM response, human override - is written as a JSON record to the HMAC-SHA256 audit chain. Each record's hash is computed as:
 
 ```
 chain_hash = HMAC-SHA256(key, previous_hash || canonical_json(record))
 ```
 
-The first record links to a genesis value. Every subsequent record links to the one before it. Delete a record, change a timestamp, alter a field — the chain breaks and verification fails. This is the same hash-chain principle used in blockchain and certificate transparency logs, but purpose-built for AI audit trails.
+The first record links to a genesis value. Every subsequent record links to the one before it. Delete a record, change a timestamp, alter a field - the chain breaks and verification fails. This is the same hash-chain principle used in blockchain and certificate transparency logs, but purpose-built for AI audit trails.
 
 The chain is specified formally in `docs/spec/audit-chain-v1.md` (RFC 2119 language, normative).
 
 ### Step 2: The Signature
 
-The completed chain gets signed with **ML-DSA-65** (FIPS 204), formerly known as Dilithium3. This is a quantum-safe digital signature algorithm — it remains secure even against future quantum computers. The signature proves:
+The completed chain gets signed with **ML-DSA-65** (FIPS 204), formerly known as Dilithium3. This is a quantum-safe digital signature algorithm - it remains secure even against future quantum computers. The signature proves:
 
 - **Who** generated the evidence (key identity)
 - **When** it was signed (timestamp in envelope)
 - **What** was signed (SHA-256 content hash)
-- **Integrity** — any modification after signing invalidates the signature
+- **Integrity** - any modification after signing invalidates the signature
 
 Keys are generated locally (`~/.air-blackbox/keys/`), never leave the machine, and private keys are stored with owner-only permissions (chmod 600).
 
@@ -71,25 +71,25 @@ The chain records, signature envelopes, compliance scan results, and a standalon
 
 The bundle includes:
 
-- `manifest.json` — SHA-256 hashes of every file in the bundle
-- `signature.json` — ML-DSA-65 signature over the manifest
-- `verify.py` — standalone verification script (Python 3.10+, no dependencies)
-- `chain/` — the raw audit chain records
-- `scan_results.json` — compliance scan output
-- `standards_mapping.json` — EU AI Act / ISO 42001 / NIST AI RMF crosswalk
+- `manifest.json` - SHA-256 hashes of every file in the bundle
+- `signature.json` - ML-DSA-65 signature over the manifest
+- `verify.py` - standalone verification script (Python 3.10+, no dependencies)
+- `chain/` - the raw audit chain records
+- `scan_results.json` - compliance scan output
+- `standards_mapping.json` - EU AI Act / ISO 42001 / NIST AI RMF crosswalk
 
 Directory paths inside the bundle are anonymized (hashed) so internal project structure is never leaked to auditors.
 
 ## The Scanner
 
-AIR Blackbox doesn't just *produce* Article 12 evidence — it also *scans your codebase* to verify you have the right logging infrastructure in place. The Article 12 scanner (`compliance/engine.py`) uses hybrid static + runtime analysis:
+AIR Blackbox doesn't just *produce* Article 12 evidence - it also *scans your codebase* to verify you have the right logging infrastructure in place. The Article 12 scanner (`compliance/engine.py`) uses hybrid static + runtime analysis:
 
 **Static analysis detects:**
 
-- Logging infrastructure — Python `logging`, `structlog`, `loguru`, OpenTelemetry spans and traces
-- Tamper-evident patterns — HMAC usage, hash chain implementations, merkle tree references
-- Retention configuration — log retention settings in `.py`, `.yaml`, `.json`, and `.toml` files
-- Audit trail implementations — dedicated audit modules, event sourcing patterns
+- Logging infrastructure - Python `logging`, `structlog`, `loguru`, OpenTelemetry spans and traces
+- Tamper-evident patterns - HMAC usage, hash chain implementations, merkle tree references
+- Retention configuration - log retention settings in `.py`, `.yaml`, `.json`, and `.toml` files
+- Audit trail implementations - dedicated audit modules, event sourcing patterns
 
 **Runtime analysis verifies:**
 
@@ -103,11 +103,11 @@ When runtime data isn't available (first scan, CI pipeline, external audit), the
 
 | Article 12 Requirement | AIR Blackbox Implementation |
 |---|---|
-| Automatic logging | HMAC-SHA256 chain writes on every agent action — no manual intervention |
-| Tamper-evident | Hash chain + ML-DSA-65 signature — modification breaks verification |
+| Automatic logging | HMAC-SHA256 chain writes on every agent action - no manual intervention |
+| Tamper-evident | Hash chain + ML-DSA-65 signature - modification breaks verification |
 | Appropriate retention | Configurable retention, scanner detects retention config in codebase |
-| Available for audit | Self-verifying `.air-evidence` bundle — auditor needs only Python |
-| Traceability | Every record links to previous via chain hash — full causal ordering |
+| Available for audit | Self-verifying `.air-evidence` bundle - auditor needs only Python |
+| Traceability | Every record links to previous via chain hash - full causal ordering |
 
 ## Quick Start
 

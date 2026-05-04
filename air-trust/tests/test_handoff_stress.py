@@ -65,7 +65,7 @@ def _write_handoff(chain, keys_mod, agent_a, agent_b, interaction_id=None):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# FALSE POSITIVE TESTS — clean chains should NOT be flagged
+# FALSE POSITIVE TESTS - clean chains should NOT be flagged
 # ═══════════════════════════════════════════════════════════════════
 
 class TestFalsePositives:
@@ -166,7 +166,7 @@ class TestFalsePositives:
         keys = _setup_keys(tmp_path, monkeypatch, *agents)
         chain = _chain(tmp_path)
 
-        # A→B, C→D — two independent handoffs with different agent pairs
+        # A→B, C→D - two independent handoffs with different agent pairs
         _write_handoff(chain, keys, agents[0], agents[1])
         _write_handoff(chain, keys, agents[2], agents[3])
 
@@ -189,7 +189,7 @@ class TestFalsePositives:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# FALSE NEGATIVE TESTS — broken chains MUST be caught
+# FALSE NEGATIVE TESTS - broken chains MUST be caught
 # ═══════════════════════════════════════════════════════════════════
 
 class TestFalseNegatives:
@@ -367,7 +367,7 @@ class TestMixedVersionChains:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# STRESS TESTS — large chains, many handoffs
+# STRESS TESTS - large chains, many handoffs
 # ═══════════════════════════════════════════════════════════════════
 
 class TestStress:
@@ -407,7 +407,7 @@ class TestStress:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# EDGE CASE TESTS — weird but valid scenarios
+# EDGE CASE TESTS - weird but valid scenarios
 # ═══════════════════════════════════════════════════════════════════
 
 class TestEdgeCases:
@@ -534,7 +534,7 @@ class TestEdgeCases:
 
         result = chain.verify()
         assert result["integrity"]["valid"] is True
-        # Should NOT flag payload_mismatch — result hash is allowed to differ
+        # Should NOT flag payload_mismatch - result hash is allowed to differ
         payload_issues = [i for i in result["handoffs"]["issues"] if i["issue"] == "payload_mismatch"]
         assert len(payload_issues) == 0
         assert result["handoffs"]["interactions_complete"] == 1

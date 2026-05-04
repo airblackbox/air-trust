@@ -1,6 +1,6 @@
 # AIR Blackbox Architecture
 
-**How the pieces fit together — and when to use each one.**
+**How the pieces fit together - and when to use each one.**
 
 Last updated: April 10, 2026
 
@@ -8,7 +8,7 @@ Last updated: April 10, 2026
 
 ## The Stack at a Glance
 
-AIR Blackbox is not one tool — it's a modular trust infrastructure stack. Each layer handles a different concern:
+AIR Blackbox is not one tool - it's a modular trust infrastructure stack. Each layer handles a different concern:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -59,7 +59,7 @@ AIR Blackbox is not one tool — it's a modular trust infrastructure stack. Each
 
 ### Layer 1: air-trust (Runtime Evidence)
 
-**What it does:** Sits inside every AI call and creates a cryptographic evidence trail. Every event is HMAC-SHA256 signed and linked to the previous one — if anyone tampers with a record, the chain breaks.
+**What it does:** Sits inside every AI call and creates a cryptographic evidence trail. Every event is HMAC-SHA256 signed and linked to the previous one - if anyone tampers with a record, the chain breaks.
 
 **Three capabilities, each building on the last:**
 
@@ -72,7 +72,7 @@ AIR Blackbox is not one tool — it's a modular trust infrastructure stack. Each
 **Key design decisions:**
 - Zero dependencies for the core (pure Python + stdlib)
 - `cryptography` library only needed for Ed25519 handoffs (optional extra)
-- SQLite storage — local-first, no cloud, no API keys
+- SQLite storage - local-first, no cloud, no API keys
 - 15 framework adapters via auto-detection (proxy, callback, decorator, OTel, MCP)
 - Thread-safe with per-session ContextVar propagation
 
@@ -98,7 +98,7 @@ AIR Blackbox is not one tool — it's a modular trust infrastructure stack. Each
 
 ### Layer 3: air-blackbox (Compliance Scanner)
 
-**What it does:** Static and runtime compliance scanning across multiple frameworks. This is the scanner — it analyzes code and agent behavior for compliance gaps.
+**What it does:** Static and runtime compliance scanning across multiple frameworks. This is the scanner - it analyzes code and agent behavior for compliance gaps.
 
 **Scanning capabilities:**
 - 39 EU AI Act checks across Articles 9-15
@@ -142,9 +142,9 @@ AIR Blackbox is not one tool — it's a modular trust infrastructure stack. Each
 
 | Tool | What It Does | Repository |
 |---|---|---|
-| **air-blackbox-mcp** | MCP server — 14 compliance tools for Claude Desktop, Cursor, Claude Code | [air-blackbox-mcp](https://github.com/airblackbox/air-blackbox-mcp) |
-| **air-controls** | Runtime visibility — dashboards for LangChain, CrewAI, AutoGen agents | [air-controls](https://github.com/airblackbox/air-controls) |
-| **compliance-action** | GitHub Action — run EU AI Act checks on every pull request | [compliance-action](https://github.com/airblackbox/compliance-action) |
+| **air-blackbox-mcp** | MCP server - 14 compliance tools for Claude Desktop, Cursor, Claude Code | [air-blackbox-mcp](https://github.com/airblackbox/air-blackbox-mcp) |
+| **air-controls** | Runtime visibility - dashboards for LangChain, CrewAI, AutoGen agents | [air-controls](https://github.com/airblackbox/air-controls) |
+| **compliance-action** | GitHub Action - run EU AI Act checks on every pull request | [compliance-action](https://github.com/airblackbox/compliance-action) |
 
 ---
 
@@ -251,7 +251,7 @@ Verification (anytime, offline)
 
 3. **Additive, not breaking.** Each spec version adds new fields and capabilities without changing existing behavior. v1.0 records still verify in a v1.2 verifier.
 
-4. **Framework-agnostic.** Auto-detection handles 15+ frameworks. You don't change your code — air-trust adapts to whatever you're using.
+4. **Framework-agnostic.** Auto-detection handles 15+ frameworks. You don't change your code - air-trust adapts to whatever you're using.
 
 5. **Separate concerns.** Recording (air-trust) is separate from scanning (air-blackbox) is separate from gating (air-gate) is separate from deployment (air-platform). Use one, some, or all.
 
@@ -259,7 +259,7 @@ Verification (anytime, offline)
 
 ## EU AI Act Timeline
 
-**Deadline: August 2, 2026** — roughly 16 weeks from today.
+**Deadline: August 2, 2026** - roughly 16 weeks from today.
 
 High-risk AI systems must have technical documentation (Art. 11) and record-keeping (Art. 12) in place. air-trust provides the tamper-evident audit trail. air-blackbox provides the compliance scanning. Together they give you the evidence trail regulators require.
 
@@ -269,14 +269,14 @@ High-risk AI systems must have technical documentation (Art. 11) and record-keep
 
 | Package | Version | Purpose |
 |---|---|---|
-| [air-trust](https://pypi.org/project/air-trust/) | 0.6.1 | Runtime trust layer — HMAC chain + Ed25519 handoffs |
+| [air-trust](https://pypi.org/project/air-trust/) | 0.6.1 | Runtime trust layer - HMAC chain + Ed25519 handoffs |
 | [air-blackbox](https://pypi.org/project/air-blackbox/) | 1.10.0 | Compliance scanner + trust layers |
-| [air-compliance](https://pypi.org/project/air-compliance/) | — | CLI scanner |
-| [air-blackbox-sdk](https://pypi.org/project/air-blackbox-sdk/) | — | Python SDK |
-| [air-blackbox-mcp](https://pypi.org/project/air-blackbox-mcp/) | — | MCP server for AI editors |
-| [air-langchain-trust](https://pypi.org/project/air-langchain-trust/) | — | LangChain trust layer |
-| [air-crewai-trust](https://pypi.org/project/air-crewai-trust/) | — | CrewAI trust layer |
-| [air-anthropic-trust](https://pypi.org/project/air-anthropic-trust/) | — | Anthropic Claude trust layer |
-| [air-adk-trust](https://pypi.org/project/air-adk-trust/) | — | Google ADK trust layer |
-| [air-openai-trust](https://pypi.org/project/air-openai-trust/) | — | OpenAI trust layer |
-| [air-gate](https://pypi.org/project/air-gate/) | — | Human-in-the-loop tool gating |
+| [air-compliance](https://pypi.org/project/air-compliance/) | - | CLI scanner |
+| [air-blackbox-sdk](https://pypi.org/project/air-blackbox-sdk/) | - | Python SDK |
+| [air-blackbox-mcp](https://pypi.org/project/air-blackbox-mcp/) | - | MCP server for AI editors |
+| [air-langchain-trust](https://pypi.org/project/air-langchain-trust/) | - | LangChain trust layer |
+| [air-crewai-trust](https://pypi.org/project/air-crewai-trust/) | - | CrewAI trust layer |
+| [air-anthropic-trust](https://pypi.org/project/air-anthropic-trust/) | - | Anthropic Claude trust layer |
+| [air-adk-trust](https://pypi.org/project/air-adk-trust/) | - | Google ADK trust layer |
+| [air-openai-trust](https://pypi.org/project/air-openai-trust/) | - | OpenAI trust layer |
+| [air-gate](https://pypi.org/project/air-gate/) | - | Human-in-the-loop tool gating |

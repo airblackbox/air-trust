@@ -1,5 +1,5 @@
 """
-air-trust CLI — Verify, inspect, and export audit chains.
+air-trust CLI - Verify, inspect, and export audit chains.
 
 Usage:
     python3 -m air_trust verify              # Verify the default chain
@@ -52,7 +52,7 @@ def cmd_verify(args):
         if args.json_output:
             print(json.dumps({"error": f"Database not found at {db_path}"}))
         else:
-            print_header("AIR Trust — Chain Verification")
+            print_header("AIR Trust - Chain Verification")
             print(f"{RED}✗ FAIL{RESET}: Database not found at {db_path}")
         return 1
 
@@ -81,7 +81,7 @@ def cmd_verify(args):
             return 0
 
         # Human-readable output
-        print_header("AIR Trust — Chain Verification (v1.2)")
+        print_header("AIR Trust - Chain Verification (v1.2)")
 
         integrity = result["integrity"]
         completeness = result["completeness"]
@@ -92,9 +92,9 @@ def cmd_verify(args):
 
         # ── Integrity ──
         if integrity["valid"]:
-            print(f"{GREEN}✓ PASS{RESET}: Integrity — chain is intact (HMAC-SHA256)")
+            print(f"{GREEN}✓ PASS{RESET}: Integrity - chain is intact (HMAC-SHA256)")
         else:
-            print(f"{RED}✗ FAIL{RESET}: Integrity — chain is broken")
+            print(f"{RED}✗ FAIL{RESET}: Integrity - chain is broken")
             if integrity["broken_at"] is not None:
                 print(f"  Tampered at record index: {integrity['broken_at']}")
             return 1
@@ -109,9 +109,9 @@ def cmd_verify(args):
         print(f"  Sessions incomplete: {completeness['sessions_incomplete']}")
 
         if completeness["sessions_incomplete"] == 0:
-            print(f"\n{GREEN}✓ PASS{RESET}: Completeness — all sessions are complete")
+            print(f"\n{GREEN}✓ PASS{RESET}: Completeness - all sessions are complete")
         else:
-            print(f"\n{YELLOW}⚠ WARN{RESET}: Completeness — issues detected:")
+            print(f"\n{YELLOW}⚠ WARN{RESET}: Completeness - issues detected:")
             for issue in completeness["issues"]:
                 sid_short = issue["session_id"][:12] + "..."
                 itype = issue["issue"]
@@ -139,14 +139,14 @@ def cmd_verify(args):
             info_issues = [i for i in handoffs.get("issues", []) if i.get("severity") == "info"]
 
             if fail_issues:
-                print(f"\n{RED}✗ FAIL{RESET}: Handoffs — signature verification failed:")
+                print(f"\n{RED}✗ FAIL{RESET}: Handoffs - signature verification failed:")
                 for issue in fail_issues:
                     iid_short = issue.get("interaction_id", "?")[:12] + "..."
                     print(f"  Handoff {iid_short}: {issue['issue']} ({issue.get('record_type', '')})")
                 return 1
 
             if warn_issues:
-                print(f"\n{YELLOW}⚠ WARN{RESET}: Handoffs — issues detected:")
+                print(f"\n{YELLOW}⚠ WARN{RESET}: Handoffs - issues detected:")
                 for issue in warn_issues:
                     iid_short = issue.get("interaction_id", "?")[:12] + "..."
                     itype = issue["issue"]
@@ -170,7 +170,7 @@ def cmd_verify(args):
                         print(f"  {YELLOW}INFO{RESET}: Handoff {iid_short}: acknowledged but no result yet")
 
             if not fail_issues and not warn_issues:
-                print(f"\n{GREEN}✓ PASS{RESET}: Handoffs — all handoffs verified (Ed25519)")
+                print(f"\n{GREEN}✓ PASS{RESET}: Handoffs - all handoffs verified (Ed25519)")
         else:
             print(f"\n  INFO: No handoff records found (v1.2 handoff verification not applicable)")
 
@@ -190,7 +190,7 @@ def cmd_stats(args):
     if not db_path:
         db_path = str(Path.home() / ".air-trust" / "events.db")
 
-    print_header("AIR Trust — Chain Statistics")
+    print_header("AIR Trust - Chain Statistics")
 
     if not Path(db_path).exists():
         print(f"{RED}No chain found at {db_path}{RESET}")
@@ -441,12 +441,12 @@ def cmd_register(args):
     reg_path = os.path.expanduser("~/.air-trust/registration.json")
 
     print("\033[33m" + "=" * 50)
-    print("  AIR Trust — Project Registration")
+    print("  AIR Trust - Project Registration")
     print("=" * 50 + "\033[0m")
     print()
     print("Registration is optional and helps us understand")
     print("who's using air-trust in production.")
-    print("No data is sent anywhere — stored locally only.")
+    print("No data is sent anywhere - stored locally only.")
     print()
 
     project = input("Project name: ").strip()
@@ -591,7 +591,7 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         prog="air-trust",
-        description="AIR Trust — Verify, inspect, and export audit chains",
+        description="AIR Trust - Verify, inspect, and export audit chains",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
@@ -672,7 +672,7 @@ def main():
     )
     register_parser.set_defaults(func=cmd_register)
 
-    # atf command — CSA Agentic Trust Framework conformance
+    # atf command - CSA Agentic Trust Framework conformance
     atf_parser = subparsers.add_parser(
         "atf",
         help="Check CSA Agentic Trust Framework (ATF) conformance for an agent identity",
@@ -684,7 +684,7 @@ def main():
         "--owner",
         type=str,
         default=None,
-        help="Owner (email or identifier) — required unless --config",
+        help="Owner (email or identifier) - required unless --config",
     )
     atf_parser.add_argument(
         "--version", type=str, default=None, help="Agent version (default: 0.0.0)"
@@ -739,7 +739,7 @@ def main():
     )
     atf_parser.set_defaults(func=cmd_atf)
 
-    # agent-identity command (v1.11+) — verify continuity across sessions
+    # agent-identity command (v1.11+) - verify continuity across sessions
     agent_id_parser = subparsers.add_parser(
         "agent-identity",
         help="Verify cryptographic identity continuity for an agent across the chain",

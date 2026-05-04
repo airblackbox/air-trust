@@ -1,5 +1,5 @@
 """
-air-trust — Universal compliance trust layer for any AI system.
+air-trust - Universal compliance trust layer for any AI system.
 
 One package. Any framework. Any LLM. Any agent.
 
@@ -18,7 +18,7 @@ One package. Any framework. Any LLM. Any agent.
         t.record("llm_call", model="gpt-4o", tokens=1500, cost=0.023)
 
 That's it. HMAC-SHA256 signed audit chain, PII detection,
-prompt injection scanning, evidence export — all local, no API key.
+prompt injection scanning, evidence export - all local, no API key.
 """
 
 __version__ = "0.6.1"

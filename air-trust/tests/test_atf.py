@@ -11,7 +11,7 @@ from air_trust import atf
 
 @pytest.fixture
 def minimal_identity():
-    """An identity with only agent_name + owner — bare minimum."""
+    """An identity with only agent_name + owner - bare minimum."""
     return AgentIdentity(
         agent_name="minimal-agent",
         owner="jason@airblackbox.ai",
